@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
-import manageCustomerRoutes from './routes/ManageCustomerRoutes.js'; // Added this
+import manageCustomerRoutes from './routes/ManageCustomerRoutes.js'; 
 
 dotenv.config();
 
@@ -18,7 +18,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Middleware
-app.use(cors());
+// [CORS is essential to allow your frontend at port 5173 to talk to this backend]
+app.use(cors()); 
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -29,11 +30,23 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/admin', manageCustomerRoutes); // Connected ManageCustomerRoutes here
+
+/** * ADMIN ROUTES 
+ * This prefix ensures that:
+ * 1. router.get('/customers') in your route file becomes http://localhost:5000/api/admin/customers
+ * 2. router.get('/stats') in your route file becomes http://localhost:5000/api/admin/stats
+ */
+app.use('/api/admin', manageCustomerRoutes); 
 
 // Root Endpoint
 app.get('/', (req, res) => {
   res.json({ message: "OrderClick API is running with MySQL!" });
+});
+
+// Error Handling Middleware (Optional but helpful for debugging JSON syntax errors)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "Internal Server Error", error: err.message });
 });
 
 // Start Server

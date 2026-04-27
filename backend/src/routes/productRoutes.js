@@ -4,7 +4,7 @@ import path from 'path';
 import * as productController from '../controllers/productController.js';
 // Import the receipt functions from your order controller
 import { getAllReceipts, updateReceiptStatus, deleteReceipt } from '../controllers/orderController.js';
-import { getAllAdminReceipts } from '../controllers/productController.js';
+
 const router = express.Router();
 
 /**
@@ -34,7 +34,7 @@ router.delete('/:id', productController.deleteProduct);
  * ADMIN RECEIPT MANAGEMENT ROUTES
  * These will be accessible at /api/products/admin/receipts...
  */
-router.get('/admin/receipts', getAllAdminReceipts);
+router.get('/admin/receipts', getAllReceipts);
 router.patch('/admin/receipts/:id/status', updateReceiptStatus);
 router.delete('/admin/receipts/:id', deleteReceipt);
 

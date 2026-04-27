@@ -17,12 +17,11 @@ interface AdminSidenavProps {
 const AdminSidenav = ({ activeTab, setActiveTab, onLogout }: AdminSidenavProps) => {
   
   // Centralized navigation properties
-  // Ensure 'customers' matches the case in your AdminDashboard switch/condition
   const menuItems = [
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
     { id: 'products', label: 'Inventory', icon: Package },
     { id: 'receipts', label: 'Orders & Receipts', icon: Receipt },
-    { id: 'customers', label: 'User Directory', icon: Users }, // This connects to ManageUser
+    { id: 'customers', label: 'User Directory', icon: Users },
     { id: 'settings', label: 'Portal Settings', icon: Settings },
   ];
 

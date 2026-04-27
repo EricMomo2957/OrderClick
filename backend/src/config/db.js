@@ -1,4 +1,4 @@
-import mysql from 'mysql2'; // or 'mysql'
+import mysql from 'mysql2';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -7,7 +7,9 @@ const db = mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'orderclick_db'
+  database: process.env.DB_NAME || 'orderclick_db',
+  // CRITICAL: Allows running multiple queries separated by semicolons
+  multipleStatements: true 
 });
 
 db.connect((err) => {
@@ -18,5 +20,4 @@ db.connect((err) => {
   console.log('Connected to MySQL Database.');
 });
 
-// THIS LINE IS CRITICAL
 export default db;

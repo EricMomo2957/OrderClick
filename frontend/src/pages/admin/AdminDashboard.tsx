@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import AdminSidenav from './AdminSidenav';
 import ManageProduct from './ManageProduct';
 import ManageReceipt from './ManageReceipt';
-import ManageUser from './ManageUser';
+
 interface AdminDashboardProps {
   onLogout: () => void;
 }
@@ -58,9 +58,6 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
           <AdminOverview stats={stats} setActiveTab={setActiveTab} />
         )}
 
-        {/* Inside your AdminDashboard main content area */}
-        {activeTab === 'customers' && <ManageUser />}
-
         {activeTab === 'products' && <ManageProduct />}
 
         {activeTab === 'receipts' && <ManageReceipt />}
@@ -78,7 +75,6 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
              <p className="text-slate-500 italic mt-4 text-sm">Portal configuration settings coming soon.</p>
           </div>
         )}
-        
       </main>
     </div>
   );

@@ -1,24 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { FileText, Trash2, CheckCircle, RefreshCw } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 interface Receipt {
     id: number;
     customer_name: string;
     product_name: string;
-    category: string; 
     quantity: number;
     total_price: number;
     status: 'pending' | 'verified' | 'rejected';
-    created_at: string;
 }
 
 const ManageReceipt = () => {
     const [receipts, setReceipts] = useState<Receipt[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Updated to match your combined productRoutes.js endpoints
     const API_BASE = 'http://localhost:5000/api/products/admin/receipts';
 
     const fetchAllReceipts = async () => {
@@ -28,6 +24,7 @@ const ManageReceipt = () => {
             setReceipts(res.data);
         } catch (error) {
             console.error("Failed to fetch receipts:", error);
+            alert("Error loading receipts. Check if backend is running.");
         } finally {
             setLoading(false);
         }
@@ -37,142 +34,97 @@ const ManageReceipt = () => {
         fetchAllReceipts();
     }, []);
 
-    const generatePDF = (r: Receipt) => {
-        const doc = new jsPDF();
-        
-        // Header
-        doc.setFontSize(20);
-        doc.text('ORDERCLICK RECEIPT', 105, 20, { align: 'center' });
-        
-        doc.setFontSize(10);
-        doc.text(`Receipt ID: #REC-${r.id}`, 20, 40);
-        doc.text(`Customer: ${r.customer_name}`, 20, 45);
-        doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 50);
-        doc.text(`Status: ${r.status.toUpperCase()}`, 20, 55);
-
-        // Table with joined Category data
-        autoTable(doc, {
-            startY: 65,
-            head: [['Product', 'Category', 'Quantity', 'Total']],
-            body: [[
-                r.product_name, 
-                r.category || 'General', 
-                `x${r.quantity}`, 
-                `P${Number(r.total_price).toLocaleString()}`
-            ]],
-            theme: 'striped',
-            headStyles: { fillColor: [0, 61, 61] }
-        });
-
-        doc.text('Thank you for using OrderClick!', 105, doc.internal.pageSize.height - 20, { align: 'center' });
-        doc.save(`Receipt_${r.customer_name}_${r.id}.pdf`);
-    };
-
     const handleUpdateStatus = async (id: number, status: string) => {
         try {
             await axios.patch(`${API_BASE}/${id}/status`, { status });
-            fetchAllReceipts();
+            alert(`Order marked as ${status}`);
+            fetchAllReceipts(); // Refresh list
         } catch (error) {
+            console.error("Update failed:", error);
             alert("Failed to update status.");
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (window.confirm("Permanently delete this record?")) {
+        if (window.confirm("Are you sure you want to permanently delete this receipt?")) {
             try {
                 await axios.delete(`${API_BASE}/${id}`);
+                alert("Receipt deleted successfully");
                 fetchAllReceipts();
             } catch (error) {
+                console.error("Delete failed:", error);
                 alert("Failed to delete record.");
             }
         }
     };
 
-    return (
-        <div className="animate-in fade-in duration-500">
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h2 className="text-2xl font-black text-slate-800">Manage Customer Receipts</h2>
-                    <p className="text-slate-500 text-sm">Review, verify, and generate official PDF receipts.</p>
-                </div>
-                <button 
-                    onClick={fetchAllReceipts}
-                    className="flex items-center gap-2 text-xs font-bold text-[#003d3d] bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition-all"
-                >
-                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
-                </button>
-            </div>
+    if (loading) return <div className="p-6 text-center">Loading receipts...</div>;
 
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="bg-slate-50 border-b border-slate-100">
-                            <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Product Details</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Total</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                        {receipts.length === 0 ? (
-                            <tr>
-                                <td colSpan={5} className="py-20 text-center text-slate-400 italic">No receipts found.</td>
+    return (
+        <div className="p-6 bg-gray-50 min-h-screen">
+            <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">Manage Customer Receipts</h2>
+                
+                <div className="overflow-x-auto">
+                    <table className="min-w-full bg-white">
+                        <thead>
+                            <tr className="bg-gray-100 text-gray-700 uppercase text-sm leading-normal">
+                                <th className="py-3 px-6 text-left">Customer</th>
+                                <th className="py-3 px-6 text-left">Product</th>
+                                <th className="py-3 px-6 text-center">Total</th>
+                                <th className="py-3 px-6 text-center">Status</th>
+                                <th className="py-3 px-6 text-center">Actions</th>
                             </tr>
-                        ) : (
-                            receipts.map((r) => (
-                                <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-6 py-5 font-bold text-slate-800">{r.customer_name}</td>
-                                    <td className="px-6 py-5">
-                                        <div className="text-slate-800 font-medium">{r.product_name}</div>
-                                        {/* Row Category Display */}
-                                        <div className="text-[10px] text-slate-400 uppercase font-bold">
-                                            {r.category || 'General'} • x{r.quantity}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-5 text-center font-black text-[#003d3d]">
-                                        ₱{Number(r.total_price).toLocaleString()}
-                                    </td>
-                                    <td className="px-6 py-5 text-center">
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${
-                                            r.status === 'pending' ? 'bg-amber-100 text-amber-700' : 
-                                            r.status === 'verified' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                                        }`}>
-                                            {r.status.toUpperCase()}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        <div className="flex items-center justify-center gap-2">
-                                            {r.status === 'pending' && (
-                                                <button 
-                                                    onClick={() => handleUpdateStatus(r.id, 'verified')} 
-                                                    className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
-                                                    title="Verify Order"
-                                                >
-                                                    <CheckCircle size={16} />
-                                                </button>
-                                            )}
-                                            <button 
-                                                onClick={() => generatePDF(r)} 
-                                                className="p-2 bg-slate-800 text-white rounded-lg hover:bg-black transition-colors"
-                                                title="Download PDF"
-                                            >
-                                                <FileText size={16} />
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(r.id)} 
-                                                className="p-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors"
-                                                title="Delete Record"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </td>
+                        </thead>
+                        <tbody className="text-gray-600 text-sm">
+                            {receipts.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="py-10 text-center text-gray-400">No receipts found.</td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : (
+                                receipts.map((r) => (
+                                    <tr key={r.id} className="border-b border-gray-200 hover:bg-gray-50">
+                                        <td className="py-3 px-6 text-left whitespace-nowrap font-medium">
+                                            {r.customer_name}
+                                        </td>
+                                        <td className="py-3 px-6 text-left">
+                                            {r.product_name} <span className="text-gray-400">x{r.quantity}</span>
+                                        </td>
+                                        <td className="py-3 px-6 text-center font-bold">
+                                            ₱{Number(r.total_price).toLocaleString()}
+                                        </td>
+                                        <td className="py-3 px-6 text-center">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                                r.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                                                r.status === 'verified' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                            }`}>
+                                                {r.status.toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-6 text-center">
+                                            <div className="flex item-center justify-center gap-2">
+                                                {r.status === 'pending' && (
+                                                    <button 
+                                                        onClick={() => handleUpdateStatus(r.id, 'verified')} 
+                                                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded transition duration-200"
+                                                    >
+                                                        Verify
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    onClick={() => handleDelete(r.id)} 
+                                                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition duration-200"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
