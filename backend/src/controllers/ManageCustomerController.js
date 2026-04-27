@@ -23,17 +23,21 @@ export const getAdminStats = (req, res) => {
     `;
 
     db.query(query, (err, results) => {
-        if (err) {
-            console.error("Error fetching stats:", err);
-            return res.status(500).json({ error: "Database error" });
-        }
+    if (err) {
+        console.error("Error fetching stats:", err);
+        return res.status(500).json({ error: "Database error" });
+    }
 
-        // results will be an array of arrays when running multiple queries
-        res.json({
-            revenue: results[0][0].revenue || 0,
-            receipts: results[1][0].receipts || 0,
-            products: results[2][0].products || 0,
-            lowStock: 0 // You can add a specific count for low stock here later
-        });
+    // Add checks ( || {} ) to prevent crashing if a table is empty
+    const revenueData = results[0][0] || { revenue: 0 };
+    const receiptData = results[1][0] || { receipts: 0 };
+    const productData = results[2][0] || { products: 0 };
+
+    res.json({
+        revenue: revenueData.revenue || 0,
+        receipts: receiptData.receipts || 0,
+        products: productData.products || 0,
+        lowStock: 0
     });
+});
 };
