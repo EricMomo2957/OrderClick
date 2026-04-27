@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, Calendar, RefreshCw } from 'lucide-react';
+import { User, Mail, Calendar, RefreshCw, FileText } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Customer {
   id: number;
-  fullname: string; // Updated from 'name' to 'fullname' to match your DB
+  fullname: string;
   email: string;
   created_at: string;
 }
@@ -16,6 +18,7 @@ const ManageUser = () => {
     setLoading(true);
     try {
       const res = await fetch('http://localhost:5000/api/admin/customers');
+      if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
       setCustomers(data);
     } catch (err) {
@@ -29,6 +32,39 @@ const ManageUser = () => {
     fetchCustomers();
   }, []);
 
+  // PDF Generation for the full list
+  const exportUserListPDF = () => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(0, 61, 61); // Matches your #003d3d theme
+    doc.text("ORDERCLICK: USER DIRECTORY", 105, 15, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
+
+    // Table Generation
+    const tableRows = customers.map(user => [
+      `#USR-${user.id}`,
+      user.fullname,
+      user.email,
+      new Date(user.created_at).toLocaleDateString()
+    ]);
+
+    autoTable(doc, {
+      startY: 30,
+      head: [['ID', 'Customer Name', 'Email Address', 'Joined Date']],
+      body: tableRows,
+      headStyles: { fillColor: [0, 61, 61], textColor: [255, 255, 255] },
+      alternateRowStyles: { fillColor: [241, 245, 249] },
+      margin: { top: 30 },
+    });
+
+    doc.save("OrderClick_User_Directory.pdf");
+  };
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex justify-between items-center mb-8">
@@ -36,12 +72,25 @@ const ManageUser = () => {
           <h2 className="text-2xl font-black text-slate-800">User Directory</h2>
           <p className="text-slate-500 text-sm">Manage and view all registered customer accounts.</p>
         </div>
-        <button 
-          onClick={fetchCustomers}
-          className="flex items-center gap-2 text-xs font-bold text-[#003d3d] bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition-all"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh List
-        </button>
+        
+        <div className="flex gap-3">
+          {/* PDF Download Button */}
+          <button 
+            onClick={exportUserListPDF}
+            disabled={customers.length === 0}
+            className="flex items-center gap-2 text-xs font-bold text-white bg-[#003d3d] px-5 py-2.5 rounded-xl hover:bg-[#002d2d] transition-all disabled:opacity-50"
+          >
+            <FileText size={14} /> Export PDF
+          </button>
+
+          {/* Refresh Button */}
+          <button 
+            onClick={fetchCustomers}
+            className="flex items-center gap-2 text-xs font-bold text-[#003d3d] bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition-all"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh List
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
