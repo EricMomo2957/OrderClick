@@ -18,7 +18,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: CustomerSidenavP
   const menuItems = [
     { id: 'shop', label: 'Marketplace', icon: ShoppingBag },
     { id: 'receipts', label: 'My Orders', icon: Receipt },
-    { id: 'settings', label: 'Account Profile', icon: User }, // Match 'settings' ID in Dashboard
+    { id: 'profile', label: 'Account Profile', icon: User }, // Synchronized with activeTab === 'profile'
   ];
 
   return (
@@ -62,7 +62,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: CustomerSidenavP
         })}
       </nav>
 
-      {/* Feature Badge/Card (The "More Core" addition) */}
+      {/* Feature Badge/Card */}
       <div className="mb-6 p-4 bg-white/5 rounded-[1.5rem] border border-white/10">
         <div className="flex items-center gap-2 mb-2 text-teal-300">
           <Sparkles size={14} />
