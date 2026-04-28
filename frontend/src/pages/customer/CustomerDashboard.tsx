@@ -155,7 +155,9 @@ const CustomerDashboard = ({ onLogout }: CustomerDashboardProps) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'profile':
-        return <CustomerProfile user={currentUser} />;
+        return <CustomerProfile user={currentUser} onUpdate={function (updatedUser: any): void {
+          throw new Error('Function not implemented.');
+        } } />;
       
       case 'receipts':
         return (
