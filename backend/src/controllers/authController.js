@@ -59,13 +59,12 @@ export const login = (req, res) => {
         { expiresIn: '1d' }
       );
 
-      // FIXED: Added 'id' and changed 'fullname' to match what the frontend expects
       res.json({ 
         message: "Login successful",
         token, 
         user: { 
-          id: user.id, // CRITICAL: This was missing
-          name: user.fullname, // Matches 'getUserData().name' in your dashboard
+          id: user.id,
+          name: user.fullname, 
           email: user.email,
           role: user.role 
         } 
@@ -78,22 +77,19 @@ export const login = (req, res) => {
 };
 
 /**
- * UPDATE PROFILE CONTROLLER
+ * UPDATE PROFILE CONTROLLER (SECURED)
  */
-// Inside controllers/authController.js
-
-// Assuming your db connection is imported at the top of this file
-// import db from '../config/db.js'; 
-
 export const updateProfile = async (req, res) => {
-  const { id, fullname, email } = req.body;
+  const { fullname, email } = req.body;
   
-  // 1. Validation: Ensure no empty data is sent to MySQL
-  if (!id || !fullname || !email) {
-    return res.status(400).json({ error: "All fields are required." });
+  // SECURE: Extract id from the token verified by authMiddleware
+  // Note: We use 'userId' because that is the key you used in the login jwt.sign
+  const id = req.user.userId; 
+  
+  if (!fullname || !email) {
+    return res.status(400).json({ error: "Fullname and email are required." });
   }
 
-  // 2. Query: Updating the specific user by their ID
   const query = "UPDATE users SET fullname = ?, email = ? WHERE id = ?";
   
   db.query(query, [fullname, email, id], (err, result) => {
@@ -102,19 +98,17 @@ export const updateProfile = async (req, res) => {
       return res.status(500).json({ error: "Database error during profile update." });
     }
 
-    // 3. Check if any row was actually changed
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "User not found." });
     }
 
-    // 4. Success Response: 
-    // We send back the new data so the frontend can update the 'user' state immediately
+    // Success Response
     res.json({ 
-      message: "Profile updated!", 
+      message: "Profile updated successfully!", 
       user: { 
         id: id, 
-        fullname: fullname, // Matches your DB column
-        name: fullname,     // Provided as an alias to match your dashboard's 'currentUser.name'
+        fullname: fullname,
+        name: fullname, // Alias for frontend dashboard compatibility
         email: email,
         role: 'customer' 
       } 

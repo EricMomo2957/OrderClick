@@ -1,14 +1,13 @@
-// Inside your routes/authRoutes.js
 import express from 'express';
-import { register, login } from '../controllers/authController.js';
-import { updateProfile } from '../controllers/authController.js';
+import { register, login, updateProfile } from '../controllers/authController.js';
+import authMiddleware from '../middleware/authMiddleware.js'; // Import your new middleware
+
 const router = express.Router();
 
 router.post('/register', register);
 router.post('/login', login);
 
-// Add this line if it's missing! 
-// This must be .put to match the frontend call
-router.put('/update-profile', updateProfile); 
+// Only a user with a valid token can hit this route now
+router.put('/update-profile', authMiddleware, updateProfile); 
 
 export default router;
