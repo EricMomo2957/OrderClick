@@ -30,7 +30,8 @@ const CustomerProfile = ({ user, onUpdate }: CustomerProfileProps) => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/update-profile', {
+      // Using 127.0.0.1 instead of localhost to ensure IPv4 connection
+      const response = await fetch('http://127.0.0.1:5000/api/auth/update-profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

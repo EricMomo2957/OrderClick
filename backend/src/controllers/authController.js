@@ -76,3 +76,48 @@ export const login = (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+/**
+ * UPDATE PROFILE CONTROLLER
+ */
+// Inside controllers/authController.js
+
+// Assuming your db connection is imported at the top of this file
+// import db from '../config/db.js'; 
+
+export const updateProfile = async (req, res) => {
+  const { id, fullname, email } = req.body;
+  
+  // 1. Validation: Ensure no empty data is sent to MySQL
+  if (!id || !fullname || !email) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
+
+  // 2. Query: Updating the specific user by their ID
+  const query = "UPDATE users SET fullname = ?, email = ? WHERE id = ?";
+  
+  db.query(query, [fullname, email, id], (err, result) => {
+    if (err) {
+      console.error("Update Error:", err);
+      return res.status(500).json({ error: "Database error during profile update." });
+    }
+
+    // 3. Check if any row was actually changed
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // 4. Success Response: 
+    // We send back the new data so the frontend can update the 'user' state immediately
+    res.json({ 
+      message: "Profile updated!", 
+      user: { 
+        id: id, 
+        fullname: fullname, // Matches your DB column
+        name: fullname,     // Provided as an alias to match your dashboard's 'currentUser.name'
+        email: email,
+        role: 'customer' 
+      } 
+    });
+  });
+};
