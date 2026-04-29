@@ -53,8 +53,13 @@ export const login = (req, res) => {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
+      // FIXED: Included 'id' in the token payload to prevent admin_id null errors
       const token = jwt.sign(
-        { userId: user.id, role: user.role },
+        { 
+          id: user.id,          // Essential for database relations
+          email: user.email, 
+          role: user.role 
+        },
         process.env.JWT_SECRET || 'secret_key_orderclick',
         { expiresIn: '1d' }
       );

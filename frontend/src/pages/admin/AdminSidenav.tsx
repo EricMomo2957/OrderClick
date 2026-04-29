@@ -4,10 +4,10 @@ import {
   Receipt, 
   Users, 
   Settings, 
-  LogOut 
+  LogOut,
+  Calendar // Added for Events
 } from 'lucide-react';
 
-// Define the interface for props to ensure type safety
 interface AdminSidenavProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
@@ -16,21 +16,24 @@ interface AdminSidenavProps {
 
 const AdminSidenav = ({ activeTab, setActiveTab, onLogout }: AdminSidenavProps) => {
   
-  // Centralized navigation properties
   const menuItems = [
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
     { id: 'products', label: 'Inventory', icon: Package },
     { id: 'receipts', label: 'Orders & Receipts', icon: Receipt },
+    { id: 'events', label: 'Event Manager', icon: Calendar }, // New Event Tab
     { id: 'customers', label: 'User Directory', icon: Users },
     { id: 'settings', label: 'Portal Settings', icon: Settings },
   ];
 
+  // Using #004a80 to match your Login and Dashboard theme
+  const brandColor = "#004a80"; 
+
   return (
-    <aside className="w-64 bg-[#003d3d] text-white fixed h-full flex flex-col p-6 shadow-2xl z-20">
+    <aside className={`w-64 bg-[#004a80] text-white fixed h-full flex flex-col p-6 shadow-2xl z-20`}>
       {/* Branding Section */}
       <div className="flex items-center gap-3 mb-12 px-2">
-        <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-teal-900/20">
-          <span className="text-[#003d3d] font-black text-xl italic">O</span>
+        <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-blue-900/20">
+          <span className="text-[#004a80] font-black text-xl italic">O</span>
         </div>
         <h1 className="text-xl font-bold tracking-tight">
           Order<span className="opacity-70">Click</span>
@@ -47,14 +50,14 @@ const AdminSidenav = ({ activeTab, setActiveTab, onLogout }: AdminSidenavProps) 
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 font-bold text-sm ${
                 isActive 
-                  ? 'bg-white text-[#003d3d] shadow-xl translate-x-2' 
-                  : 'text-teal-50/50 hover:bg-white/10 hover:text-white'
+                  ? 'bg-white text-[#004a80] shadow-xl translate-x-2' 
+                  : 'text-blue-50/50 hover:bg-white/10 hover:text-white'
               }`}
             >
               <item.icon 
                 size={20} 
                 strokeWidth={isActive ? 2.5 : 2} 
-                className={isActive ? 'text-[#003d3d]' : 'text-teal-50/40'}
+                className={isActive ? 'text-[#004a80]' : 'text-blue-50/40'}
               />
               {item.label}
             </button>

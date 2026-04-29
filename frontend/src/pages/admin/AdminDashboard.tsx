@@ -7,6 +7,7 @@ import AdminSidenav from './AdminSidenav';
 import ManageProduct from './ManageProduct';
 import ManageReceipt from './ManageReceipt';
 import ManageUser from './ManageUser';
+import AdminEvent from './AdminEvent'; //
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -62,6 +63,8 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
         {activeTab === 'products' && <ManageProduct />}
         {activeTab === 'receipts' && <ManageReceipt />}
         {activeTab === 'customers' && <ManageUser />}
+        {/* Added AdminEvent Tab */}
+        {activeTab === 'events' && <AdminEvent />} 
       </main>
     </div>
   );
@@ -69,16 +72,15 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
 
 const AdminOverview = ({ stats, setActiveTab }: { stats: DashboardStats, setActiveTab: (t: string) => void }) => {
   
-  // Real Data Mapping for Charts
   const barData = [
     { name: 'Current Revenue', value: stats.totalSales },
-    { name: 'Revenue Goal', value: 5000 }, // Example static target
+    { name: 'Revenue Goal', value: 5000 },
   ];
 
   const pieData = [
-    { name: 'Total Products', value: stats.totalProducts, color: '#6366f1' }, // Indigo
-    { name: 'Pending Receipts', value: stats.pendingReceipts, color: '#f59e0b' }, // Amber
-    { name: 'Low Stock', value: stats.lowStockItems, color: '#ef4444' }, // Red
+    { name: 'Total Products', value: stats.totalProducts, color: '#6366f1' },
+    { name: 'Pending Receipts', value: stats.pendingReceipts, color: '#f59e0b' },
+    { name: 'Low Stock', value: stats.lowStockItems, color: '#ef4444' },
   ];
 
   return (
@@ -97,7 +99,6 @@ const AdminOverview = ({ stats, setActiveTab }: { stats: DashboardStats, setActi
         </div>
       </header>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <StatCard label="Revenue" value={`₱${(stats?.totalSales || 0).toLocaleString()}`} icon="💰" color="text-blue-600" />
         <StatCard label="Total Receipts" value={stats?.pendingReceipts || 0} icon="📄" color="text-amber-500" />
@@ -105,9 +106,7 @@ const AdminOverview = ({ stats, setActiveTab }: { stats: DashboardStats, setActi
         <StatCard label="Low Stock" value={stats?.lowStockItems || 0} icon="⚠️" color="text-red-500" isAlert={(stats?.lowStockItems || 0) > 0} />
       </div>
 
-      {/* NEW: LIVE CHARTS SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Bar Chart: Revenue Comparison */}
         <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 mb-6 uppercase tracking-wider">Revenue Analysis</h3>
           <div className="h-[250px] w-full">
@@ -117,13 +116,12 @@ const AdminOverview = ({ stats, setActiveTab }: { stats: DashboardStats, setActi
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
                 <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
                 <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
-                <Bar dataKey="value" fill="#003d3d" radius={[6, 6, 0, 0]} barSize={40} />
+                <Bar dataKey="value" fill="#004a80" radius={[6, 6, 0, 0]} barSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Pie Chart: System Distribution */}
         <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm text-center">
           <h3 className="text-sm font-bold text-slate-800 mb-6 uppercase tracking-wider text-left">Stock & Orders</h3>
           <div className="h-[250px] w-full">
@@ -142,20 +140,25 @@ const AdminOverview = ({ stats, setActiveTab }: { stats: DashboardStats, setActi
         </div>
       </div>
 
-      {/* Quick Actions & Notifications */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
           <h3 className="text-md font-bold mb-4 text-slate-800">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => setActiveTab('products')} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-teal-500 hover:bg-teal-50 transition-all text-left group">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <button onClick={() => setActiveTab('products')} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-[#004a80] hover:bg-blue-50/50 transition-all text-left group">
               <p className="text-xl mb-1 group-hover:scale-110 transition-transform">🛍️</p>
               <p className="font-bold text-slate-800 text-sm">Add Product</p>
-              <p className="text-[10px] text-slate-500">Update inventory stock</p>
+              <p className="text-[10px] text-slate-500">Update inventory</p>
             </button>
-            <button onClick={() => setActiveTab('receipts')} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-500 hover:bg-blue-50 transition-all text-left group">
+            <button onClick={() => setActiveTab('receipts')} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-[#004a80] hover:bg-blue-50/50 transition-all text-left group">
               <p className="text-xl mb-1 group-hover:scale-110 transition-transform">📑</p>
               <p className="font-bold text-slate-800 text-sm">Verify Receipts</p>
-              <p className="text-[10px] text-slate-500">Check pending payments</p>
+              <p className="text-[10px] text-slate-500">Check payments</p>
+            </button>
+            {/* Added Event Quick Action */}
+            <button onClick={() => setActiveTab('events')} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-[#004a80] hover:bg-blue-50/50 transition-all text-left group">
+              <p className="text-xl mb-1 group-hover:scale-110 transition-transform">📅</p>
+              <p className="font-bold text-slate-800 text-sm">Post Event</p>
+              <p className="text-[10px] text-slate-500">Manage schedules</p>
             </button>
           </div>
         </div>

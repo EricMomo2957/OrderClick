@@ -9,6 +9,7 @@ import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import manageCustomerRoutes from './routes/ManageCustomerRoutes.js'; 
+import eventRoutes from './routes/eventRoutes.js'; 
 
 dotenv.config();
 
@@ -19,31 +20,30 @@ const app = express();
 
 // --- 1. MIDDLEWARE ---
 
-// Updated CORS to handle both localhost and the 127.0.0.1 loopback
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
-  credentials: true
-}));
+// Simplified CORS to resolve the "Could not connect" error
+app.use(cors()); 
 
-// Standard body parsers
+// Standard body parsers for JSON and URL-encoded data
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // --- 2. STATIC FOLDERS ---
+// This serves your images/assets from the uploads folder
 app.use('/uploads', express.static(path.join(__dirname, '../uploads'))); 
 
 // --- 3. ROUTES ---
-app.use('/api/auth', authRoutes); // This now only contains /register and /login
+app.use('/api/auth', authRoutes); 
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', manageCustomerRoutes); 
+app.use('/api/events', eventRoutes); 
 
-// Root Endpoint
+// Root Endpoint for testing the server status
 app.get('/', (req, res) => {
   res.json({ message: "OrderClick API is running with MySQL!" });
 });
 
-// Error Handling
+// Global Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: "Internal Server Error", error: err.message });
