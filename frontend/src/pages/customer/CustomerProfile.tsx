@@ -23,42 +23,51 @@ const CustomerProfile = ({ user, onUpdate }: CustomerProfileProps) => {
   }, [user]);
 
   const handleSave = async () => {
+    // 1. Retrieve the token from localStorage
+    const token = localStorage.getItem('token'); 
+
+    if (!token) {
+      alert("You must be logged in to update your profile.");
+      return;
+    }
+
     if (!formData.fullname || !formData.email) {
       alert("Please fill in all fields.");
       return;
     }
 
     setIsLoading(true);
+
     try {
-      // Using 127.0.0.1 instead of localhost to ensure IPv4 connection
+      // 2. Point to the specific backend port
+      
       const response = await fetch('http://127.0.0.1:5000/api/auth/update-profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          // 3. CRITICAL: Add the Authorization header for authMiddleware
+          'Authorization': `Bearer ${token}` 
         },
         body: JSON.stringify({
-          id: user.id,
           fullname: formData.fullname,
           email: formData.email
         }),
       });
 
+      // 4. Handle the response
       const data = await response.json();
 
       if (response.ok) {
-        // Sync with Dashboard and LocalStorage
+        // Sync with Dashboard state so UI updates immediately
         onUpdate(data.user); 
-        
-        if (data.token) localStorage.setItem('token', data.token);
-        
         setIsEditing(false);
         alert("Profile updated successfully!");
       } else {
+        // Displays errors like "Invalid or expired token" from your middleware
         alert(data.error || "Update failed");
       }
     } catch (error) {
-      console.error("Update Error:", error);
+      console.error("Connection Error:", error);
       alert("Could not connect to the server. Please check if your backend is running on port 5000.");
     } finally {
       setIsLoading(false);
