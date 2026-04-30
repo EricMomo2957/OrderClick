@@ -1,29 +1,39 @@
 import jwt from 'jsonwebtoken';
 
-const authMiddleware = (req, res, next) => {
-    // 1. Look for the 'Authorization' header
-    const authHeader = req.headers.authorization;
+/**
+ * verifyToken Middleware
+ * 1. Checks for the Authorization header.
+ * 2. Extracts the Bearer token.
+ * 3. Verifies the JWT and attaches the decoded user (id, role, etc.) to req.user.
+ */
+export const verifyToken = (req, res, next) => {
+    // Look for the header (standard practice uses lowercase 'authorization')
+    const authHeader = req.headers['authorization'];
     
-    // 2. Extract the token (format: "Bearer <token>")
+    // Extract the token from "Bearer <token>"
     const token = authHeader && authHeader.split(' ')[1];
 
+    // If no token is provided, block the request
     if (!token) {
-        return res.status(401).json({ error: "Access denied. Please log in first." });
+        return res.status(401).json({ error: "Access Denied. No token provided." });
     }
 
-    try {
-        // 3. Verify the token using your JWT_SECRET from .env
-        const verified = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify the token using the secret key from your .env file
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(403).json({ error: "Invalid or expired token." });
+        }
         
-        // 4. Attach the user data to the request so the controller can use it
-        req.user = verified;
+        /**
+         * CRITICAL: Attach the decoded payload to req.user.
+         * This allows controllers to access req.user.id or req.user.userId.
+         */
+        req.user = decoded; 
         
-        // 5. Proceed to the next function (the updateProfile controller)
+        // Move to the next middleware or controller
         next();
-    } catch (err) {
-        // If the token is fake or expired
-        res.status(403).json({ error: "Invalid session. Please log in again." });
-    }
+    });
 };
 
-export default authMiddleware;
+// Optional: Keep a default export if you prefer, but named export is better for clarity
+export default verifyToken;

@@ -4,7 +4,8 @@ import {
   User, 
   LogOut, 
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  CalendarDays // Added for the events icon
 } from 'lucide-react';
 
 interface CustomerSidenavProps {
@@ -18,7 +19,8 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: CustomerSidenavP
   const menuItems = [
     { id: 'shop', label: 'Marketplace', icon: ShoppingBag },
     { id: 'receipts', label: 'My Orders', icon: Receipt },
-    { id: 'profile', label: 'Account Profile', icon: User }, // Synchronized with activeTab === 'profile'
+    { id: 'events', label: 'My Events', icon: CalendarDays }, // New Event Tab added here
+    { id: 'profile', label: 'Account Profile', icon: User },
   ];
 
   return (

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import CustomerSidenav from './CustomerSidenav';
 import CustomerProfile from './CustomerProfile'; 
+import CustomerEvent from './CustomerEvent'; 
 import { Download, RefreshCw } from 'lucide-react'; 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -155,9 +156,11 @@ const CustomerDashboard = ({ onLogout }: CustomerDashboardProps) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'profile':
-        return <CustomerProfile user={currentUser} onUpdate={function (updatedUser: any): void {
-          throw new Error('Function not implemented.');
-        } } />;
+        // REMOVED onUpdate prop here to fix the TypeScript error
+        return <CustomerProfile user={currentUser} />;
+      
+      case 'events':
+        return <CustomerEvent />;
       
       case 'receipts':
         return (
@@ -264,7 +267,7 @@ const CustomerDashboard = ({ onLogout }: CustomerDashboardProps) => {
       <main className="ml-64 flex-1 p-10">
         <header className="flex justify-between items-center mb-10">
           <h1 className="text-3xl font-black text-slate-900 tracking-tight capitalize">
-            {activeTab === 'shop' ? 'Marketplace' : activeTab} <span className="text-[#003d3d]">Portal</span>
+            {activeTab === 'shop' ? 'Marketplace' : activeTab === 'events' ? 'Event Scheduler' : activeTab} <span className="text-[#003d3d]">Portal</span>
           </h1>
           <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-200">
              <span className="text-sm font-bold text-slate-600">
