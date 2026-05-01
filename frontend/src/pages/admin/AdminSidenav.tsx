@@ -4,9 +4,16 @@ import {
   Receipt, 
   Users, 
   Settings, 
-  LogOut,
-  Calendar // Added for Events
+  LogOut, 
+  Calendar 
 } from 'lucide-react';
+
+// Import your feature modules
+import AdminOverview from './AdminOverview';
+import ManageProduct from './ManageProduct';
+import ManageReceipt from './ManageReceipt';
+import ManageUser from './ManageUser';
+import AdminEvent from './AdminEvent';
 
 interface AdminSidenavProps {
   activeTab: string;
@@ -14,22 +21,24 @@ interface AdminSidenavProps {
   onLogout: () => void;
 }
 
+/**
+ * SOURCE OF TRUTH
+ * Central configuration for the Admin Portal.
+ * Adding an object here automatically updates the Sidenav UI 
+ * and the Dashboard's rendering logic.
+ */
+export const ADMIN_MENU = [
+  { id: 'dashboard', label: 'Overview', icon: LayoutDashboard, component: AdminOverview },
+  { id: 'products', label: 'Inventory', icon: Package, component: ManageProduct },
+  { id: 'receipts', label: 'Orders & Receipts', icon: Receipt, component: ManageReceipt },
+  { id: 'events', label: 'Event Manager', icon: Calendar, component: AdminEvent },
+  { id: 'customers', label: 'User Directory', icon: Users, component: ManageUser },
+  // { id: 'settings', label: 'Portal Settings', icon: Settings, component: AdminSettings },
+];
+
 const AdminSidenav = ({ activeTab, setActiveTab, onLogout }: AdminSidenavProps) => {
-  
-  const menuItems = [
-    { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-    { id: 'products', label: 'Inventory', icon: Package },
-    { id: 'receipts', label: 'Orders & Receipts', icon: Receipt },
-    { id: 'events', label: 'Event Manager', icon: Calendar }, // New Event Tab
-    { id: 'customers', label: 'User Directory', icon: Users },
-    { id: 'settings', label: 'Portal Settings', icon: Settings },
-  ];
-
-  // Using #004a80 to match your Login and Dashboard theme
-  const brandColor = "#004a80"; 
-
   return (
-    <aside className={`w-64 bg-[#004a80] text-white fixed h-full flex flex-col p-6 shadow-2xl z-20`}>
+    <aside className="w-64 bg-[#004a80] text-white fixed h-full flex flex-col p-6 shadow-2xl z-20">
       {/* Branding Section */}
       <div className="flex items-center gap-3 mb-12 px-2">
         <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-blue-900/20">
@@ -42,7 +51,11 @@ const AdminSidenav = ({ activeTab, setActiveTab, onLogout }: AdminSidenavProps) 
 
       {/* Navigation Focus Area */}
       <nav className="flex-1 space-y-2">
-        {menuItems.map((item) => {
+        <p className="text-[10px] font-black text-blue-200/40 uppercase tracking-[0.2em] px-4 mb-4">
+          Admin Console
+        </p>
+        
+        {ADMIN_MENU.map((item) => {
           const isActive = activeTab === item.id;
           return (
             <button
