@@ -1,18 +1,5 @@
-import { 
-  ShoppingBag, 
-  Receipt, 
-  User, 
-  LogOut, 
-  Sparkles,
-  ShieldCheck,
-  CalendarDays 
-} from 'lucide-react';
-
-// Import your sub-components
-import CustomerProfile from './CustomerProfile'; 
-import CustomerEvent from './CustomerEvent';
-import CustomerShop from './CustomerShop';
-import CustomerOrders from './CustomerOrders';
+import { LogOut, Sparkles, ShieldCheck } from 'lucide-react';
+import { CUSTOMER_MENU } from './constants'; // Import the menu data from your new file
 
 interface CustomerSidenavProps {
   activeTab: string;
@@ -20,20 +7,7 @@ interface CustomerSidenavProps {
   onLogout: () => void;
 }
 
-/**
- * SOURCE OF TRUTH
- * This array defines the navigation structure and maps each ID 
- * to its respective React component.
- */
-export const CUSTOMER_MENU = [
-  { id: 'shop', label: 'Marketplace', icon: ShoppingBag, component: CustomerShop },
-  { id: 'receipts', label: 'My Orders', icon: Receipt, component: CustomerOrders },
-  { id: 'events', label: 'My Events', icon: CalendarDays, component: CustomerEvent },
-  { id: 'profile', label: 'Account Profile', icon: User, component: CustomerProfile },
-];
-
 const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: CustomerSidenavProps) => {
-  
   return (
     <aside className="w-64 bg-[#003d3d] text-white fixed h-full flex flex-col p-6 shadow-2xl z-20">
       {/* Brand Section */}
@@ -52,6 +26,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: CustomerSidenavP
           Main Menu
         </p>
         
+        {/* Mapping through the imported CUSTOMER_MENU */}
         {CUSTOMER_MENU.map((item) => {
           const isActive = activeTab === item.id;
           return (
