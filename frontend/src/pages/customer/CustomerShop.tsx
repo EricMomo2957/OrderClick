@@ -97,7 +97,7 @@ const CustomerShop = ({ user, onLogout }: CustomerShopProps) => {
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-4 sm:grid-cols-10 lg:grid-cols-3 xl:grid-cols-10 gap-6">
         {products
           .filter(p => activeCategory === 'All' || p.category === activeCategory)
           .map(p => (
