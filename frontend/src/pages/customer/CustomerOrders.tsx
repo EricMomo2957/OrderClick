@@ -129,14 +129,6 @@ const CustomerOrders = ({ user }: { user: any }) => {
                 </tr>
               ))
             ) : (
-              <tr>
-                <td colSpan={5} className="px-8 py-32 text-center">
-                  <div className="flex flex-col items-center opacity-20">
-                    <PackageCheck size={64} className="mb-4" />
-                    <p className="text-xl font-black uppercase tracking-widest">No Purchases Yet</p>
-                  </div>
-                </td>
-              </tr>
             )}
           </tbody>
         </table>
