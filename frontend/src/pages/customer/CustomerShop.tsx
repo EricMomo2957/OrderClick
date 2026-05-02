@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-// Interfaces extracted from Dashboard
+// Interfaces
 interface Product {
   id: number;
   name: string;
@@ -23,7 +23,7 @@ const CustomerShop = ({ user, onLogout }: CustomerShopProps) => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [isOrdering, setIsOrdering] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchProducts();
@@ -36,45 +36,45 @@ const CustomerShop = ({ user, onLogout }: CustomerShopProps) => {
       setProducts(data);
     } catch (err) {
       console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleOrder = async () => {
-    if (!selectedProduct || isOrdering) return;
-    
-    if (!user?.id) {
-      alert("Session expired. Please log in again.");
-      onLogout();
-      return;
+  const handleAddToCart = () => {
+    if (!selectedProduct) return;
+
+    // 1. Get existing cart from local storage
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+    // 2. Check if product already exists in cart
+    const existingItemIndex = existingCart.findIndex((item: any) => item.id === selectedProduct.id);
+
+    if (existingItemIndex > -1) {
+      // Update quantity if it exists
+      existingCart[existingItemIndex].qty += quantity;
+    } else {
+      // Add new item if it doesn't
+      const cartItem = {
+        id: selectedProduct.id,
+        name: selectedProduct.name,
+        description: selectedProduct.description,
+        price: selectedProduct.price,
+        qty: quantity,
+        category: selectedProduct.category,
+        image_url: selectedProduct.image_url,
+        stock: selectedProduct.stock
+      };
+      existingCart.push(cartItem);
     }
 
-    setIsOrdering(true);
-    try {
-      const response = await fetch('http://localhost:5000/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          productId: selectedProduct.id,
-          quantity: quantity,
-          totalPrice: selectedProduct.price * quantity
-        }),
-      });
+    // 3. Save back to localStorage
+    localStorage.setItem('cart', JSON.stringify(existingCart));
 
-      if (response.ok) {
-        alert(`Successfully ordered ${quantity}x ${selectedProduct.name}!`);
-        setSelectedProduct(null);
-        setQuantity(1);
-        fetchProducts(); // Refresh stock
-      } else {
-        const errorData = await response.json();
-        alert(`Order failed: ${errorData.message || 'Error occurred'}`);
-      }
-    } catch (err) {
-      alert("Could not connect to server.");
-    } finally {
-      setIsOrdering(false);
-    }
+    // 4. UI Feedback
+    alert(`${quantity}x ${selectedProduct.name} added to cart!`);
+    setSelectedProduct(null);
+    setQuantity(1);
   };
 
   return (
@@ -97,7 +97,7 @@ const CustomerShop = ({ user, onLogout }: CustomerShopProps) => {
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-4 sm:grid-cols-10 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {products
           .filter(p => activeCategory === 'All' || p.category === activeCategory)
           .map(p => (
@@ -118,7 +118,7 @@ const CustomerShop = ({ user, onLogout }: CustomerShopProps) => {
                     onClick={() => { setSelectedProduct(p); setQuantity(1); }}
                     className="bg-[#003d3d] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#002d2d] transition-all"
                   >
-                    Order Now
+                    Add to Cart
                   </button>
                 </div>
               </div>
@@ -126,12 +126,12 @@ const CustomerShop = ({ user, onLogout }: CustomerShopProps) => {
           ))}
       </div>
 
-      {/* Order Confirmation Modal */}
+      {/* Add to Cart Modal */}
       {selectedProduct && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in duration-200">
             <div className="flex justify-between items-start mb-6">
-              <h2 className="text-2xl font-black text-slate-900">Confirm Order</h2>
+              <h2 className="text-2xl font-black text-slate-900">Add to Cart</h2>
               <button onClick={() => setSelectedProduct(null)} className="text-slate-400 hover:text-slate-600 text-2xl">×</button>
             </div>
             
@@ -144,7 +144,7 @@ const CustomerShop = ({ user, onLogout }: CustomerShopProps) => {
             </div>
 
             <div className="space-y-4">
-              <label className="block text-sm font-bold text-slate-600">Quantity to buy:</label>
+              <label className="block text-sm font-bold text-slate-600">Quantity:</label>
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setQuantity(Math.max(1, quantity - 1))} 
@@ -156,20 +156,20 @@ const CustomerShop = ({ user, onLogout }: CustomerShopProps) => {
                   className="w-12 h-12 rounded-xl border border-slate-200 flex items-center justify-center font-bold text-xl hover:bg-slate-50"
                 >+</button>
               </div>
-              <p className="text-[10px] text-slate-400">Stock available: {selectedProduct.stock}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Available Stock: {selectedProduct.stock}</p>
             </div>
 
             <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Total Amount</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Subtotal</p>
                 <p className="text-2xl font-black text-[#003d3d]">₱{(selectedProduct.price * quantity).toLocaleString()}</p>
               </div>
               <button 
-                onClick={handleOrder}
-                disabled={isOrdering || selectedProduct.stock === 0}
-                className={`${isOrdering ? 'bg-slate-400' : 'bg-[#003d3d]'} text-white px-8 py-3 rounded-2xl font-black shadow-lg hover:-translate-y-1 transition-all`}
+                onClick={handleAddToCart}
+                disabled={selectedProduct.stock === 0}
+                className="bg-[#003d3d] text-white px-8 py-3 rounded-2xl font-black shadow-lg hover:-translate-y-1 transition-all disabled:bg-slate-300 disabled:transform-none"
               >
-                {isOrdering ? 'Processing...' : 'Place Order'}
+                Add to Cart
               </button>
             </div>
           </div>
