@@ -17,6 +17,8 @@ import ManageUser from './ManageUser';
 import AdminEvent from './AdminEvent';
 import AdminOrders from './AdminOrders';
 import AdminAnnouncement from './AdminAnnouncement'; // Added this import
+import FileUploadSample from './FileUploadSample'; // Example of a new feature module you might add in the future
+
 
 interface AdminSidenavProps {
   activeTab: string;
@@ -36,6 +38,7 @@ export const ADMIN_MENU = [
   { id: 'events', label: 'Event Manager', icon: Calendar, component: AdminEvent },
   { id: 'announcements', label: 'Broadcast', icon: Megaphone, component: AdminAnnouncement }, // Added this line
   { id: 'customers', label: 'User Directory', icon: Users, component: ManageUser },
+  { id: 'file-upload', label: 'Media Upload', icon: Package, component: FileUploadSample } // Example of how to add a new feature
 ];
 
 const AdminSidenav = ({ activeTab, setActiveTab, onLogout }: AdminSidenavProps) => {
