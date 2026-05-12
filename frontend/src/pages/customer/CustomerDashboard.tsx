@@ -1,6 +1,40 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Megaphone } from 'lucide-react';
 import CustomerSidenav from './CustomerSidenav';
-import { CUSTOMER_MENU } from './constants'; // Data is now imported from the clean constants file
+import { CUSTOMER_MENU } from './constants'; 
+
+/**
+ * ANNOUNCEMENT BANNER COMPONENT
+ * Fetches the latest active broadcast from the backend.
+ */
+const AnnouncementBanner = () => {
+    const [latest, setLatest] = useState<any>(null);
+
+    useEffect(() => {
+        axios.get('http://localhost:5000/api/announcements/latest')
+            .then(res => setLatest(res.data))
+            .catch(err => console.error("Could not fetch announcements:", err));
+    }, []);
+
+    if (!latest) return null;
+
+    return (
+        <div className="mb-8 p-6 bg-gradient-to-r from-[#003d3d] to-[#005a5a] rounded-[2rem] text-white shadow-xl relative overflow-hidden animate-in fade-in zoom-in duration-700">
+            <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="bg-teal-400 text-[#003d3d] text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                        Broadcast
+                    </span>
+                    <h4 className="font-black text-lg">{latest.title}</h4>
+                </div>
+                <p className="text-teal-50/80 text-sm leading-relaxed max-w-2xl">{latest.message}</p>
+            </div>
+            {/* Decorative Icon */}
+            <Megaphone className="absolute -right-4 -bottom-4 text-white/5 w-32 h-32 rotate-12" />
+        </div>
+    );
+};
 
 const CustomerDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState('shop');
@@ -10,23 +44,14 @@ const CustomerDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
   /**
    * DYNAMIC COMPONENT RESOLUTION
-   * We find the configuration object in CUSTOMER_MENU that matches the activeTab ID.
-   * This allows the dashboard to scale automatically when you add new items to constants.ts.
    */
   const menuConfig = CUSTOMER_MENU.find(item => item.id === activeTab);
-  
-  // Fallback to the first menu item (usually 'shop') if for some reason activeTab isn't found
   const ActiveComponent = menuConfig?.component || CUSTOMER_MENU[0].component;
-
-  /**
-   * TAB LABEL RESOLUTION
-   * Sets the header title based on the selected tab label (e.g., "Marketplace", "Shopping Cart")
-   */
   const activeLabel = menuConfig?.label || 'Marketplace';
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] flex font-['Inter']">
-      {/* SIDENAV: Pass state and setter to control navigation */}
+      {/* SIDENAV */}
       <CustomerSidenav 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
@@ -34,7 +59,7 @@ const CustomerDashboard = ({ onLogout }: { onLogout: () => void }) => {
       />
       
       <main className="ml-64 flex-1 p-10">
-        {/* SHARED HEADER: Shared across all customer pages */}
+        {/* SHARED HEADER */}
         <header className="flex justify-between items-center mb-10">
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">
@@ -56,13 +81,11 @@ const CustomerDashboard = ({ onLogout }: { onLogout: () => void }) => {
           </div>
         </header>
 
+        {/* ANNOUNCEMENT AREA */}
+        <AnnouncementBanner />
+
         {/* DYNAMIC CONTENT AREA */}
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* 
-                We pass currentUser and onLogout as props. 
-                Any component rendered here (Shop, Cart, Orders) has access 
-                to user data and the ability to trigger a logout.
-            */}
             <ActiveComponent user={currentUser} onLogout={onLogout} />
         </div>
       </main>

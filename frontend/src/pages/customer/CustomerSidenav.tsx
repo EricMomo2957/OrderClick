@@ -1,13 +1,14 @@
 import { LogOut, Sparkles, ShieldCheck } from 'lucide-react';
-import { CUSTOMER_MENU } from './constants'; // Import the menu data from your new file
+import { CUSTOMER_MENU } from './constants'; // Import the menu data from your constants file
 
-interface CustomerSidenavProps {
+// Updated Interface to include essential props
+interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onLogout: () => void;
 }
 
-const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: CustomerSidenavProps) => {
+const Sidebar = ({ activeTab, setActiveTab, onLogout }: SidebarProps) => {
   return (
     <aside className="w-64 bg-[#003d3d] text-white fixed h-full flex flex-col p-6 shadow-2xl z-20">
       {/* Brand Section */}
@@ -78,4 +79,4 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: CustomerSidenavP
   );
 };
 
-export default CustomerSidenav;
+export default Sidebar;

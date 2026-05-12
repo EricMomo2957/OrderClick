@@ -42,6 +42,24 @@ const Register = ({ setView }: RegisterProps) => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#f8fafc] p-6 font-['Inter'] relative overflow-hidden">
+      
+      {/* BACK TO LANDING ARROW */}
+      <button 
+        onClick={() => setView('landing')}
+        className="absolute top-8 left-8 flex items-center gap-2 text-gray-500 hover:text-[#003d3d] transition-colors font-medium group z-20"
+      >
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          className="h-5 w-5 group-hover:-translate-x-1 transition-transform" 
+          fill="none" 
+          viewBox="0 0 24 24" 
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        Back to Home
+      </button>
+
       {/* Design blurs */}
       <div className="absolute top-0 right-0 w-72 h-72 bg-blue-50 rounded-full mix-blend-multiply filter blur-3xl opacity-70"></div>
       <div className="absolute bottom-0 left-0 w-72 h-72 bg-teal-50 rounded-full mix-blend-multiply filter blur-3xl opacity-70"></div>

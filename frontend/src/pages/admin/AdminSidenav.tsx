@@ -3,9 +3,10 @@ import {
   Package, 
   Receipt, 
   Users, 
-  Settings, 
   LogOut, 
-  Calendar 
+  Calendar,
+  ShoppingBag,
+  Megaphone // Added for Announcements
 } from 'lucide-react';
 
 // Import your feature modules
@@ -14,6 +15,8 @@ import ManageProduct from './ManageProduct';
 import ManageReceipt from './ManageReceipt';
 import ManageUser from './ManageUser';
 import AdminEvent from './AdminEvent';
+import AdminOrders from './AdminOrders';
+import AdminAnnouncement from './AdminAnnouncement'; // Added this import
 
 interface AdminSidenavProps {
   activeTab: string;
@@ -24,16 +27,15 @@ interface AdminSidenavProps {
 /**
  * SOURCE OF TRUTH
  * Central configuration for the Admin Portal.
- * Adding an object here automatically updates the Sidenav UI 
- * and the Dashboard's rendering logic.
  */
 export const ADMIN_MENU = [
   { id: 'dashboard', label: 'Overview', icon: LayoutDashboard, component: AdminOverview },
   { id: 'products', label: 'Inventory', icon: Package, component: ManageProduct },
+  { id: 'guest-orders', label: 'Outside Orders', icon: ShoppingBag, component: AdminOrders },
   { id: 'receipts', label: 'Orders & Receipts', icon: Receipt, component: ManageReceipt },
   { id: 'events', label: 'Event Manager', icon: Calendar, component: AdminEvent },
+  { id: 'announcements', label: 'Broadcast', icon: Megaphone, component: AdminAnnouncement }, // Added this line
   { id: 'customers', label: 'User Directory', icon: Users, component: ManageUser },
-  // { id: 'settings', label: 'Portal Settings', icon: Settings, component: AdminSettings },
 ];
 
 const AdminSidenav = ({ activeTab, setActiveTab, onLogout }: AdminSidenavProps) => {

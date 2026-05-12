@@ -28,9 +28,31 @@ const ManageUser = () => {
     }
   };
 
-  useEffect(() => {
+  // Inside ManageCustomers.tsx
+useEffect(() => {
+    const fetchCustomers = async () => {
+        const token = localStorage.getItem('token'); 
+        try {
+            const response = await fetch('http://localhost:5000/api/admin/all-customers', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (response.status === 403) {
+                alert("Unauthorized Access. Admin only.");
+                return;
+            }
+
+            const data = await response.json();
+            setCustomers(data);
+        } catch (err) {
+            console.error("Failed to load customers", err);
+        }
+    };
+
     fetchCustomers();
-  }, []);
+}, []);
 
   // PDF Generation for the full list
   const exportUserListPDF = () => {

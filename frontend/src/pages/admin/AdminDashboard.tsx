@@ -1,46 +1,57 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminSidenav, { ADMIN_MENU } from './AdminSidenav';
 
-/**
- * AdminDashboard Shell
- * 
- * This is the layout wrapper for the entire Admin portal. 
- * It handles the 'activeTab' state and dynamically renders the 
- * component defined in AdminSidenav's ADMIN_MENU.
- */
-const AdminDashboard = ({ onLogout }: { onLogout: () => void }) => {
-  // 'dashboard' matches the ID in ADMIN_MENU for AdminOverview
-  const [activeTab, setActiveTab] = useState('dashboard');
+interface AdminDashboardProps {
+    onLogout: () => void;
+}
 
-  /**
-   * DYNAMIC COMPONENT RESOLUTION
-   * We look up the active tab in our Source of Truth (ADMIN_MENU).
-   * If not found, we default to the first menu item (Overview).
-   */
-  const menuConfig = ADMIN_MENU.find(item => item.id === activeTab);
-  const ActiveComponent = menuConfig?.component || ADMIN_MENU[0].component;
+const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const navigate = useNavigate();
 
-  return (
-    <div className="min-h-screen bg-[#f1f5f9] flex font-['Inter']">
-      {/* 
-          Fixed Sidebar 
-          Passes state down to control navigation 
-      */}
-      <AdminSidenav 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        onLogout={onLogout} 
-      />
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            onLogout();
+            navigate('/login');
+        }
+    }, [onLogout, navigate]);
 
-      {/* 
-          Main Content Area 
-          The margin-left (ml-64) accounts for the fixed sidebar width.
-      */}
-      <main className="ml-64 flex-1 p-10">
-        <ActiveComponent setActiveTab={setActiveTab} />
-      </main>
-    </div>
-  );
+    const menuConfig = ADMIN_MENU.find(item => item.id === activeTab);
+    const ActiveComponent = menuConfig?.component || ADMIN_MENU[0].component;
+
+    return (
+        <div className="min-h-screen bg-[#f1f5f9] flex font-['Inter']">
+            <AdminSidenav 
+                activeTab={activeTab} 
+                setActiveTab={setActiveTab} 
+                onLogout={onLogout} 
+            />
+
+            <main className="ml-64 flex-1 p-10 transition-all duration-300">
+                <header className="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">
+                            System / {menuConfig?.label || 'Overview'}
+                        </h1>
+                        <p className="text-2xl font-black text-slate-800">
+                            {menuConfig?.label} Panel
+                        </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-xs font-black text-slate-600 uppercase">Administrator Secure</span>
+                    </div>
+                </header>
+
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <ActiveComponent setActiveTab={setActiveTab} />
+                </div>
+            </main>
+        </div>
+    );
 };
 
 export default AdminDashboard;
