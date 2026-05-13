@@ -78,15 +78,21 @@ const AdminAnnouncement = () => {
         setEditFile(null); // Reset file selection for new edit session
     };
 
+    // INTEGRATED UPDATED UPDATE LOGIC
     const handleUpdate = async () => {
         if (!editingAnn) return;
         setLoading(true);
 
+        // We use FormData because the backend route uses Multer (upload.single)
         const formData = new FormData();
         formData.append('title', editTitle);
         formData.append('message', editMessage);
-        formData.append('is_active', '1'); // Default to active on update
-        if (editFile) formData.append('image', editFile);
+        formData.append('is_active', '1'); // Ensures the column is not null
+        
+        // Only append a new image if the user selected one
+        if (editFile) {
+            formData.append('image', editFile);
+        }
 
         try {
             await axios.put(`${API_URL}/${editingAnn.id}`, formData, {
@@ -95,10 +101,16 @@ const AdminAnnouncement = () => {
                     'Content-Type': 'multipart/form-data' 
                 }
             });
+            
+            // Success: clear states and refresh list
             setEditingAnn(null);
+            setEditFile(null);
             fetchAnnouncements();
+            alert("Broadcast updated successfully!");
         } catch (err: any) {
-            alert(`Update failed: ${err.response?.data?.message || err.message}`);
+            const errorMsg = err.response?.data?.message || err.message;
+            alert(`Update failed: ${errorMsg}`);
+            console.error("Update error details:", err.response?.data);
         } finally {
             setLoading(false);
         }

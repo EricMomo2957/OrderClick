@@ -47,20 +47,25 @@ export const createAnnouncement = async (req, res) => {
 export const updateAnnouncement = async (req, res) => {
     const { id } = req.params;
     const { title, message, is_active } = req.body;
-    let imageUrl = req.body.image_url; 
-
-    // If Multer processed a new file, update the path
-    if (req.file) {
-        imageUrl = `/uploads/${req.file.filename}`;
-    }
 
     try {
+        // 1. Get the current announcement data first
+        const [rows] = await db.promise().execute('SELECT image_url FROM announcements WHERE id = ?', [id]);
+        
+        if (rows.length === 0) return res.status(404).json({ message: "Not found" });
+
+        // 2. Logic: If a new file is uploaded, use it. If not, KEEP the old image_url.
+        const imageUrl = req.file ? `/uploads/${req.file.filename}` : rows[0].image_url;
+
+        // 3. Update the DB
         await db.promise().execute(
             'UPDATE announcements SET title = ?, message = ?, image_url = ?, is_active = ? WHERE id = ?',
-            [title, message, imageUrl, is_active, id]
+            [title, message, imageUrl, is_active || 1, id]
         );
+
         res.json({ message: "Announcement updated successfully" });
     } catch (error) {
+        console.error("SQL Error:", error); // Check your terminal for this!
         res.status(500).json({ message: "Update error", error: error.message });
     }
 };
