@@ -49,12 +49,7 @@ const CustomerDashboard = ({ onLogout }: { onLogout: () => void }) => {
              </span>
           </div>
         </header>
-
-        {/* ANNOUNCEMENT AREA - Now using your new standalone component */}
-        <div className="mb-8">
-            <CustomerAnnouncement />
-        </div>
-
+        
         {/* DYNAMIC CONTENT AREA */}
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <ActiveComponent user={currentUser} onLogout={onLogout} />
