@@ -1,40 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Megaphone } from 'lucide-react';
 import CustomerSidenav from './CustomerSidenav';
 import { CUSTOMER_MENU } from './constants'; 
-
-/**
- * ANNOUNCEMENT BANNER COMPONENT
- * Fetches the latest active broadcast from the backend.
- */
-const AnnouncementBanner = () => {
-    const [latest, setLatest] = useState<any>(null);
-
-    useEffect(() => {
-        axios.get('http://localhost:5000/api/announcements/latest')
-            .then(res => setLatest(res.data))
-            .catch(err => console.error("Could not fetch announcements:", err));
-    }, []);
-
-    if (!latest) return null;
-
-    return (
-        <div className="mb-8 p-6 bg-gradient-to-r from-[#003d3d] to-[#005a5a] rounded-[2rem] text-white shadow-xl relative overflow-hidden animate-in fade-in zoom-in duration-700">
-            <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="bg-teal-400 text-[#003d3d] text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                        Broadcast
-                    </span>
-                    <h4 className="font-black text-lg">{latest.title}</h4>
-                </div>
-                <p className="text-teal-50/80 text-sm leading-relaxed max-w-2xl">{latest.message}</p>
-            </div>
-            {/* Decorative Icon */}
-            <Megaphone className="absolute -right-4 -bottom-4 text-white/5 w-32 h-32 rotate-12" />
-        </div>
-    );
-};
+// 1. Import the new component
+import CustomerAnnouncement from './CustomerAnnouncement';
 
 const CustomerDashboard = ({ onLogout }: { onLogout: () => void }) => {
   const [activeTab, setActiveTab] = useState('shop');
@@ -73,16 +42,18 @@ const CustomerDashboard = ({ onLogout }: { onLogout: () => void }) => {
           {/* USER PROFILE CHIP */}
           <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3">
              <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-[#003d3d] font-bold text-xs">
-               {currentUser?.name?.charAt(0) || 'U'}
+               {currentUser?.fullname?.charAt(0) || 'U'}
              </div>
              <span className="text-sm font-bold text-slate-600">
-               Welcome, {currentUser?.name || 'User'}! 👋
+               Welcome, {currentUser?.fullname || 'User'}! 👋
              </span>
           </div>
         </header>
 
-        {/* ANNOUNCEMENT AREA */}
-        <AnnouncementBanner />
+        {/* ANNOUNCEMENT AREA - Now using your new standalone component */}
+        <div className="mb-8">
+            <CustomerAnnouncement />
+        </div>
 
         {/* DYNAMIC CONTENT AREA */}
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
