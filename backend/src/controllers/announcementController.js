@@ -1,25 +1,15 @@
-// announcementController.js
 import db from '../config/db.js';
 
 const announcementController = {
-    // Get all announcements (For Admin Panel)
     getAll: async (req, res) => {
         try {
-            // Added .promise() to handle non-promisified pool connections
-            const [rows] = await db.promise().execute(
-                'SELECT * FROM announcements ORDER BY created_at DESC'
-            );
+            const [rows] = await db.promise().execute('SELECT * FROM announcements ORDER BY created_at DESC');
             res.json(rows);
         } catch (error) {
-            console.error("Fetch Error:", error);
-            res.status(500).json({ 
-                message: "Error fetching announcements", 
-                error: error.message 
-            });
+            res.status(500).json({ message: "Error fetching announcements", error: error.message });
         }
     },
 
-    // Get only the latest active announcement (For Customer Dashboard)
     getLatest: async (req, res) => {
         try {
             const [rows] = await db.promise().execute(
@@ -27,59 +17,55 @@ const announcementController = {
             );
             res.json(rows[0] || null);
         } catch (error) {
-            console.error("Latest Fetch Error:", error);
-            res.status(500).json({ 
-                message: "Error fetching latest announcement", 
-                error: error.message 
-            });
+            res.status(500).json({ message: "Error fetching latest", error: error.message });
         }
     },
 
-    // Create new announcement (Admin Only)
     create: async (req, res) => {
         const { title, message } = req.body;
+        // Get image path if a file was uploaded
+        const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
-        // Validation
-        if (!title || !message) {
-            return res.status(400).json({ message: "Title and message are required" });
+        if (!title || !message) return res.status(400).json({ message: "Required fields missing" });
+
+        try {
+            const [result] = await db.promise().execute(
+                'INSERT INTO announcements (title, message, image_url, priority, is_active) VALUES (?, ?, ?, ?, ?)',
+                [title, message, imageUrl, 'normal', true]
+            );
+            res.status(201).json({ id: result.insertId, title, imageUrl });
+        } catch (error) {
+            res.status(500).json({ message: "Database error", error: error.message });
+        }
+    },
+
+    update: async (req, res) => {
+        const { id } = req.params;
+        const { title, message, is_active } = req.body;
+        let imageUrl = req.body.image_url; // Keep old image if no new one
+
+        if (req.file) {
+            imageUrl = `/uploads/${req.file.filename}`; // Set new image path
         }
 
         try {
-            // Added .promise() and explicit defaults to prevent SQL errors
-            const [result] = await db.promise().execute(
-                'INSERT INTO announcements (title, message, priority, is_active) VALUES (?, ?, ?, ?)',
-                [title, message, 'normal', true]
+            await db.promise().execute(
+                'UPDATE announcements SET title = ?, message = ?, image_url = ?, is_active = ? WHERE id = ?',
+                [title, message, imageUrl, is_active, id]
             );
-            
-            res.status(201).json({ 
-                id: result.insertId, 
-                title, 
-                message 
-            });
+            res.json({ message: "Announcement updated successfully" });
         } catch (error) {
-            console.error("Database Error:", error);
-            res.status(500).json({ 
-                message: "Database error", 
-                details: error.sqlMessage || error.message 
-            });
+            res.status(500).json({ message: "Update error", error: error.message });
         }
     },
 
-    // Delete announcement (Admin Only)
     delete: async (req, res) => {
         const { id } = req.params;
         try {
-            await db.promise().execute(
-                'DELETE FROM announcements WHERE id = ?', 
-                [id]
-            );
-            res.json({ message: "Announcement deleted successfully" });
+            await db.promise().execute('DELETE FROM announcements WHERE id = ?', [id]);
+            res.json({ message: "Deleted successfully" });
         } catch (error) {
-            console.error("Delete Error:", error);
-            res.status(500).json({ 
-                message: "Error deleting announcement", 
-                error: error.message 
-            });
+            res.status(500).json({ message: "Delete error", error: error.message });
         }
     }
 };
