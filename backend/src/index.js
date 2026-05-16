@@ -1,10 +1,12 @@
 import express from 'express';
+import { createServer } from 'http'; // Native Node module
+import { Server } from 'socket.io'; // Installed package
 import cors from 'cors'; 
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import morgan from 'morgan'; 
-import multer from 'multer'; // 1. Added Multer
+import multer from 'multer';
 
 // --- ROUTE IMPORTS ---
 import authRoutes from './routes/authRoutes.js';
@@ -22,7 +24,6 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // --- 1. MULTER CONFIGURATION ---
-// Store files in the 'uploads' directory one level up from the server
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '../uploads/')); 
@@ -37,6 +38,7 @@ const upload = multer({ storage });
 // --- 2. MIDDLEWARE & CORS ---
 app.use(morgan('dev')); 
 
+// Unified CORS Configuration supporting standard Express routing and HTTP verbs
 app.use(cors({
   origin: 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE'], 
@@ -48,29 +50,50 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // --- 3. STATIC FOLDERS ---
-// This allows the browser to access images via http://localhost:5000/uploads/filename.jpg
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads'), {
   setHeaders: (res) => {
     res.set('Access-Control-Allow-Origin', 'http://localhost:5173');
   }
 })); 
 
-// --- 4. ROUTES ---
+// --- 4. CREATE UNIFIED HTTP + WEBSOCKET SERVER ---
+const httpServer = createServer(app);
+
+// Initialize Socket.io attached directly to the wrapped native HTTP platform
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+  }
+});
+
+// Bind WebSocket instances globally across application request contexts
+app.set('socketio', io);
+
+// Log and manage client handshakes
+io.on('connection', (socket) => {
+  console.log(`🔌 Client connected to real-time sync: ${socket.id}`);
+  
+  socket.on('disconnect', () => {
+    console.log(`❌ Client disconnected: ${socket.id}`);
+  });
+});
+
+// --- 5. ROUTES ---
 app.use('/api/auth', authRoutes); 
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', manageCustomerRoutes); 
 app.use('/api/events', eventRoutes); 
-
-// UPDATED: If you want to handle the post directly in index.js for debugging:
-// However, it is better to use upload.single('image') inside announcementRoutes.js
 app.use('/api/announcements', announcementRoutes); 
 
 app.get('/', (req, res) => {
-  res.json({ message: "OrderClick API is running with MySQL!" });
+  res.json({ message: "OrderClick API is running with MySQL and Socket.io WebSockets!" });
 });
 
-// --- 5. GLOBAL ERROR HANDLING ---
+// --- 6. GLOBAL ERROR HANDLING ---
 app.use((err, req, res, next) => {
   console.error("Server Error:", err.stack);
   res.status(500).json({ 
@@ -79,8 +102,10 @@ app.use((err, req, res, next) => {
   });
 });
 
+// --- 7. SERVER INITIALIZATION ---
+// Bound to httpServer instead of basic app framework engine instance execution
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`
   🚀 Server started successfully!
   📡 URL: http://localhost:${PORT}

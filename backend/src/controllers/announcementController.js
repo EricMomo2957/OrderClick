@@ -12,7 +12,7 @@ export const getLatest = async (req, res) => {
     }
 };
 
-// 2. Get All Announcements (Renamed to match route)
+// 2. Get All Announcements
 export const getAllAnnouncements = async (req, res) => {
     try {
         const [rows] = await db.promise().execute('SELECT * FROM announcements ORDER BY created_at DESC');
@@ -22,7 +22,7 @@ export const getAllAnnouncements = async (req, res) => {
     }
 };
 
-// 3. Create Announcement (Renamed to match route)
+// 3. Create Announcement (With Real-Time WebSocket Broadcast)
 export const createAnnouncement = async (req, res) => {
     const { title, message } = req.body;
     // Get image path if a file was uploaded by Multer
@@ -33,17 +33,31 @@ export const createAnnouncement = async (req, res) => {
     }
 
     try {
+        // Execute Database Save
         const [result] = await db.promise().execute(
             'INSERT INTO announcements (title, message, image_url, priority, is_active) VALUES (?, ?, ?, ?, ?)',
             [title, message, imageUrl, 'normal', true]
         );
-        res.status(201).json({ id: result.insertId, title, imageUrl });
+
+        // Retrieve global socket.io instance from app context
+        const io = req.app.get('socketio');
+        if (io) {
+            // Broadcast the real-time event alert to all online customer dashboards
+            io.emit('new_announcement', {
+                id: result.insertId,
+                title: title,
+                message: message,
+                imageUrl: imageUrl
+            });
+        }
+
+        res.status(201).json({ id: result.insertId, title, imageUrl, message: "Broadcast posted successfully!" });
     } catch (error) {
         res.status(500).json({ message: "Database error", error: error.message });
     }
 };
 
-// 4. Update Announcement (Renamed to match route)
+// 4. Update Announcement (With Real-Time WebSocket Broadcast)
 export const updateAnnouncement = async (req, res) => {
     const { id } = req.params;
     const { title, message, is_active } = req.body;
@@ -63,14 +77,26 @@ export const updateAnnouncement = async (req, res) => {
             [title, message, imageUrl, is_active || 1, id]
         );
 
+        // 4. Retrieve global socket.io instance and broadcast the modification alert
+        const io = req.app.get('socketio');
+        if (io) {
+            io.emit('new_announcement', {
+                id: id,
+                title: title,
+                message: message,
+                imageUrl: imageUrl,
+                isUpdate: true
+            });
+        }
+
         res.json({ message: "Announcement updated successfully" });
     } catch (error) {
-        console.error("SQL Error:", error); // Check your terminal for this!
+        console.error("SQL Error:", error); 
         res.status(500).json({ message: "Update error", error: error.message });
     }
 };
 
-// 5. Delete Announcement (Renamed to match route)
+// 5. Delete Announcement
 export const deleteAnnouncement = async (req, res) => {
     const { id } = req.params;
     try {
