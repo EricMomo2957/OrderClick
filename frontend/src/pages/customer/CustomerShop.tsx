@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 
 // Interfaces
 interface Product {
@@ -41,20 +42,23 @@ const CustomerShop = ({ user, onLogout }: CustomerShopProps) => {
     }
   };
 
+  /**
+   * Helper function to dynamically count how many items exist per category
+   */
+  const getCategoryCount = (categoryName: string) => {
+    if (categoryName === 'All') return products.length;
+    return products.filter(p => p.category === categoryName).length;
+  };
+
   const handleAddToCart = () => {
     if (!selectedProduct) return;
 
-    // 1. Get existing cart from local storage
     const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-
-    // 2. Check if product already exists in cart
     const existingItemIndex = existingCart.findIndex((item: any) => item.id === selectedProduct.id);
 
     if (existingItemIndex > -1) {
-      // Update quantity if it exists
       existingCart[existingItemIndex].qty += quantity;
     } else {
-      // Add new item if it doesn't
       const cartItem = {
         id: selectedProduct.id,
         name: selectedProduct.name,
@@ -68,55 +72,85 @@ const CustomerShop = ({ user, onLogout }: CustomerShopProps) => {
       existingCart.push(cartItem);
     }
 
-    // 3. Save back to localStorage
     localStorage.setItem('cart', JSON.stringify(existingCart));
 
-    // 4. UI Feedback
-    alert(`${quantity}x ${selectedProduct.name} added to cart!`);
+    // Clean, modern toast notification instead of browser alerts
+    toast.success(`${quantity}x ${selectedProduct.name} added to cart!`, {
+      style: {
+        borderRadius: '1rem',
+        background: '#003d3d',
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: '14px'
+      }
+    });
+
     setSelectedProduct(null);
     setQuantity(1);
   };
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Category Filter */}
+      {/* Toast configuration container */}
+      <Toaster position="bottom-right" reverseOrder={false} />
+
+      {/* Category Filter with Dynamic Counts */}
       <div className="flex flex-wrap gap-2 mb-8">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`px-5 py-2 rounded-full text-xs font-bold transition-all border ${
-              activeCategory === cat 
-                ? 'bg-[#003d3d] text-white border-[#003d3d]' 
-                : 'bg-white text-slate-500 border-slate-200 hover:border-[#003d3d]'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
+        {CATEGORIES.map(cat => {
+          const itemCount = getCategoryCount(cat);
+          return (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all border flex items-center gap-2 ${
+                activeCategory === cat 
+                  ? 'bg-[#003d3d] text-white border-[#003d3d] shadow-md shadow-teal-900/10' 
+                  : 'bg-white text-slate-500 border-slate-200 hover:border-[#003d3d] hover:text-[#003d3d]'
+              }`}
+            >
+              <span>{cat}</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                activeCategory === cat 
+                  ? 'bg-teal-900/40 text-teal-100' 
+                  : 'bg-slate-100 text-slate-400 group-hover:bg-teal-50'
+              }`}>
+                {itemCount}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Product Grid */}
-      <div className="grid grid-cols-4 sm:grid-cols-10 lg:grid-cols-3 xl:grid-cols-10 gap-6">
+      {/* Responsive Grid Layout matched to your Admin System style defaults */}
+      <div className="grid grid-cols-4 sm:grid-cols-10 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {products
           .filter(p => activeCategory === 'All' || p.category === activeCategory)
           .map(p => (
-            <div key={p.id} className="bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all group">
-              <div className="relative aspect-square overflow-hidden">
+            <div key={p.id} className="bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all group flex flex-col h-full">
+              <div className="relative aspect-square overflow-hidden bg-slate-50">
                 <img 
                   src={`http://localhost:5000${p.image_url}`} 
                   alt={p.name} 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
                 />
+                {p.stock === 0 && (
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-xs flex items-center justify-center">
+                    <span className="bg-rose-500 text-white text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full">Out of Stock</span>
+                  </div>
+                )}
               </div>
-              <div className="p-6">
-                <h3 className="text-lg font-bold text-slate-800 mb-1">{p.name}</h3>
-                <p className="text-slate-500 text-xs mb-4 line-clamp-2 h-8">{p.description}</p>
-                <div className="flex items-center justify-between">
+              <div className="p-6 flex flex-col flex-1 justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{p.category}</span>
+                  <h3 className="text-base font-bold text-slate-800 mt-0.5 mb-1 truncate">{p.name}</h3>
+                  <p className="text-slate-400 text-xs line-clamp-2 mb-4 leading-relaxed">{p.description}</p>
+                </div>
+                <div className="flex items-center justify-between mt-auto pt-2">
                   <p className="text-xl font-black text-[#003d3d]">₱{Number(p.price).toLocaleString()}</p>
                   <button 
                     onClick={() => { setSelectedProduct(p); setQuantity(1); }}
-                    className="bg-[#003d3d] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#002d2d] transition-all"
+                    disabled={p.stock === 0}
+                    className="bg-[#003d3d] text-white px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-[#002d2d] transition-all disabled:bg-slate-100 disabled:text-slate-400"
                   >
                     Add to Cart
                   </button>
@@ -126,48 +160,57 @@ const CustomerShop = ({ user, onLogout }: CustomerShopProps) => {
           ))}
       </div>
 
-      {/* Add to Cart Modal */}
+      {/* Add to Cart Modal View overlay backdrop markup block */}
       {selectedProduct && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative animate-in zoom-in-95 duration-150">
             <div className="flex justify-between items-start mb-6">
-              <h2 className="text-2xl font-black text-slate-900">Add to Cart</h2>
-              <button onClick={() => setSelectedProduct(null)} className="text-slate-400 hover:text-slate-600 text-2xl">×</button>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Add to Cart</h2>
+              <button 
+                onClick={() => setSelectedProduct(null)} 
+                className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center font-bold text-lg"
+              >
+                ×
+              </button>
             </div>
             
-            <div className="flex gap-4 mb-6 p-4 bg-slate-50 rounded-2xl">
-              <img src={`http://localhost:5000${selectedProduct.image_url}`} className="w-20 h-20 rounded-xl object-cover" alt="Selected" />
-              <div>
-                <p className="font-bold text-slate-800">{selectedProduct.name}</p>
-                <p className="text-[#003d3d] font-black text-lg">₱{selectedProduct.price.toLocaleString()}</p>
+            <div className="flex gap-4 mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <img src={`http://localhost:5000${selectedProduct.image_url}`} className="w-20 h-20 rounded-xl object-cover bg-white" alt="Selected" />
+              <div className="flex flex-col justify-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedProduct.category}</span>
+                <p className="font-bold text-slate-800 text-base">{selectedProduct.name}</p>
+                <p className="text-[#003d3d] font-black text-lg mt-0.5">₱{selectedProduct.price.toLocaleString()}</p>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <label className="block text-sm font-bold text-slate-600">Quantity:</label>
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Select Quantity:</label>
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => setQuantity(Math.max(1, quantity - 1))} 
-                  className="w-12 h-12 rounded-xl border border-slate-200 flex items-center justify-center font-bold text-xl hover:bg-slate-50"
+                  className="w-12 h-12 rounded-xl border border-slate-200 flex items-center justify-center font-bold text-xl bg-white hover:bg-slate-50 active:scale-95 transition-all select-none"
                 >-</button>
-                <span className="text-2xl font-black w-8 text-center">{quantity}</span>
+                <span className="text-2xl font-black w-8 text-center tabular-nums text-slate-800">{quantity}</span>
                 <button 
                   onClick={() => setQuantity(Math.min(selectedProduct.stock, quantity + 1))} 
-                  className="w-12 h-12 rounded-xl border border-slate-200 flex items-center justify-center font-bold text-xl hover:bg-slate-50"
+                  disabled={selectedProduct.stock <= quantity}
+                  className="w-12 h-12 rounded-xl border border-slate-200 flex items-center justify-center font-bold text-xl bg-white hover:bg-slate-50 active:scale-95 transition-all select-none disabled:opacity-50"
                 >+</button>
               </div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Available Stock: {selectedProduct.stock}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider pt-1">
+                Available Stock: <span className={selectedProduct.stock < 5 ? 'text-rose-500 font-black' : 'text-slate-600'}>{selectedProduct.stock} items</span>
+              </p>
             </div>
 
             <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Subtotal</p>
-                <p className="text-2xl font-black text-[#003d3d]">₱{(selectedProduct.price * quantity).toLocaleString()}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Subtotal</p>
+                <p className="text-2xl font-black text-[#003d3d] tabular-nums">₱{(selectedProduct.price * quantity).toLocaleString()}</p>
               </div>
               <button 
                 onClick={handleAddToCart}
                 disabled={selectedProduct.stock === 0}
-                className="bg-[#003d3d] text-white px-8 py-3 rounded-2xl font-black shadow-lg hover:-translate-y-1 transition-all disabled:bg-slate-300 disabled:transform-none"
+                className="bg-[#003d3d] text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-teal-900/20 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
               >
                 Add to Cart
               </button>
