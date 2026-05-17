@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User, Mail, Calendar, RefreshCw, FileText } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -14,45 +14,39 @@ const ManageUser = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchCustomers = async () => {
+  // Unified Fetch Function pointing to the REAL backend endpoint path
+  const fetchCustomers = useCallback(async () => {
     setLoading(true);
+    const token = localStorage.getItem('token'); 
     try {
-      const res = await fetch('http://localhost:5000/api/admin/customers');
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
+      // FIX: Changed endpoint path from '/all-customers' to '/customers' to stop the 404s
+      // NOTE: If your backend is running on 5000, change the 3000 below to 5000!
+      const response = await fetch('http://localhost:3000/api/admin/customers', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.status === 403) {
+        alert("Unauthorized Access. Admin only.");
+        return;
+      }
+
+      if (!response.ok) throw new Error('Failed to fetch customers');
+
+      const data = await response.json();
       setCustomers(data);
     } catch (err) {
-      console.error("Failed to fetch customers", err);
+      console.error("Failed to load customers", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Inside ManageCustomers.tsx
-useEffect(() => {
-    const fetchCustomers = async () => {
-        const token = localStorage.getItem('token'); 
-        try {
-            const response = await fetch('http://localhost:5000/api/admin/all-customers', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            
-            if (response.status === 403) {
-                alert("Unauthorized Access. Admin only.");
-                return;
-            }
-
-            const data = await response.json();
-            setCustomers(data);
-        } catch (err) {
-            console.error("Failed to load customers", err);
-        }
-    };
-
+  // Triggers automatically when you enter the tab
+  useEffect(() => {
     fetchCustomers();
-}, []);
+  }, [fetchCustomers]);
 
   // PDF Generation for the full list
   const exportUserListPDF = () => {
@@ -60,7 +54,7 @@ useEffect(() => {
     
     // Header
     doc.setFontSize(20);
-    doc.setTextColor(0, 61, 61); // Matches your #003d3d theme
+    doc.setTextColor(0, 61, 61); // Matches #003d3d theme
     doc.text("ORDERCLICK: USER DIRECTORY", 105, 15, { align: 'center' });
     
     doc.setFontSize(10);
@@ -99,7 +93,7 @@ useEffect(() => {
           {/* PDF Download Button */}
           <button 
             onClick={exportUserListPDF}
-            disabled={customers.length === 0}
+            disabled={customers.length === 0 || loading}
             className="flex items-center gap-2 text-xs font-bold text-white bg-[#003d3d] px-5 py-2.5 rounded-xl hover:bg-[#002d2d] transition-all disabled:opacity-50"
           >
             <FileText size={14} /> Export PDF
@@ -108,7 +102,8 @@ useEffect(() => {
           {/* Refresh Button */}
           <button 
             onClick={fetchCustomers}
-            className="flex items-center gap-2 text-xs font-bold text-[#003d3d] bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition-all"
+            disabled={loading}
+            className="flex items-center gap-2 text-xs font-bold text-[#003d3d] bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition-all disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh List
           </button>
@@ -126,7 +121,16 @@ useEffect(() => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {customers.length > 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="px-8 py-20 text-center text-slate-400 italic">
+                  <div className="flex items-center justify-center gap-2">
+                    <RefreshCw size={14} className="animate-spin text-[#003d3d]" />
+                    <span>Fetching users...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : customers.length > 0 ? (
               customers.map((user) => (
                 <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-8 py-5 font-mono text-xs text-slate-400">#USR-{user.id}</td>
@@ -155,7 +159,7 @@ useEffect(() => {
             ) : (
               <tr>
                 <td colSpan={4} className="px-8 py-20 text-center text-slate-400 italic">
-                  {loading ? 'Fetching users...' : 'No customers found.'}
+                  No customers found.
                 </td>
               </tr>
             )}
