@@ -6,19 +6,23 @@ import {
   LogOut, 
   Calendar,
   ShoppingBag,
-  Megaphone // Added for Announcements
+  Megaphone
 } from 'lucide-react';
 
-// Import your feature modules
+// Import feature modules
 import AdminOverview from './AdminOverview';
 import ManageProduct from './ManageProduct';
 import ManageReceipt from './ManageReceipt';
 import ManageUser from './ManageUser';
 import AdminEvent from './AdminEvent';
 import AdminOrders from './AdminOrders';
-import AdminAnnouncement from './AdminAnnouncement'; // Added this import
-import FileUploadSample from './FileUploadSample'; // Example of a new feature module you might add in the future
+import AdminAnnouncement from './AdminAnnouncement';
+import FileUploadSample from './FileUploadSample';
 
+// Available layout utilities imported for future reference expansions
+import TopProducts from './TopProducts'; 
+import RevenueSummary from './RevenueSummary'; 
+import RecentOrders from './RecentOrders'; 
 
 interface AdminSidenavProps {
   activeTab: string;
@@ -36,9 +40,9 @@ export const ADMIN_MENU = [
   { id: 'guest-orders', label: 'Outside Orders', icon: ShoppingBag, component: AdminOrders },
   { id: 'receipts', label: 'Orders & Receipts', icon: Receipt, component: ManageReceipt },
   { id: 'events', label: 'Event Manager', icon: Calendar, component: AdminEvent },
-  { id: 'announcements', label: 'Broadcast', icon: Megaphone, component: AdminAnnouncement }, // Added this line
+  { id: 'announcements', label: 'Broadcast', icon: Megaphone, component: AdminAnnouncement },
   { id: 'customers', label: 'User Directory', icon: Users, component: ManageUser },
-  { id: 'file-upload', label: 'Media Upload', icon: Package, component: FileUploadSample } // Example of how to add a new feature
+  { id: 'file-upload', label: 'Media Upload', icon: Package, component: FileUploadSample }
 ];
 
 const AdminSidenav = ({ activeTab, setActiveTab, onLogout }: AdminSidenavProps) => {

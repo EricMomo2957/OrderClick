@@ -3,6 +3,9 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     PieChart, Pie, Cell, Legend 
 } from 'recharts';
+import RevenueSummary from './RevenueSummary';
+import RecentOrders from './RecentOrders';
+import TopProducts from './TopProducts';
 
 interface AdminOverviewProps {
     setActiveTab: Dispatch<SetStateAction<string>>;
@@ -60,41 +63,48 @@ const AdminOverview = ({ setActiveTab }: AdminOverviewProps) => {
     ];
     const COLORS = ['#10b981', '#ef4444'];
 
-    if (loading) return <div className="p-10 text-slate-400 font-bold animate-pulse">Loading Statistics...</div>;
+    if (loading) {
+        return <div className="p-10 text-slate-400 font-bold animate-pulse">Loading Statistics...</div>;
+    }
 
     return (
-        <div className="space-y-8">
-            {/* Top Stat Cards */}
+        <div className="p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Title Header Section */}
+            <div>
+                <h2 className="text-2xl font-black text-slate-800">System Dashboard Overview</h2>
+                <p className="text-slate-500 text-sm">Real-time business analytics and live summary data.</p>
+            </div>
+
+            {/* Top Stat Interactive Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Revenue</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gross Revenue</p>
                     <p className="text-2xl font-black text-[#004a80]">
                         ₱{Number(stats.revenue).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </p>
                 </div>
 
-                <div onClick={() => setActiveTab('orders')} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 cursor-pointer hover:border-orange-500 transition-colors">
+                <div onClick={() => setActiveTab('receipts')} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 cursor-pointer hover:border-orange-500 transition-colors">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Receipts</p>
                     <p className="text-2xl font-black text-orange-500">{stats.receipts}</p>
                 </div>
 
-                <div onClick={() => setActiveTab('inventory')} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 cursor-pointer hover:border-blue-500 transition-colors">
+                <div onClick={() => setActiveTab('products')} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 cursor-pointer hover:border-blue-500 transition-colors">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Inventory</p>
                     <p className="text-2xl font-black text-blue-600">{stats.products}</p>
                 </div>
 
-                <div onClick={() => setActiveTab('low-stock')} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 cursor-pointer hover:border-red-500 transition-colors">
+                <div onClick={() => setActiveTab('products')} className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 cursor-pointer hover:border-red-500 transition-colors">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Low Stock</p>
                     <p className="text-2xl font-black text-red-500">{stats.lowStock}</p>
                 </div>
             </div>
 
-            {/* Visual Data Section */}
+            {/* Visual Analytics Graphs Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
                 {/* Bar Graph: Activity Overview */}
                 <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100">
-                    <h3 className="text-sm font-bold text-gray-700 mb-6 uppercase tracking-wider">Activity Overview</h3>
+                    <h3 className="text-sm font-bold text-gray-700 mb-6 uppercase tracking-wider">Activity Volume</h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={volumeData}>
@@ -110,7 +120,7 @@ const AdminOverview = ({ setActiveTab }: AdminOverviewProps) => {
 
                 {/* Pie Chart: Inventory Health */}
                 <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100">
-                    <h3 className="text-sm font-bold text-gray-700 mb-6 uppercase tracking-wider">Inventory Health</h3>
+                    <h3 className="text-sm font-bold text-gray-700 mb-6 uppercase tracking-wider">Inventory Health Breakdown</h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -133,7 +143,19 @@ const AdminOverview = ({ setActiveTab }: AdminOverviewProps) => {
                         </ResponsiveContainer>
                     </div>
                 </div>
+            </div>
 
+            {/* 1. Full-Width Revenue Totals Sub-Row */}
+            <RevenueSummary />
+
+            {/* 2. Side-by-Side Data Table & Item Conversion Rankings Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <div className="lg:col-span-2">
+                    <RecentOrders />
+                </div>
+                <div className="h-full">
+                    <TopProducts />
+                </div>
             </div>
         </div>
     );
