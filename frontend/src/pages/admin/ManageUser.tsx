@@ -14,36 +14,48 @@ const ManageUser = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Unified Fetch Function pointing to the REAL backend endpoint path
+  // Unified Fetch Function pointing to the REAL backend endpoint path with structural fixes
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
-    const token = localStorage.getItem('token'); 
+    
+    // Get token and trim any accidental whitespace or quotes
+    let token = localStorage.getItem('token'); 
+    if (token) {
+      token = token.replace(/^"|"$/g, ''); // Removes wrapping quotes if stored as JSON string
+    }
+
+    console.log("Current Admin Token being sent:", token); // <-- Diagnostic log
+
     try {
-      // FIX: Changed endpoint path from '/all-customers' to '/customers' to stop the 404s
-      // NOTE: If your backend is running on 5000, change the 3000 below to 5000!
-      const response = await fetch('http://localhost:3000/api/admin/customers', {
+      // NOTE: Using port 5000 based on your working backend configuration setup
+      const response = await fetch('http://localhost:5000/api/admin/customers', {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
-      if (response.status === 403) {
-        alert("Unauthorized Access. Admin only.");
+      console.log("Server Response Status:", response.status); // <-- Diagnostic log
+
+      if (response.status === 401 || response.status === 403) {
+        alert("Session expired or unauthorized access. Please re-login.");
         return;
       }
 
-      if (!response.ok) throw new Error('Failed to fetch customers');
+      if (!response.ok) throw new Error(`HTTP Error! Status: ${response.status}`);
 
       const data = await response.json();
+      console.log("Data successfully fetched:", data); // <-- Diagnostic log
       setCustomers(data);
     } catch (err) {
-      console.error("Failed to load customers", err);
+      console.error("Failed to load customers:", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Triggers automatically when you enter the tab
+  // Triggers automatically when you enter the tab layout view
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
