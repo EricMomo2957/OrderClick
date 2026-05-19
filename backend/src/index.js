@@ -39,10 +39,21 @@ const upload = multer({ storage });
 // --- 2. MIDDLEWARE & CORS CONFIGURATION ---
 app.use(morgan('dev')); 
 
-// Unified CORS Configuration preventing browser connection blockages (ERR_CONNECTION_REFUSED)
+// Define allowed local development origins
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+
+// Unified CORS Configuration supporting shifts between ports 5173 and 5174
 app.use(cors({
-  origin: 'http://localhost:5173',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], 
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Explicitly added OPTIONS
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
@@ -52,8 +63,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // --- 3. STATIC FILE SERVER ---
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads'), {
-  setHeaders: (res) => {
-    res.set('Access-Control-Allow-Origin', 'http://localhost:5173');
+  setHeaders: (res, path, stat) => {
+    // Dynamically matches and sets headers based on the current active frontend client origin
+    const origin = res.req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+      res.set('Access-Control-Allow-Origin', origin);
+    }
   }
 })); 
 
@@ -63,7 +78,7 @@ const httpServer = createServer(app);
 // Initialize Socket.io attached directly to the wrapped native HTTP platform
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: allowedOrigins, // Passes our array directly to protect WebSockets on both ports
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
@@ -107,7 +122,6 @@ app.use((err, req, res, next) => {
 });
 
 // --- 7. SERVER INITIALIZATION ---
-// Bound to httpServer execution instead of standard basic app express core framework
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
   console.log(`
