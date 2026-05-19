@@ -2,7 +2,8 @@ import { useState } from 'react';
 import Landing from './pages/Landing'; 
 import Login from './pages/Login';
 import Register from './pages/Register';
-import OrderNow from './pages/OrderNow'; // Import the new OrderNow page
+import ForgotPassword from './pages/ForgotPassword'; // Imported your new password reset component
+import OrderNow from './pages/OrderNow'; 
 import AdminDashboard from './pages/admin/AdminDashboard'; 
 import CustomerDashboard from './pages/customer/CustomerDashboard'; 
 
@@ -36,7 +37,7 @@ function App() {
       : <CustomerDashboard onLogout={handleLogout} />;
   }
 
-  // 3. Unauthenticated Routing (Landing, Login, Register, or OrderNow)
+  // 3. Unauthenticated Routing (Landing, Login, Register, Forgot Password, or OrderNow)
   return (
     <div className="w-full min-h-screen bg-white">
       {view === 'landing' && (
@@ -49,6 +50,11 @@ function App() {
       
       {view === 'register' && (
         <Register setView={setView} />
+      )}
+
+      {/* Added ForgotPassword conditional view state conditional router logic */}
+      {view === 'forgot-password' && (
+        <ForgotPassword setView={setView} />
       )}
 
       {/* Added OrderNow view logic here */}

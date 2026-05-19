@@ -158,7 +158,17 @@ const Register = ({ setView }: RegisterProps) => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Register As</label>
+              <div className="flex justify-between items-center ml-1">
+                <label className="text-[12px] font-black uppercase tracking-wider text-slate-500">Register As</label>
+                {/* Embedded Forgot Password trigger linked directly to the parent setView hook */}
+                <button 
+                  type="button" 
+                  onClick={() => setView('forgot-password')}
+                  className="text-[11px] font-bold text-[#003d3d] uppercase tracking-wider hover:underline"
+                >
+                  Forgot?
+                </button>
+              </div>
               <div className="relative">
                 <select 
                   value={formData.role}
@@ -170,7 +180,7 @@ const Register = ({ setView }: RegisterProps) => {
                 </select>
                 <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none">
                   <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
               </div>

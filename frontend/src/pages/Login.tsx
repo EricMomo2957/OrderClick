@@ -21,16 +21,12 @@ const Login = ({ setView, setUser }: LoginProps) => {
       const data = await response.json();
 
       if (response.ok) {
+        // Save auth data to browser session storage
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         
+        // FIX: Setting user here triggers App.tsx to instantly mount the correct dashboard
         setUser(data.user);
-
-        if (data.user.role === 'admin') {
-          setView('admin-dashboard');
-        } else {
-          setView('customer-dashboard');
-        }
       } else {
         alert(data.error || "Login failed");
       }
@@ -108,7 +104,7 @@ const Login = ({ setView, setUser }: LoginProps) => {
           Back to home
         </button>
 
-        {/* Central Authorization Container Layout (Styled with soft clean shadows against the light blue layout) */}
+        {/* Central Authorization Container Layout */}
         <div className="w-full max-w-[440px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,61,61,0.06)] border border-slate-200/60 p-8 md:p-10">
           <div className="mb-8">
             <h1 className="text-3xl font-black tracking-tight text-slate-800 mb-1">
@@ -135,7 +131,13 @@ const Login = ({ setView, setUser }: LoginProps) => {
             <div className="space-y-2">
               <div className="flex justify-between items-center ml-1">
                 <label className="text-[12px] font-black uppercase tracking-wider text-slate-500">Password</label>
-                <button type="button" className="text-[11px] font-bold text-[#003d3d] uppercase tracking-wider hover:underline">Forgot?</button>
+                <button 
+                  type="button" 
+                  onClick={() => setView('forgot-password')}
+                  className="text-[11px] font-bold text-[#003d3d] uppercase tracking-wider hover:underline"
+                >
+                  Forgot?
+                </button>
               </div>
               <input 
                 type="password" 
