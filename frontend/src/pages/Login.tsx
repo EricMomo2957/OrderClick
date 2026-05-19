@@ -41,13 +41,14 @@ const Login = ({ setView, setUser }: LoginProps) => {
   };
 
   return (
-    <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-12 bg-white font-['Inter']">
+    /* Main body backdrop updated to a soft, light neutral blue-slate */
+    <div className="min-h-screen w-full grid grid-cols-12 bg-[#f0f4f8] font-['Inter']">
       
       {/* LEFT SIDE: PHOTO BRANDING AREA PANELS */}
-      <div className="hidden lg:flex lg:col-span-5 bg-[#003d3d] p-12 flex-col justify-between relative overflow-hidden">
-        {/* Background ambient accents inside left photo panel */}
-        <div className="absolute top-[-20%] right-[-20%] w-96 h-96 bg-teal-800/30 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 bg-emerald-900/40 rounded-full blur-3xl"></div>
+      <div className="col-span-5 bg-[#003d3d] p-12 flex flex-col justify-between relative overflow-hidden shadow-[inset_-10px_0_30px_rgba(0,0,0,0.05)]">
+        {/* Ambient background blur lighting */}
+        <div className="absolute top-[-20%] right-[-20%] w-96 h-96 bg-teal-600/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 bg-emerald-800/30 rounded-full blur-3xl"></div>
         
         {/* Dynamic Logo Marker */}
         <div className="flex items-center gap-3 relative z-10">
@@ -60,7 +61,7 @@ const Login = ({ setView, setUser }: LoginProps) => {
         </div>
 
         {/* Core Media Feature Frame */}
-        <div className="my-auto space-y-8 relative z-10 max-w-sm">
+        <div className="my-auto space-y-8 relative z-10 w-full max-w-sm mx-auto">
           <div className="space-y-4">
             <h2 className="text-4xl font-black text-white leading-tight tracking-tight">
               Say goodbye to <br />
@@ -71,12 +72,12 @@ const Login = ({ setView, setUser }: LoginProps) => {
             </p>
           </div>
 
-          {/* Integrated Image Frame pointing to public/images/ */}
+          {/* Integrated Image Frame pointing to public/images/login-bg.png */}
           <div className="bg-white/5 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl group">
             <img 
               src="/images/login-bg.png" 
               alt="OrderClick Portal Illustration" 
-              className="w-full h-48 object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300"
+              className="w-full h-auto min-h-[240px] object-cover opacity-95 group-hover:opacity-100 transition-opacity duration-300 block"
             />
           </div>
         </div>
@@ -88,7 +89,7 @@ const Login = ({ setView, setUser }: LoginProps) => {
       </div>
 
       {/* RIGHT SIDE: AUTH FORM ACTION CREDENTIAL PANELS */}
-      <div className="col-span-1 lg:col-span-7 flex items-center justify-center bg-slate-50/60 p-6 md:p-12 relative">
+      <div className="col-span-7 flex items-center justify-center p-6 md:p-12 relative">
         
         {/* BACK TO LANDING ARROW TRIGGER */}
         <button 
@@ -107,13 +108,8 @@ const Login = ({ setView, setUser }: LoginProps) => {
           Back to home
         </button>
 
-        {/* Mobile View Title Card Header (Hidden on large panels) */}
-        <div className="absolute top-8 right-6 md:right-12 lg:hidden flex items-center gap-2">
-          <span className="text-slate-800 font-black text-lg">Order<span className="text-[#003d3d]">Click</span></span>
-        </div>
-
-        {/* Central Authorization Container Layout */}
-        <div className="w-full max-w-[440px] bg-white rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,61,61,0.04)] border border-slate-100 p-8 md:p-10 animate-in fade-in slide-in-from-right-4 duration-500">
+        {/* Central Authorization Container Layout (Styled with soft clean shadows against the light blue layout) */}
+        <div className="w-full max-w-[440px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,61,61,0.06)] border border-slate-200/60 p-8 md:p-10">
           <div className="mb-8">
             <h1 className="text-3xl font-black tracking-tight text-slate-800 mb-1">
               Welcome Back
@@ -130,7 +126,7 @@ const Login = ({ setView, setUser }: LoginProps) => {
                 type="email" 
                 placeholder="name@company.com" 
                 value={email}
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
@@ -145,7 +141,7 @@ const Login = ({ setView, setUser }: LoginProps) => {
                 type="password" 
                 placeholder="••••••••" 
                 value={password}
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
@@ -153,13 +149,13 @@ const Login = ({ setView, setUser }: LoginProps) => {
 
             <button 
               type="submit"
-              className="w-full bg-[#003d3d] text-white font-black py-4 rounded-2xl shadow-lg shadow-[#003d3d]/10 hover:bg-[#002d2d] active:scale-[0.99] transition-all mt-6 text-sm tracking-wide"
+              className="w-full bg-[#003d3d] text-white font-black py-4 rounded-2xl shadow-lg shadow-[#003d3d]/20 hover:bg-[#002d2d] active:scale-[0.99] transition-all mt-6 text-sm tracking-wide"
             >
               Continue to Dashboard
             </button>
           </form>
 
-          {/* Structural separation line decoration block */}
+          {/* Separation Line Break */}
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
             <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400"><span className="bg-white px-4">OR</span></div>
