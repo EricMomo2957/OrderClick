@@ -1,44 +1,12 @@
-import { 
-  LayoutDashboard, 
-  Package, 
-  Receipt, 
-  Users, 
-  LogOut, 
-  Calendar,
-  ShoppingBag,
-  Megaphone,
-  KeyRound 
-} from 'lucide-react';
-
-// Import feature modules
-import AdminOverview from './AdminOverview';
-import ManageProduct from './ManageProduct';
-import ManageReceipt from './ManageReceipt';
-import ManageUser from './ManageUser';
-import AdminEvent from './AdminEvent';
-import AdminOrders from './AdminOrders';
-import AdminAnnouncement from './AdminAnnouncement';
-import FileUploadSample from './FileUploadSample';
-import ManageForgotPassword from './ManageForgotPassword';
+// frontend/src/pages/admin/AdminSidenav.tsx
+import { LogOut } from 'lucide-react';
+import { ADMIN_MENU } from './AdminMenuConfig';
 
 interface AdminSidenavProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onLogout: () => void;
 }
-
-// Exporting the configuration list with components included so AdminDashboard can pull them directly
-export const ADMIN_MENU = [
-  { id: 'dashboard', label: 'Overview', icon: LayoutDashboard, component: AdminOverview },
-  { id: 'products', label: 'Inventory', icon: Package, component: ManageProduct },
-  { id: 'guest-orders', label: 'Outside Orders', icon: ShoppingBag, component: AdminOrders },
-  { id: 'receipts', label: 'Orders & Receipts', icon: Receipt, component: ManageReceipt },
-  { id: 'events', label: 'Event Manager', icon: Calendar, component: AdminEvent },
-  { id: 'announcements', label: 'Broadcast', icon: Megaphone, component: AdminAnnouncement },
-  { id: 'customers', label: 'User Directory', icon: Users, component: ManageUser },
-  { id: 'forgot-password', label: 'Account Recovery', icon: KeyRound, component: ManageForgotPassword },
-  { id: 'file-upload', label: 'Media Upload', icon: Package, component: FileUploadSample }
-];
 
 const AdminSidenav = ({ activeTab, setActiveTab, onLogout }: AdminSidenavProps) => {
   return (
@@ -52,12 +20,13 @@ const AdminSidenav = ({ activeTab, setActiveTab, onLogout }: AdminSidenavProps) 
         </h1>
       </div>
 
-      <nav className="flex-1 space-y-2 overflow-y-auto pr-1">
+      <nav className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <p className="text-[10px] font-black text-blue-200/40 uppercase tracking-[0.2em] px-4 mb-4">
           Admin Console
         </p>
         
-        {ADMIN_MENU.map((item) => {
+        {/* 💡 FIXED: Explicitly typed item as 'any' to resolve compiler type error */}
+        {ADMIN_MENU.map((item: any) => {
           const isActive = activeTab === item.id;
           return (
             <button
