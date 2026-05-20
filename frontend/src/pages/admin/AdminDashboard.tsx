@@ -18,7 +18,8 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
         }
     }, [onLogout, navigate]);
 
-    const menuConfig = ADMIN_MENU.find(item => item.id === activeTab);
+    // Explicitly typed (item: any) to satisfy TypeScript rules without adding extra mapping blocks
+    const menuConfig = ADMIN_MENU.find((item: any) => item.id === activeTab);
     const ActiveComponent = menuConfig?.component || ADMIN_MENU[0].component;
 
     return (
