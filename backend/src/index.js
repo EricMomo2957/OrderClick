@@ -105,7 +105,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/announcements', announcementRoutes); 
 
 // Core Analytics and Metric Overview Routers
-app.use('/api/admin', adminRoutes); // This handles: /api/admin/stats, /api/admin/revenue-summary, etc.
+app.use('/api/admin', adminRoutes); // 👈 This handles: /api/admin/forgot-password-requests, /api/admin/stats, etc.
 app.use('/api/admin/customers-directory', manageCustomerRoutes); // Separated cleanly to keep directory routes modular
 
 app.get('/', (req, res) => {
