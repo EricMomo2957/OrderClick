@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AdminSidenav, { ADMIN_MENU } from './AdminSidenav';
+// 💡 Fix: Import both the AdminSidenav Component AND the ADMIN_MENU data array
+import AdminSidenav, { ADMIN_MENU } from "./AdminSidenav";
 
 interface AdminDashboardProps {
     onLogout: () => void;
@@ -18,12 +19,13 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
         }
     }, [onLogout, navigate]);
 
-    // Explicitly typed (item: any) to satisfy TypeScript rules without adding extra mapping blocks
+    // Now ADMIN_MENU correctly references your array structure instead of the layout component function
     const menuConfig = ADMIN_MENU.find((item: any) => item.id === activeTab);
     const ActiveComponent = menuConfig?.component || ADMIN_MENU[0].component;
 
     return (
         <div className="min-h-screen bg-[#f1f5f9] flex font-['Inter']">
+            {/* Rendered cleanly using the native modular component */}
             <AdminSidenav 
                 activeTab={activeTab} 
                 setActiveTab={setActiveTab} 
@@ -37,7 +39,7 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                             System / {menuConfig?.label || 'Overview'}
                         </h1>
                         <p className="text-2xl font-black text-slate-800">
-                            {menuConfig?.label} Panel
+                            {menuConfig?.label || 'Overview'} Panel
                         </p>
                     </div>
                     
