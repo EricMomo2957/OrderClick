@@ -25,10 +25,12 @@ const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
 
     return (
         <div className="min-h-screen bg-[#f1f5f9] flex font-['Inter']">
+            {/* 💡 FIXED: Added menuItems={ADMIN_MENU} to satisfy the TypeScript interface requirement */}
             <AdminSidenav 
                 activeTab={activeTab} 
                 setActiveTab={setActiveTab} 
                 onLogout={onLogout} 
+                menuItems={ADMIN_MENU}
             />
 
             <main className="ml-64 flex-1 p-10 transition-all duration-300">
