@@ -16,7 +16,6 @@ import manageCustomerRoutes from './routes/ManageCustomerRoutes.js';
 import eventRoutes from './routes/eventRoutes.js'; 
 import announcementRoutes from './routes/announcementRoutes.js'; 
 import adminRoutes from './routes/adminRoutes.js'; // 👈 Integrated admin utility features
-
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -103,7 +102,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/events', eventRoutes); 
 app.use('/api/announcements', announcementRoutes); 
-
+app.use('/api/admin', authRoutes);
 // Core Analytics and Metric Overview Routers
 app.use('/api/admin', adminRoutes); // 👈 This handles: /api/admin/forgot-password-requests, /api/admin/stats, etc.
 app.use('/api/admin/customers-directory', manageCustomerRoutes); // Separated cleanly to keep directory routes modular
