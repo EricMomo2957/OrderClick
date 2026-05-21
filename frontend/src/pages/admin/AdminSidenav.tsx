@@ -1,6 +1,6 @@
 // frontend/src/pages/admin/AdminSidenav.tsx
 import { useState } from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Check, X } from 'lucide-react';
 
 interface AdminSidenavProps {
   activeTab: string;
@@ -10,13 +10,13 @@ interface AdminSidenavProps {
 }
 
 const AdminSidenav = ({ activeTab, setActiveTab, onLogout, menuItems }: AdminSidenavProps) => {
-  // State tracking when the user is hovering over the sign-out trigger
-  const [showTooltip, setShowTooltip] = useState(false);
+  // State tracking when the interactive logout confirmation matrix is open
+  const [showConfirm, setShowConfirm] = useState(false);
 
   return (
     <aside className="w-64 bg-[#004a80] text-white fixed h-full flex flex-col p-6 shadow-2xl z-20">
       
-      {/* BRAND BRAND LOGO WRAPPER */}
+      {/* BRAND LOGO WRAPPER */}
       <div className="flex items-center gap-3 mb-12 px-2">
         <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-blue-900/20">
           <span className="text-[#004a80] font-black text-xl italic">O</span>
@@ -58,27 +58,51 @@ const AdminSidenav = ({ activeTab, setActiveTab, onLogout, menuItems }: AdminSid
       {/* SIGN OUT CONTAINER BLOCK */}
       <div className="relative mt-auto pt-4">
         
-        {/* 💡 HOVER TOOLTIP ELEMENT TRIGGER */}
+        {/* 💡 HOVER MATRIX POPPING OUT FROM THE RIGHT SIDE */}
         <div 
-          className={`absolute left-1/2 -translate-x-1/2 -top-8 bg-red-600 text-white text-xs font-black px-4 py-2 rounded-xl shadow-lg border border-red-500 whitespace-nowrap transition-all duration-300 pointer-events-none flex items-center gap-1.5 ${
-            showTooltip 
-              ? 'opacity-100 -translate-y-2 scale-100 visible' 
-              : 'opacity-0 translate-y-0 scale-95 invisible'
+          className={`absolute left-[calc(100%+16px)] top-1/2 -translate-y-1/2 bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-slate-800 transition-all duration-300 flex flex-col gap-3 min-w-[240px] z-50 ${
+            showConfirm 
+              ? 'opacity-100 translate-x-0 scale-100 visible' 
+              : 'opacity-0 -translate-x-4 scale-95 invisible'
           }`}
         >
-          Do you want to logout?
-          {/* Small Tooltip Pointer Arrow */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-red-600 rotate-45 border-r border-b border-red-500"></div>
+          {/* Left Arrow pointing directly to the Sign Out button */}
+          <div className="absolute right-full top-1/2 -translate-y-1/2 w-3 h-3 bg-slate-900 rotate-45 border-l border-b border-slate-800 translate-x-1.5"></div>
+
+          <p className="text-xs font-black text-slate-300 uppercase tracking-wider px-1">
+            Do you want to logout?
+          </p>
+
+          {/* Grid Layout containing Yes and No actions */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={onLogout}
+              className="flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-black py-2.5 px-3 rounded-xl transition-all shadow-md active:scale-95"
+            >
+              <Check size={14} strokeWidth={3} />
+              Yes
+            </button>
+            <button
+              onClick={() => setShowConfirm(false)}
+              className="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black py-2.5 px-3 rounded-xl transition-all border border-slate-700 active:scale-95"
+            >
+              <X size={14} strokeWidth={3} />
+              No
+            </button>
+          </div>
         </div>
 
         {/* LOGOUT INTERACTIVE ACTION ELEMENT */}
         <button 
-          onClick={onLogout}
-          onMouseEnter={() => setShowTooltip(true)}
-          onMouseLeave={() => setShowTooltip(false)}
-          className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-red-200 hover:bg-red-500/10 hover:text-red-400 transition-all font-bold text-sm border border-transparent hover:border-red-500/20 group"
+          onClick={() => setShowConfirm(true)}
+          onMouseEnter={() => setShowConfirm(true)}
+          className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-red-200 transition-all font-bold text-sm border border-transparent group ${
+            showConfirm 
+              ? 'bg-red-600/20 text-red-400 border-red-500/30' 
+              : 'hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20'
+          }`}
         >
-          <LogOut size={20} className="group-hover:rotate-12 transition-transform" />
+          <LogOut size={20} className={`transition-transform duration-300 ${showConfirm ? 'rotate-12 scale-110 text-red-400' : 'group-hover:rotate-12'}`} />
           Sign Out
         </button>
 
