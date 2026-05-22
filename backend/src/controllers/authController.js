@@ -61,10 +61,9 @@ export const login = (req, res) => {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      // FIXED: Included 'id' in the token payload to prevent admin_id null errors
       const token = jwt.sign(
         { 
-          id: user.id,          // Essential for database relations
+          id: user.id,          
           email: user.email, 
           role: user.role 
         },
@@ -91,56 +90,45 @@ export const login = (req, res) => {
 
 /**
  * ============================================================================
- * 2. ACCOUNT RECOVERY / FORGOT PASSWORD CONTROLLERS
+ * 2. ADMINISTRATIVE PASSWORD RECOVERY CONTROLLERS
  * ============================================================================
  */
 
 /**
- * PUBLIC: CUSTOMER SUBMITS FORGOT PASSWORD REQUEST
- * POST /api/auth/forgot-password
+ * CUSTOMER SUBMIT REQUEST
+ * POST /api/admin/forgot-password
  */
-export const requestPasswordReset = async (req, res) => {
+export const requestPasswordReset = (req, res) => {
   const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: "Email parameter is required." });
+  }
 
-  try {
-    if (!email) {
-      return res.status(400).json({ error: "Email address is required." });
+  // Look up user to get user_id
+  db.query('SELECT id FROM users WHERE email = ?', [email], (err, users) => {
+    if (err) return res.status(500).json({ error: "Database lookup failure." });
+    if (users.length === 0) {
+      return res.status(404).json({ error: "No account linked to this email address." });
     }
 
-    // Verify if user exists in the database
-    db.query('SELECT id FROM users WHERE email = ?', [email], (err, results) => {
-      if (err) return res.status(500).json({ error: "Database error during account verification." });
-      
-      if (results.length === 0) {
-        // Security best practice: don't reveal if an email doesn't exist
-        return res.status(200).json({ message: "If the email exists in our system, the administrator will be notified." });
-      }
-
-      const userId = results[0].id;
-
-      // Insert a reset ticket into password_resets table
-      const sql = 'INSERT INTO password_resets (user_id, email, status) VALUES (?, ?, "pending")';
-      db.query(sql, [userId, email], (insertErr) => {
-        if (insertErr) {
-          return res.status(500).json({ error: "Database error logging recovery request." });
-        }
-        res.status(201).json({ message: "Password reset request submitted successfully to management." });
-      });
+    const userId = users[0].id;
+    const insertSql = 'INSERT INTO password_resets (user_id, email, status) VALUES (?, ?, "pending")';
+    
+    db.query(insertSql, [userId, email], (insertErr) => {
+      if (insertErr) return res.status(500).json({ error: "Failed to store recovery record." });
+      res.status(200).json({ message: "Password reset request submitted successfully." });
     });
-  } catch (error) {
-    console.error("Forgot Password Request Error:", error);
-    res.status(500).json({ error: "Internal server error." });
-  }
+  });
 };
 
 /**
- * ADMIN ONLY: GET ALL FORGOT PASSWORD REQUESTS (JOINED WITH USERS FOR FULLNAME)
+ * GET ALL PASSWORD RESET REQUESTS
  * GET /api/admin/forgot-password-requests
  */
 export const getPasswordResetRequests = (req, res) => {
-  // Join tables to get the customer's full name alongside the ticket details
+  // Uses a JOIN against users table to populate the customer name field in your UI Matrix
   const sql = `
-    SELECT pr.id, pr.user_id, pr.email, pr.status, pr.created_at, u.fullname 
+    SELECT pr.id, pr.user_id, pr.email, pr.status, pr.created_at, pr.updated_at, u.fullname 
     FROM password_resets pr
     JOIN users u ON pr.user_id = u.id
     ORDER BY pr.created_at DESC
@@ -148,36 +136,32 @@ export const getPasswordResetRequests = (req, res) => {
 
   db.query(sql, (err, results) => {
     if (err) {
-      console.error("Fetch Reset Requests Error:", err);
-      return res.status(500).json({ error: "Database error retrieving ticket logs." });
+      console.error("Error executing query:", err);
+      return res.status(500).json({ error: "Failed to fetch password reset records." });
     }
-    res.json(results);
+    res.status(200).json(results);
   });
 };
 
 /**
- * ADMIN ONLY: UPDATE STATUS VALUE ('pending' -> 'resolved')
+ * UPDATE A REQUEST TO RESOLVED
  * PUT /api/admin/forgot-password-requests/:id
  */
 export const resolvePasswordResetRequest = (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status } = req.body; // Expecting { status: 'resolved' }
 
-  if (!status || !['pending', 'resolved'].includes(status)) {
-    return res.status(400).json({ error: "Invalid status flag parameter state provided." });
+  if (!status) {
+    return res.status(400).json({ error: "Status parameter is required." });
   }
 
-  const sql = 'UPDATE password_resets SET status = ? WHERE id = ?';
+  const sql = 'UPDATE password_resets SET status = ?, updated_at = NOW() WHERE id = ?';
+
   db.query(sql, [status, id], (err, result) => {
     if (err) {
-      console.error("Resolve Request Error:", err);
-      return res.status(500).json({ error: "Database error processing resolution status update." });
+      console.error("Error updating record:", err);
+      return res.status(500).json({ error: "Failed to complete resolution transaction." });
     }
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Target recovery request log entry was not found." });
-    }
-
-    res.json({ message: "Account recovery status flag updated successfully." });
+    res.status(200).json({ message: "Request status updated successfully." });
   });
 };
