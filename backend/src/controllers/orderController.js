@@ -69,7 +69,16 @@ export const placeOrder = (req, res) => {
  * Handles rapid checkouts directly from landing components for unregistered users.
  */
 export const placeExternalOrder = (req, res) => {
-    const { customerName, email, phone, address, items } = req.body;
+    // Corrected destructuring to match your OrderNow.tsx client key payloads perfectly
+    const { 
+        guest_name, 
+        guest_email, 
+        guest_phone, 
+        guest_address, 
+        payment_method, 
+        reference_number, 
+        items 
+    } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ message: "No items selected for the order." });
@@ -77,40 +86,62 @@ export const placeExternalOrder = (req, res) => {
 
     let completed = 0;
     let hasError = false;
+    let savedOrderIds = [];
 
     items.forEach((item) => {
-        // 1. Insert into receipts with guest details
+        // 1. Updated SQL to include reference_number and payment_method columns
         const orderSql = `
             INSERT INTO receipts 
-            (user_id, product_id, quantity, total_price, status, guest_name, guest_email, guest_phone, guest_address) 
-            VALUES (NULL, ?, ?, ?, 'pending', ?, ?, ?, ?)
+            (user_id, product_id, quantity, total_price, reference_number, payment_method, status, guest_name, guest_email, guest_phone, guest_address) 
+            VALUES (NULL, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
         `;
         const totalPrice = item.price * item.qty;
 
-        db.query(orderSql, [item.id, item.qty, totalPrice, customerName, email, phone, address], (err) => {
-            if (err) {
-                console.error("Insert Error:", err);
-                hasError = true;
-            }
-
-            // 2. Deduct stock from products table
-            const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
-            db.query(updateStockSql, [item.qty, item.id], (updateErr) => {
-                if (updateErr) {
-                    console.error("Stock Update Error:", updateErr);
+        db.query(
+            orderSql, 
+            [
+                item.id, 
+                item.qty, 
+                totalPrice, 
+                reference_number || null, // Saves the generated REF token or NULL for cash
+                payment_method,           // Saves 'Cash' or 'GCash'
+                guest_name, 
+                guest_email, 
+                guest_phone, 
+                guest_address
+            ], 
+            (err, result) => {
+                if (err) {
+                    console.error("Insert External Order Error:", err);
                     hasError = true;
+                } else {
+                    savedOrderIds.push(result.insertId);
                 }
 
-                completed++;
-                // Once all items in the array are processed, send final response
-                if (completed === items.length) {
-                    if (hasError) {
-                        return res.status(500).json({ message: "Order processed with some database errors." });
+                // 2. Deduct stock from products table
+                const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
+                db.query(updateStockSql, [item.qty, item.id], (updateErr) => {
+                    if (updateErr) {
+                        console.error("Stock Update Error:", updateErr);
+                        hasError = true;
                     }
-                    return res.status(200).json({ message: "Order placed and stock updated successfully!" });
-                }
-            });
-        });
+
+                    completed++;
+                    // Once all items in the array are processed, send final response
+                    if (completed === items.length) {
+                        if (hasError) {
+                            return res.status(500).json({ message: "Order processed with some database errors." });
+                        }
+                        
+                        // Send response containing the main inserted reference details back to the front-end
+                        return res.status(200).json({ 
+                            message: "Order placed and stock updated successfully!",
+                            orderId: savedOrderIds.length > 0 ? `ORD-${savedOrderIds[0]}` : null
+                        });
+                    }
+                });
+            }
+        );
     });
 };
 
