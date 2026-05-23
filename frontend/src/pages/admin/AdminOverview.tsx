@@ -76,7 +76,7 @@ const AdminOverview = ({ setActiveTab }: AdminOverviewProps) => {
             </div>
 
             {/* Top Stat Interactive Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-4 md:grid-cols-10 lg:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gross Revenue</p>
                     <p className="text-2xl font-black text-[#004a80]">
