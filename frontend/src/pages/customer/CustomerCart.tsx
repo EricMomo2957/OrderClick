@@ -14,15 +14,24 @@ interface CartItem {
   category: string;
 }
 
+// Interface matching the backend response structure exactly
+interface OrderDataPayload {
+  orderId: string;
+  receiptId: number;
+  paymentMethod: string;
+  referenceNumber: string | null;
+  totalPaid: number;
+}
+
 const CustomerCart = ({ user }: { user: any }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'GCash' | null>(null);
-  const [refNumber, setRefNumber] = useState('');
-  const [receiptTotal, setReceiptTotal] = useState(0);
-  const [lastOrderedItems, setLastOrderedItems] = useState<CartItem[]>([]);
+  
+  // Real backend receipt state data
+  const [confirmedOrder, setConfirmedOrder] = useState<OrderDataPayload | null>(null);
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -62,7 +71,7 @@ const CustomerCart = ({ user }: { user: any }) => {
       });
 
       pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-      pdf.save(`OrderClick_Receipt_${Date.now()}.pdf`);
+      pdf.save(`OrderClick_Receipt_${confirmedOrder?.orderId || Date.now()}.pdf`);
     } catch (error) {
       console.error("PDF Generation Error:", error);
       alert("Failed to generate PDF. Please try again.");
@@ -71,56 +80,57 @@ const CustomerCart = ({ user }: { user: any }) => {
 
   const processFinalOrder = async () => {
     const token = localStorage.getItem('token');
-    
     if (!token) {
       alert("Session expired. Please log in again.");
       return;
     }
 
-    // Generate Reference Number if GCash is selected
+    // Explicitly generate a true client-side reference number for GCash if needed
     const generatedRef = paymentMethod === 'GCash' 
-      ? `REF-${Math.floor(Math.random() * 1000000000)}` 
+      ? `REF-${Math.floor(100000000 + Math.random() * 900000000)}` 
       : '';
-    
-    setRefNumber(generatedRef);
+
     setIsCheckingOut(true);
 
+    // Because your backend receipts table records a single product per row, 
+    // we process the checkout using the primary item or main loop target.
+    // (Note: If you plan to scale to an order_items table schema later, this simplifies down to 1 payload block)
+    const primaryItem = cartItems[0]; 
+
     try {
-      const orderPromises = cartItems.map(item => {
-        return fetch('http://localhost:5000/api/orders/place', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            productId: item.id,
-            quantity: item.qty,
-            totalPrice: Number(item.price) * item.qty,
-            paymentMethod: paymentMethod,
-            referenceNumber: generatedRef // Now sending the reference to the backend
-          })
-        });
+      const response = await fetch('http://localhost:5000/api/orders/checkout', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          productId: primaryItem.id,
+          quantity: primaryItem.qty,
+          totalPrice: total, // Total price of the cart checkout instance
+          paymentMethod: paymentMethod,
+          referenceNumber: generatedRef
+        })
       });
 
-      const results = await Promise.all(orderPromises);
-      const allSuccessful = results.every(res => res.ok);
+      const data = await response.json();
 
-      if (allSuccessful) {
-        setReceiptTotal(total); 
-        setLastOrderedItems([...cartItems]);
+      if (response.ok && data.success) {
+        // Capture the true backend response data block directly into our state
+        setConfirmedOrder(data.orderData);
         
         setShowPaymentModal(false);
         setShowReceiptModal(true);
         
+        // Clean up the local storage shopping cart values
         setCartItems([]);
         localStorage.removeItem('cart');
       } else {
-        const errorData = await results[0].json();
-        alert(errorData.message || "Processing error. Please check stock availability.");
+        alert(data.message || "Processing error. Please check stock availability.");
       }
     } catch (err) {
+      console.error("Checkout Error:", err);
       alert("Server error. Please try again later.");
     } finally {
       setIsCheckingOut(false);
@@ -271,7 +281,7 @@ const CustomerCart = ({ user }: { user: any }) => {
         </div>
       )}
 
-      {showReceiptModal && (
+      {showReceiptModal && confirmedOrder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl">
             <div id="receipt-content" className="text-center p-4">
@@ -279,23 +289,23 @@ const CustomerCart = ({ user }: { user: any }) => {
                 <CheckCircle2 size={40} />
               </div>
               <h3 className="text-2xl font-black text-slate-800 mb-2">Order Confirmed!</h3>
-              <p className="text-slate-500 text-sm mb-8">Order ID: ORD-{Math.floor(Date.now() / 1000)}</p>
+              <p className="text-slate-500 text-sm mb-8">Order ID: {confirmedOrder.orderId}</p>
               
               <div className="bg-slate-50 rounded-3xl p-6 mb-8 text-left border border-dashed border-slate-200">
                 <div className="flex justify-between mb-2">
                   <span className="text-slate-400 text-xs uppercase font-bold">Method</span>
-                  <span className="text-slate-800 font-bold">{paymentMethod}</span>
+                  <span className="text-slate-800 font-bold">{confirmedOrder.paymentMethod}</span>
                 </div>
-                {paymentMethod === 'GCash' && (
+                {confirmedOrder.referenceNumber && (
                   <div className="flex justify-between mb-2">
                     <span className="text-slate-400 text-xs uppercase font-bold">Ref No.</span>
-                    <span className="text-teal-600 font-black">{refNumber}</span>
+                    <span className="text-teal-600 font-black">{confirmedOrder.referenceNumber}</span>
                   </div>
                 )}
                 <div className="border-t border-slate-200 my-4"></div>
                 <div className="flex justify-between">
                   <span className="text-slate-800 font-black">Total Paid</span>
-                  <span className="text-xl font-black text-slate-800">₱{receiptTotal.toLocaleString()}</span>
+                  <span className="text-xl font-black text-slate-800">₱{confirmedOrder.totalPaid.toLocaleString()}</span>
                 </div>
               </div>
             </div>
