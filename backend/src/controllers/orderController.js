@@ -1,6 +1,9 @@
 import db from '../config/db.js';
 
-// --- REGISTERED USER ORDER ---
+// ==========================================
+// ---          ORDER PLACEMENT           ---
+// ==========================================
+
 /**
  * REGISTERED USER ORDER
  * Handles orders for logged-in users, including payment reference tracking.
@@ -60,7 +63,11 @@ export const placeOrder = (req, res) => {
         }
     );
 };
-// --- GUEST / EXTERNAL ORDER ---
+
+/**
+ * GUEST / EXTERNAL ORDER
+ * Handles rapid checkouts directly from landing components for unregistered users.
+ */
 export const placeExternalOrder = (req, res) => {
     const { customerName, email, phone, address, items } = req.body;
 
@@ -107,8 +114,89 @@ export const placeExternalOrder = (req, res) => {
     });
 };
 
-// --- FETCHING DATA ---
+/**
+ * UNIFIED CHECKOUT ORDER
+ * Seamlessly handles references, payment tracking, and returns structured payload for confirmation modals.
+ */
+export const placeCheckoutOrder = (req, res) => {
+    const { 
+        userId, 
+        productId, 
+        quantity, 
+        totalPrice, 
+        paymentMethod, 
+        referenceNumber,
+        guestName,
+        guestPhone,
+        guestEmail,
+        guestAddress 
+    } = req.body;
 
+    const orderSql = `
+        INSERT INTO receipts 
+        (user_id, product_id, quantity, total_price, reference_number, payment_method, status, guest_name, guest_phone, guest_email, guest_address) 
+        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
+    `;
+
+    const values = [
+        userId || null, 
+        productId, 
+        quantity, 
+        totalPrice, 
+        referenceNumber || null, 
+        paymentMethod || null, 
+        guestName || null, 
+        guestPhone || null, 
+        guestEmail || null, 
+        guestAddress || null
+    ];
+
+    db.query(orderSql, values, (err, result) => {
+        if (err) {
+            console.error("Checkout Insertion Error:", err);
+            return res.status(500).json({ 
+                success: false,
+                message: "Database error during checkout placement",
+                error: err.message 
+            });
+        }
+
+        // Successfully inserted into receipts, now deduct stock from products table
+        const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
+        
+        db.query(updateStockSql, [quantity, productId], (updateErr) => {
+            if (updateErr) {
+                console.error("Stock Update Error:", updateErr);
+                // Logged but not failing the response since the receipt row is safely generated
+            }
+
+            // Generate the clean Order ID format matching your UI layout display
+            const orderIdString = `ORD-${result.insertId}`;
+
+            // Return the exact object structure your React confirmation modal state needs
+            return res.status(201).json({
+                success: true,
+                message: "Order placed successfully!",
+                orderData: {
+                    orderId: orderIdString,
+                    receiptId: result.insertId,
+                    paymentMethod: paymentMethod,
+                    referenceNumber: referenceNumber,
+                    totalPaid: totalPrice
+                }
+            });
+        });
+    });
+};
+
+
+// ==========================================
+// ---           DATA FETCHING            ---
+// ==========================================
+
+/**
+ * GET USER PURCHASE HISTORY
+ */
 export const getUserOrders = (req, res) => {
     const { userId } = req.params;
     const sql = `
@@ -128,7 +216,10 @@ export const getUserOrders = (req, res) => {
     });
 };
 
-// Admin Table Logic: Combines Registered and Guest names
+/**
+ * GET ALL RECEIPTS (Admin Panel View)
+ * Combines Registered and Guest names to safely construct display names.
+ */
 export const getAllReceipts = (req, res) => {
     const sql = `
         SELECT 
@@ -152,8 +243,14 @@ export const getAllReceipts = (req, res) => {
     });
 };
 
-// --- UPDATE & DELETE ---
 
+// ==========================================
+// ---         UPDATE & DELETE            ---
+// ==========================================
+
+/**
+ * UPDATE RECEIPT STATUS
+ */
 export const updateReceiptStatus = (req, res) => {
     const { id } = req.params;
     const { status } = req.body; 
@@ -164,6 +261,9 @@ export const updateReceiptStatus = (req, res) => {
     });
 };
 
+/**
+ * DELETE RECEIPT
+ */
 export const deleteReceipt = (req, res) => {
     const { id } = req.params;
     db.query('DELETE FROM receipts WHERE id = ?', [id], (err) => {

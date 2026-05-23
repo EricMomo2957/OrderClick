@@ -5,38 +5,42 @@ import {
     getUserOrders, 
     getAllReceipts, 
     updateReceiptStatus, 
-    deleteReceipt 
+    deleteReceipt,
+    placeCheckoutOrder 
 } from '../controllers/orderController.js';
 
-// Import the middleware you just created
+// Import authorization middleware
 import { verifyToken, isAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // --- PUBLIC ROUTES (No Login Required) ---
 
-// Route for OrderNow.tsx (Outside Customers - can remain public)
+// Route for OrderNow.tsx (Outside / Guest Customers)
 router.post('/external-order', placeExternalOrder);
+
+// Unified checkout endpoint (Handles references and returns modal data)
+router.post('/checkout', placeCheckoutOrder); 
 
 
 // --- PROTECTED ROUTES (Requires Login) ---
 
-// Regular customer order - Added verifyToken
+// Regular registered customer order placement
 router.post('/place', verifyToken, placeOrder);
 
-// Fetch history for a specific customer - Added verifyToken
+// Fetch purchase history for a specific logged-in customer
 router.get('/user/:userId', verifyToken, getUserOrders);
 
 
 // --- ADMIN ROUTES (Requires Login + Admin Role) ---
 
-// Fetch all receipts - Added verifyToken and isAdmin
+// Fetch all receipts for the Admin Panel Dashboard
 router.get('/all', verifyToken, isAdmin, getAllReceipts);
 
-// Update status - Added verifyToken and isAdmin
+// Update order verification status (e.g., pending -> verified)
 router.put('/status/:id', verifyToken, isAdmin, updateReceiptStatus);
 
-// Delete a receipt record - Added verifyToken and isAdmin
+// Delete a receipt transaction log record
 router.delete('/:id', verifyToken, isAdmin, deleteReceipt);
 
 export default router;
