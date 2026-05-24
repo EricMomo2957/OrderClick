@@ -1,10 +1,16 @@
-import { ShoppingBag, ShieldCheck, Leaf, Globe, CheckCircle2, Star, Mail, MapPin, Phone } from 'lucide-react';
+import { useState } from 'react';
+import { ShoppingBag, ShieldCheck, Leaf, Globe, CheckCircle2, Star, Mail, MapPin, Phone, X, HelpCircle, FileText, Shield } from 'lucide-react';
 
 interface LandingProps {
   setView: (view: string) => void;
 }
 
 const Landing = ({ setView }: LandingProps) => {
+  // Modal tracking state
+  const [modalType, setModalType] = useState<null | 'help' | 'privacy' | 'terms'>(null);
+
+  const closeModal = () => setModalType(null);
+
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 scroll-smooth">
       {/* 1. Navigation Bar */}
@@ -61,94 +67,83 @@ const Landing = ({ setView }: LandingProps) => {
       </header>
 
       {/* 3. Trending Collections / Categories Section */}
-<section id="products" className="py-24 bg-[#0a0f1c]">
-  <div className="max-w-7xl mx-auto px-8 text-center mb-16">
-    <h2 className="text-4xl font-black text-white mb-4">
-      Trending <span className="text-teal-400">Collections</span>
-    </h2>
-    <p className="text-slate-400">Explore our most requested categories this week.</p>
-  </div>
-
-  {/* CENTERED GRID SYSTEM */}
-  <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 justify-items-center">
-    {[
-      { 
-        name: 'Fragrance', 
-        desc: 'Signature scents for every occasion.', 
-        step: '01',
-        img: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800' 
-      },
-      { 
-        name: 'Makeup', 
-        desc: 'Professional tools for your best look.', 
-        step: '02',
-        img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800' 
-      },
-      { 
-        name: 'Face Care', 
-        desc: 'Advanced skincare for glowing results.', 
-        step: '03',
-        img: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800' 
-      },
-      { 
-        name: 'Home Nutrition', 
-        desc: 'Fuel your body with premium supplements.', 
-        step: '04',
-        img: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800' 
-      },
-      { 
-        name: 'Men\'s Store', 
-        desc: 'Grooming essentials built for men.', 
-        step: '06',
-        img: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800' 
-      }
-    ].map((category, i) => (
-      <div 
-        key={i} 
-        onClick={() => setView('orderNow')}
-        className="relative group w-full max-w-[380px] aspect-[4/6] rounded-[2.5rem] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:-translate-y-2"
-      >
-        {/* Background Image */}
-        <img 
-          src={category.img} 
-          alt={category.name} 
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-        />
-
-        {/* Gradient Overlay (Darkens bottom for text readability) */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1c] via-[#0a0f1c]/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
-
-        {/* Step Number (Top Right) */}
-        <span className="absolute top-8 right-10 text-6xl font-black text-white/10 z-20">
-          {category.step}
-        </span>
-
-        {/* Content Container (Bottom) */}
-        <div className="absolute bottom-0 left-0 right-0 p-10 z-30">
-          <h3 className="text-3xl font-black text-teal-400 mb-2">
-            {category.name}
-          </h3>
-          <p className="text-slate-200 text-sm mb-8 leading-relaxed opacity-90">
-            {category.desc}
-          </p>
-          
-          <button className="w-full py-4 bg-[#0f966c] text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-[#0d8560] transition-colors shadow-lg shadow-[#0f966c]/20">
-            Explore Collection
-          </button>
+      <section id="products" className="py-24 bg-[#0a0f1c]">
+        <div className="max-w-7xl mx-auto px-8 text-center mb-16">
+          <h2 className="text-4xl font-black text-white mb-4">
+            Trending <span className="text-teal-400">Collections</span>
+          </h2>
+          <p className="text-slate-400">Explore our most requested categories this week.</p>
         </div>
 
-        {/* Inner Border Effect */}
-        <div className="absolute inset-4 border border-white/10 rounded-[2rem] pointer-events-none group-hover:border-teal-500/30 transition-colors"></div>
-      </div>
-    ))}
-  </div>
-</section>
+        <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 justify-items-center">
+          {[
+            { 
+              name: 'Fragrance', 
+              desc: 'Signature scents for every occasion.', 
+              step: '01',
+              img: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800' 
+            },
+            { 
+              name: 'Makeup', 
+              desc: 'Professional tools for your best look.', 
+              step: '02',
+              img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800' 
+            },
+            { 
+              name: 'Face Care', 
+              desc: 'Advanced skincare for glowing results.', 
+              step: '03',
+              img: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800' 
+            },
+            { 
+              name: 'Home Nutrition', 
+              desc: 'Fuel your body with premium supplements.', 
+              step: '04',
+              img: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800' 
+            },
+            { 
+              name: 'Men\'s Store', 
+              desc: 'Grooming essentials built for men.', 
+              step: '06',
+              img: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800' 
+            }
+          ].map((category, i) => (
+            <div 
+              key={i} 
+              onClick={() => setView('orderNow')}
+              className="relative group w-full max-w-[380px] aspect-[4/6] rounded-[2.5rem] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:-translate-y-2"
+            >
+              <img 
+                src={category.img} 
+                alt={category.name} 
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1c] via-[#0a0f1c]/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
+              <span className="absolute top-8 right-10 text-6xl font-black text-white/10 z-20">
+                {category.step}
+              </span>
+              <div className="absolute bottom-0 left-0 right-0 p-10 z-30">
+                <h3 className="text-3xl font-black text-teal-400 mb-2">
+                  {category.name}
+                </h3>
+                <p className="text-slate-200 text-sm mb-8 leading-relaxed opacity-90">
+                  {category.desc}
+                </p>
+                <button className="w-full py-4 bg-[#0f966c] text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-[#0d8560] transition-colors shadow-lg shadow-[#0f966c]/20">
+                  Explore Collection
+                </button>
+              </div>
+              <div className="absolute inset-4 border border-white/10 rounded-[2rem] pointer-events-none group-hover:border-teal-500/30 transition-colors"></div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* 4. About Section */}
       <section id="about" className="py-24">
         <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row items-center gap-16">
           <div className="md:w-1/2">
-            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=2070" className="rounded-[3rem] shadow-2xl" />
+            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=2070" className="rounded-[3rem] shadow-2xl" alt="About Us" />
           </div>
           <div className="md:w-1/2 space-y-6">
             <h2 className="text-4xl font-black text-slate-800 leading-tight">We're on a mission to <span className="text-[#0f966c]">digitize the world.</span></h2>
@@ -173,7 +168,7 @@ const Landing = ({ setView }: LandingProps) => {
           <h2 className="text-4xl font-black mb-4">Simple as <span className="text-[#21c08b]">1-2-3</span></h2>
           <p className="text-slate-400">Our seamless process designed for speed.</p>
         </div>
-        <div className="max-w-7xl mx-auto px-8 grid grid-cols-4 md:grid-cols-10 gap-12">
+        <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-3 gap-12">
           {[
             { step: '01', title: 'Pick Items', desc: 'Browse our marketplace and add items to your cart.' },
             { step: '02', title: 'One-Click Pay', desc: 'Secure checkout with your preferred payment method.' },
@@ -245,7 +240,7 @@ const Landing = ({ setView }: LandingProps) => {
         </div>
       </section>
 
-      {/* 8. Footer */}
+      {/* 8. Footer Section with Modal Button Triggers */}
       <footer className="bg-slate-900 py-16 text-slate-400">
         <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-4 gap-12 border-b border-white/5 pb-16">
           <div className="space-y-6">
@@ -267,10 +262,10 @@ const Landing = ({ setView }: LandingProps) => {
           </div>
           <div>
             <h4 className="text-white font-bold mb-6 uppercase text-xs tracking-widest">Support</h4>
-            <ul className="space-y-4 text-sm">
-              <li className="hover:text-white cursor-pointer transition-colors">Help Center</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Privacy Policy</li>
-              <li className="hover:text-white cursor-pointer transition-colors">Terms of Service</li>
+            <ul className="space-y-4 text-sm flex flex-col items-start">
+              <li><button onClick={() => setModalType('help')} className="hover:text-white cursor-pointer transition-colors text-left">Help Center</button></li>
+              <li><button onClick={() => setModalType('privacy')} className="hover:text-white cursor-pointer transition-colors text-left">Privacy Policy</button></li>
+              <li><button onClick={() => setModalType('terms')} className="hover:text-white cursor-pointer transition-colors text-left">Terms of Service</button></li>
             </ul>
           </div>
           <div>
@@ -286,6 +281,113 @@ const Landing = ({ setView }: LandingProps) => {
           © 2026 OrderClick Inc. All Rights Reserved.
         </div>
       </footer>
+
+      {/* DYNAMIC MODAL SYSTEM */}
+      {modalType && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div 
+            className="bg-white w-full max-w-2xl rounded-[2.5rem] border border-slate-100 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-8 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#0f966c]/10 flex items-center justify-center text-[#0f966c]">
+                  {modalType === 'help' && <HelpCircle size={20} />}
+                  {modalType === 'privacy' && <Shield size={20} />}
+                  {modalType === 'terms' && <FileText size={20} />}
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800">
+                    {modalType === 'help' && 'Help Center & Knowledge Hub'}
+                    {modalType === 'privacy' && 'Privacy Statement'}
+                    {modalType === 'terms' && 'Terms of Service agreements'}
+                  </h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">OrderClick Secure Portal v2.0</p>
+                </div>
+              </div>
+              <button 
+                onClick={closeModal} 
+                className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-400 hover:text-slate-600 hover:shadow-sm transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body content */}
+            <div className="p-8 overflow-y-auto space-y-6 text-slate-600 leading-relaxed text-sm">
+              {modalType === 'help' && (
+                <>
+                  <div>
+                    <h4 className="font-black text-slate-800 text-base mb-2">1. How do I track my custom order requests?</h4>
+                    <p>Once you fill out an order requested summary and specify a transaction route, your order request moves to the <strong>Orders & Receipts Panel</strong> as <span className="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded text-xs">PENDING</span>. Administrators verify GCash Reference numbers directly prior to dispatching PDFs.</p>
+                  </div>
+                  <hr className="border-slate-100" />
+                  <div>
+                    <h4 className="font-black text-slate-800 text-base mb-2">2. What payment verification modes exist?</h4>
+                    <p>We support both physical over-the-counter <strong>Cash collection at the Coop main office</strong>, alongside instant digital <strong>GCash reference attachments</strong>. Secure payment tracking ensures swift digital updates.</p>
+                  </div>
+                  <hr className="border-slate-100" />
+                  <div>
+                    <h4 className="font-black text-slate-800 text-base mb-2">3. Getting in touch with support channels</h4>
+                    <p>For instant technical assistance regarding transaction slips, you can contextually visit our corporate site branch located in Cebu City or ping <strong>support@orderclick.com</strong> directly.</p>
+                  </div>
+                </>
+              )}
+
+              {modalType === 'privacy' && (
+                <>
+                  <p className="italic text-slate-400">Last updated: May 24, 2026</p>
+                  <div>
+                    <h4 className="font-black text-slate-800 text-base mb-2">Information We Collect</h4>
+                    <p>We securely log essential full names, phone contact strings, active email configurations, and specified transaction locations solely to route individual purchase directories correctly into your platform account.</p>
+                  </div>
+                  <hr className="border-slate-100" />
+                  <div>
+                    <h4 className="font-black text-slate-800 text-base mb-2">GCash & Data Security Encryption</h4>
+                    <p>Reference numbers uploaded to verify balances are stored in sandboxed environment states. Financial parameters remain secure and visible uniquely inside the protected administrator terminal dashboards.</p>
+                  </div>
+                  <hr className="border-slate-100" />
+                  <div>
+                    <h4 className="font-black text-slate-800 text-base mb-2">Third-Party Policy</h4>
+                    <p>OrderClick operates independently inside the Philippines. We strictly maintain a policy against trading your personal directory details to outside marketing organizations.</p>
+                  </div>
+                </>
+              )}
+
+              {modalType === 'terms' && (
+                <>
+                  <p className="italic text-slate-400">Effective Date: May 2026</p>
+                  <div>
+                    <h4 className="font-black text-slate-800 text-base mb-2">1. User Account Registration Requirements</h4>
+                    <p>Users must submit real information inside checkout directories. Utilizing mock reference structures or fabricated tracking logs will result in standard account blacklists from our secure portal layers.</p>
+                  </div>
+                  <hr className="border-slate-100" />
+                  <div>
+                    <h4 className="font-black text-slate-800 text-base mb-2">2. Digital Receipt Disclaimers</h4>
+                    <p>Generated automated system PDFs act as functional eco-friendly receipts representing confirmed transaction instances. Any tax deductions or physical returns remain subject to local office guidelines.</p>
+                  </div>
+                  <hr className="border-slate-100" />
+                  <div>
+                    <h4 className="font-black text-slate-800 text-base mb-2">3. Termination Policy</h4>
+                    <p>We preserve full authoritative control to safely lock or close active client sessions if unauthorized behaviors, malicious scripting exploits, or payment spoofing are registered in our event pipelines.</p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button 
+                onClick={closeModal}
+                className="px-6 py-2.5 bg-[#0f966c] hover:bg-[#0d8560] text-white font-bold rounded-xl transition-all shadow-md shadow-[#0f966c]/10 text-xs uppercase tracking-wider"
+              >
+                Understood
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
