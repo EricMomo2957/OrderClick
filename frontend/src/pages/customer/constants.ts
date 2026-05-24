@@ -18,16 +18,16 @@ import CustomerAnnouncement from './CustomerAnnouncement'; // Import the announc
 export const CUSTOMER_MENU = [
   // I recommend putting Announcements at the top so it's the first thing customers see
   { 
-    id: 'announcements', 
-    label: 'Announcements', 
-    icon: Megaphone, 
-    component: CustomerAnnouncement 
-  },
-  { 
     id: 'shop', 
     label: 'Marketplace', 
     icon: ShoppingBag, 
     component: CustomerShop 
+  },
+  { 
+    id: 'announcements', 
+    label: 'Announcements', 
+    icon: Megaphone, 
+    component: CustomerAnnouncement 
   },
   { 
     id: 'receipts', 
