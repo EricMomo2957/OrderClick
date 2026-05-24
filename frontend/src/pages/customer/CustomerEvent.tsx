@@ -1,5 +1,6 @@
+// frontend/src/pages/customer/CustomerEvent.tsx
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Calendar as CalendarIcon, MapPin, X, Loader2, AlertCircle, LayoutGrid, CalendarDays } from 'lucide-react';
+import { Plus, Edit2, Calendar as CalendarIcon, MapPin, X, Loader2, AlertCircle, LayoutGrid, CalendarDays } from 'lucide-react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import '../admin/calendar-custom.css'; // Reusing the same styles
@@ -27,7 +28,7 @@ const CustomerEvent = () => {
     location: ''
   });
 
-  // Points to the NEW customer endpoint
+  // Points to the customer endpoint
   const fetchEvents = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -60,7 +61,7 @@ const CustomerEvent = () => {
     if (view === 'month') {
       const dateString = date.toISOString().split('T')[0];
       const hasEvent = events.some(event => event.event_date.split('T')[0] === dateString);
-      return hasEvent ? 'has-event-dot' : null;
+      return hasEvent ? 'has-event-dot bg-[#003d3d]/10 text-[#003d3d] font-black border border-[#003d3d]/20 rounded-xl' : null;
     }
     return null;
   };
@@ -118,23 +119,23 @@ const CustomerEvent = () => {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto font-['Inter']">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+    <div className="p-8 max-w-7xl mx-auto font-['Inter'] text-slate-800 animate-in fade-in duration-500 select-none">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 bg-white border border-slate-100 p-8 rounded-[2.5rem] shadow-sm">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">My Events</h1>
-          <p className="text-slate-500 font-medium">Manage your personal scheduled activities.</p>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight">My Events</h1>
+          <p className="text-slate-400 font-medium text-sm mt-0.5">Manage your personal scheduled activities.</p>
         </div>
         
-        <div className="flex items-center gap-3 bg-slate-100 p-1.5 rounded-2xl">
+        <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-2xl border border-slate-100/60">
           <button 
             onClick={() => setViewMode('grid')}
-            className={`p-2 px-4 rounded-xl flex items-center gap-2 text-xs font-black transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-[#004a80]' : 'text-slate-400'}`}
+            className={`p-2 px-4 rounded-xl flex items-center gap-2 text-xs font-black transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-[#003d3d] border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <LayoutGrid size={16} /> GRID
           </button>
           <button 
             onClick={() => setViewMode('calendar')}
-            className={`p-2 px-4 rounded-xl flex items-center gap-2 text-xs font-black transition-all ${viewMode === 'calendar' ? 'bg-white shadow-sm text-[#004a80]' : 'text-slate-400'}`}
+            className={`p-2 px-4 rounded-xl flex items-center gap-2 text-xs font-black transition-all ${viewMode === 'calendar' ? 'bg-white shadow-sm text-[#003d3d] border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <CalendarDays size={16} /> CALENDAR
           </button>
@@ -142,9 +143,9 @@ const CustomerEvent = () => {
 
         <button 
           onClick={() => openModal()}
-          className="flex items-center gap-2 bg-[#004a80] text-white px-6 py-4 rounded-[1.3rem] font-bold hover:bg-[#003d66] transition-all shadow-xl shadow-blue-900/10"
+          className="flex items-center gap-2 bg-[#003d3d] text-white px-6 py-4 rounded-[1.3rem] font-black text-xs uppercase tracking-wider hover:bg-[#002d2d] transition-all shadow-sm hover:-translate-y-0.5 active:translate-y-0"
         >
-          <Plus size={20} /> Create Event
+          <Plus size={18} strokeWidth={3} /> Create Event
         </button>
       </div>
 
@@ -157,32 +158,38 @@ const CustomerEvent = () => {
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-          <Loader2 className="animate-spin mb-4" size={40} />
-          <p className="font-bold tracking-widest text-[10px] uppercase">Syncing your data...</p>
+          <Loader2 className="animate-spin mb-4 text-[#003d3d]" size={40} />
+          <p className="font-mono tracking-widest text-[10px] uppercase font-black">Syncing your data...</p>
         </div>
       ) : viewMode === 'calendar' ? (
-        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
-          <Calendar 
-            tileClassName={getTileClassName}
-            className="w-full border-none font-['Inter']"
-          />
+        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 animate-in zoom-in-98 duration-300">
+          <div className="w-full text-slate-800">
+            <Calendar 
+              tileClassName={getTileClassName}
+              className="w-full border-none font-['Inter'] bg-white !text-slate-800"
+            />
+          </div>
+          <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400 font-mono">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#003d3d] animate-pulse"></span>
+            Personal Schedule Monitor Token
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
           {events.map((event) => (
-             <div key={event.id} className="bg-white border border-slate-100 rounded-[2.5rem] p-7 shadow-sm hover:shadow-2xl transition-all group">
+             <div key={event.id} className="bg-white border border-slate-100 rounded-[2.5rem] p-7 shadow-sm relative group">
               <div className="flex justify-between items-start mb-6">
-                <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center">
-                  <CalendarIcon className="text-[#004a80]" size={24} />
+                <div className="h-12 w-12 bg-emerald-50/60 border border-emerald-100/40 rounded-2xl flex items-center justify-center">
+                  <CalendarIcon className="text-[#003d3d]" size={22} />
                 </div>
                 <div className="flex gap-2">
-                   <button onClick={() => openModal(event)} className="p-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-blue-50 hover:text-[#004a80]"><Edit2 size={14} /></button>
+                   <button onClick={() => openModal(event)} className="p-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-[#003d3d]/10 hover:text-[#003d3d] transition-colors"><Edit2 size={14} /></button>
                 </div>
               </div>
-              <h3 className="text-xl font-black text-slate-900 mb-2">{event.title}</h3>
-              <p className="text-slate-500 text-sm line-clamp-2 mb-6 font-medium">{event.description}</p>
-              <div className="space-y-2 pt-4 border-t border-slate-50">
-                <div className="flex items-center gap-2 text-[10px] font-black text-[#004a80] uppercase tracking-tighter">
+              <h3 className="text-xl font-bold text-slate-800 mb-2 uppercase tracking-wide truncate">{event.title}</h3>
+              <p className="text-slate-500 text-xs line-clamp-2 mb-6 font-medium font-['Inter'] leading-relaxed">{event.description || 'No description asset attached.'}</p>
+              <div className="space-y-2 pt-4 border-t border-slate-50 font-mono">
+                <div className="flex items-center gap-2 text-[10px] font-black text-[#003d3d] uppercase tracking-wider">
                   <MapPin size={14} /> {event.location}
                 </div>
                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -196,55 +203,67 @@ const CustomerEvent = () => {
 
       {/* Modal for Creating/Editing */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
-          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden">
-            <div className="bg-[#004a80] p-10 text-white flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100">
+            <div className="bg-[#003d3d] p-8 px-10 text-white flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-black">{editingEvent ? 'Edit Your Event' : 'Create New Event'}</h2>
-                <p className="text-blue-200 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Customer Dashboard</p>
+                <h2 className="text-xl font-black tracking-tight uppercase font-mono">{editingEvent ? 'Edit Your Event' : 'Create New Event'}</h2>
+                <p className="text-emerald-200 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Customer Dashboard Panel</p>
               </div>
-              <button onClick={closeModal} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-all"><X size={24} /></button>
+              <button onClick={closeModal} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-all"><X size={22} /></button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
-              <input 
-                type="text"
-                required
-                placeholder="Event Title"
-                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#004a80] text-sm font-bold"
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <input 
-                  type="date"
-                  required
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#004a80] text-sm font-bold"
-                  value={formData.event_date}
-                  onChange={(e) => setFormData({...formData, event_date: e.target.value})}
-                />
+            <form onSubmit={handleSubmit} className="p-10 space-y-6 font-mono">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Activity Label</label>
                 <input 
                   type="text"
                   required
-                  placeholder="Location"
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#004a80] text-sm font-bold"
-                  value={formData.location}
-                  onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  placeholder="Event Title"
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#003d3d] text-xs font-bold text-slate-800 uppercase placeholder:text-slate-300 transition-all"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
                 />
               </div>
 
-              <textarea 
-                rows={4}
-                placeholder="Description"
-                className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#004a80] text-sm font-bold resize-none"
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Target Matrix Date</label>
+                  <input 
+                    type="date"
+                    required
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#003d3d] text-xs font-bold text-slate-800 transition-all"
+                    value={formData.event_date}
+                    onChange={(e) => setFormData({...formData, event_date: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Execution Site</label>
+                  <input 
+                    type="text"
+                    required
+                    placeholder="Location"
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#003d3d] text-xs font-bold text-slate-800 uppercase placeholder:text-slate-300 transition-all"
+                    value={formData.location}
+                    onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Context Parameters</label>
+                <textarea 
+                  rows={4}
+                  placeholder="Description"
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#003d3d] text-xs font-bold text-slate-800 uppercase placeholder:text-slate-300 resize-none transition-all font-['Inter'] normal-case"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                />
+              </div>
 
               <button 
                 type="submit"
-                className="w-full bg-[#004a80] text-white font-black py-5 rounded-[1.5rem] hover:bg-[#003d66] transition-all text-xs uppercase tracking-[0.25em]"
+                className="w-full bg-[#003d3d] text-white font-black py-4.5 rounded-[1.5rem] hover:bg-[#002d2d] transition-all text-xs uppercase tracking-[0.25em] hover:-translate-y-0.5"
               >
                 {editingEvent ? 'Update Event' : 'Create Event'}
               </button>

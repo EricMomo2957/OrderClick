@@ -1,3 +1,4 @@
+// frontend/src/pages/admin/AdminEvent.tsx
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Calendar as CalendarIcon, MapPin, X, Loader2, AlertCircle, LayoutGrid, CalendarDays } from 'lucide-react';
 import Calendar from 'react-calendar';
@@ -18,7 +19,7 @@ const AdminEvent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid');
+  const [viewMode, setViewMode] = useState<'calendar' | 'grid'>('calendar');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -59,7 +60,7 @@ const AdminEvent = () => {
     if (view === 'month') {
       const dateString = date.toISOString().split('T')[0];
       const hasEvent = events.some(event => event.event_date.split('T')[0] === dateString);
-      return hasEvent ? 'has-event-dot' : null;
+      return hasEvent ? 'has-event-dot bg-[#003d3d]/10 text-[#003d3d] font-black border border-[#003d3d]/20 rounded-xl' : null;
     }
     return null;
   };
@@ -70,7 +71,7 @@ const AdminEvent = () => {
     const url = editingEvent 
       ? `http://localhost:5000/api/events/${editingEvent.id}` 
       : 'http://localhost:5000/api/events';
-    
+      
     try {
       const response = await fetch(url, {
         method: editingEvent ? 'PUT' : 'POST',
@@ -90,6 +91,24 @@ const AdminEvent = () => {
       }
     } catch (err) {
       alert("Could not connect to server.");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Are you sure you want to remove this event entry?")) return;
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`http://localhost:5000/api/events/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        fetchEvents();
+      } else {
+        alert("Failed to delete event.");
+      }
+    } catch (err) {
+      alert("Server error occurred.");
     }
   };
 
@@ -115,34 +134,46 @@ const AdminEvent = () => {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto font-['Inter'] animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+    <div className="p-8 max-w-7xl mx-auto font-['Inter'] animate-in fade-in duration-500 select-none text-slate-800">
+      
+      {/* CONTAINER TOP HEADER BANNER BAR */}
+      <div className="bg-white border border-slate-100 p-8 rounded-[2.5rem] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8 shadow-sm">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Event Management</h1>
-          <p className="text-slate-500 font-medium">Schedule and track your campus activities.</p>
+          <p className="text-[10px] font-black tracking-[0.25em] text-slate-400 uppercase mb-1">
+            Event Management System
+          </p>
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-3xl font-black tracking-tight text-slate-800 uppercase">
+              {new Date().toLocaleString('en-US', { month: 'long' })}{' '}
+              <span className="text-[#003d3d]">{new Date().getFullYear()}</span>
+            </h1>
+          </div>
         </div>
         
-        <div className="flex items-center gap-3 bg-slate-100 p-1.5 rounded-2xl">
+        <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
+          {/* Layout Configuration Grid/Calendar Tab Toggles */}
+          <div className="flex items-center bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+            <button 
+              onClick={() => setViewMode('calendar')}
+              className={`p-2.5 px-4 rounded-lg flex items-center gap-2 text-[10px] font-black tracking-wider transition-all ${viewMode === 'calendar' ? 'bg-white text-[#003d3d] shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              <CalendarDays size={14} /> CALENDAR
+            </button>
+            <button 
+              onClick={() => setViewMode('grid')}
+              className={`p-2.5 px-4 rounded-lg flex items-center gap-2 text-[10px] font-black tracking-wider transition-all ${viewMode === 'grid' ? 'bg-white text-[#003d3d] shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              <LayoutGrid size={14} /> GRID LEDGER
+            </button>
+          </div>
+
           <button 
-            onClick={() => setViewMode('grid')}
-            className={`p-2 px-4 rounded-xl flex items-center gap-2 text-xs font-black transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-[#004a80]' : 'text-slate-400'}`}
+            onClick={() => openModal()}
+            className="flex items-center gap-2 bg-[#003d3d] text-white px-6 py-3.5 rounded-xl font-black text-xs uppercase tracking-wider hover:bg-[#002d2d] transition-all shadow-sm hover:-translate-y-0.5 active:translate-y-0"
           >
-            <LayoutGrid size={16} /> GRID
-          </button>
-          <button 
-            onClick={() => setViewMode('calendar')}
-            className={`p-2 px-4 rounded-xl flex items-center gap-2 text-xs font-black transition-all ${viewMode === 'calendar' ? 'bg-white shadow-sm text-[#004a80]' : 'text-slate-400'}`}
-          >
-            <CalendarDays size={16} /> CALENDAR
+            <Plus size={16} strokeWidth={3} /> Create Event
           </button>
         </div>
-
-        <button 
-          onClick={() => openModal()}
-          className="flex items-center gap-2 bg-[#004a80] text-white px-6 py-4 rounded-[1.3rem] font-bold hover:bg-[#003d66] transition-all shadow-xl shadow-blue-900/10"
-        >
-          <Plus size={20} /> Create Event
-        </button>
       </div>
 
       {error && (
@@ -152,91 +183,163 @@ const AdminEvent = () => {
         </div>
       )}
 
+      {/* CORE DISPLAY DECISION ENGINE */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-          <Loader2 className="animate-spin mb-4" size={40} />
-          <p className="font-bold tracking-widest text-[10px] uppercase">Syncing Portal...</p>
+        <div className="flex flex-col items-center justify-center py-32 text-slate-400">
+          <Loader2 className="animate-spin mb-4 text-[#003d3d]" size={36} />
+          <p className="font-mono tracking-widest text-[10px] uppercase font-black">Syncing Schedule Matrices...</p>
         </div>
       ) : viewMode === 'calendar' ? (
-        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 animate-in zoom-in-95 duration-500">
-          <Calendar 
-            tileClassName={getTileClassName}
-            className="w-full border-none font-['Inter']"
-          />
-          <div className="mt-8 flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-            <div className="w-3 h-3 rounded-full bg-[#004a80]"></div>
-            Scheduled Event Date
+        
+        /* 💡 UPDATED DESIGN: FULL WIDTH EXPANSION WITH WHITE BACKGROUND CANVAS */
+        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm animate-in zoom-in-98 duration-300 mb-8 w-full">
+          <div className="w-full text-slate-800">
+            <Calendar 
+              tileClassName={getTileClassName}
+              className="w-full max-w-full border-none bg-white font-['Inter'] !text-slate-800"
+            />
+          </div>
+          <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400 font-mono">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#003d3d] animate-pulse"></span>
+            Active System Scheduled Indicator Token
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        /* ALTERNATE GRID CARD OVERVIEW DISPLAY MODE */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 animate-in fade-in duration-300">
           {events.map((event) => (
-             <div key={event.id} className="bg-white border border-slate-100 rounded-[2.5rem] p-7 shadow-sm hover:shadow-2xl transition-all group">
-              <div className="flex justify-between items-start mb-6">
-                <div className="h-12 w-12 bg-blue-50 rounded-2xl flex items-center justify-center">
-                  <CalendarIcon className="text-[#004a80]" size={24} />
+            <div key={event.id} className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-sm relative group">
+              <div className="flex justify-between items-start mb-4">
+                <div className="h-10 w-10 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-center text-[#003d3d]">
+                  <CalendarIcon size={18} />
                 </div>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                   <button onClick={() => openModal(event)} className="p-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-blue-50 hover:text-[#004a80]"><Edit2 size={14} /></button>
+                <div className="flex gap-1.5">
+                  <button onClick={() => openModal(event)} className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors"><Edit2 size={12} /></button>
+                  <button onClick={() => handleDelete(event.id)} className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"><Trash2 size={12} /></button>
                 </div>
               </div>
-              <h3 className="text-xl font-black text-slate-900 mb-2">{event.title}</h3>
-              <p className="text-slate-500 text-sm line-clamp-2 mb-6 font-medium">{event.description}</p>
-              <div className="space-y-2 pt-4 border-t border-slate-50">
-                <div className="flex items-center gap-2 text-[10px] font-black text-[#004a80] uppercase tracking-tighter">
-                  <MapPin size={14} /> {event.location}
-                </div>
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  {new Date(event.event_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                </div>
+              <h3 className="text-lg font-bold text-slate-800 mb-2 truncate uppercase tracking-wide">{event.title}</h3>
+              <p className="text-slate-500 text-xs line-clamp-3 mb-4 leading-relaxed font-['Inter']">{event.description}</p>
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] font-black font-mono uppercase tracking-wider">
+                <span className="text-[#003d3d] flex items-center gap-1"><MapPin size={12} /> {event.location}</span>
+                <span className="text-slate-400">{event.event_date.split('T')[0]}</span>
               </div>
             </div>
           ))}
         </div>
       )}
 
+      {/* UPCOMING SCHEDULE LEDGER SECTION */}
+      <div className="bg-white border border-slate-100 rounded-[2.5rem] shadow-sm overflow-hidden">
+        <div className="p-6 px-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+          <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 font-mono">
+            Upcoming Schedule Ledger
+          </h2>
+          <span className="text-[10px] font-mono font-black text-[#003d3d] bg-emerald-50 px-3 py-1 rounded-md border border-emerald-100 uppercase">
+            {events.length} Records Found
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse font-mono">
+            <thead>
+              <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 tracking-wider uppercase bg-slate-50/20">
+                <th className="p-5 px-8">Event Detail</th>
+                <th className="p-5">Schedule</th>
+                <th className="p-5">Location</th>
+                <th className="p-5 text-right px-8">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50 text-xs font-medium text-slate-700">
+              {events.length > 0 ? (
+                events.map((event) => (
+                  <tr key={event.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-5 px-8 max-w-sm">
+                      <p className="font-bold text-slate-800 uppercase tracking-wide truncate">{event.title}</p>
+                      <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5 normal-case font-['Inter']">{event.description || 'No description provided.'}</p>
+                    </td>
+                    <td className="p-5 text-[#003d3d] font-bold whitespace-nowrap">
+                      {event.event_date.split('T')[0]}
+                    </td>
+                    <td className="p-5 whitespace-nowrap">
+                      <span className="text-[10px] font-black text-slate-600 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded">
+                        {event.location.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="p-5 text-right px-8 whitespace-nowrap">
+                      <div className="inline-flex gap-4 text-[10px] font-black tracking-wider uppercase">
+                        <button 
+                          onClick={() => openModal(event)} 
+                          className="text-[#003d3d] hover:text-[#002d2d] transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(event.id)} 
+                          className="text-slate-400 hover:text-red-500 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="p-12 text-center text-slate-400 italic font-['Inter']">
+                    No matching upcoming institutional listings located in active state.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* FULL RESPONSIVE CREATION & MODIFICATION MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="bg-[#004a80] p-10 text-white flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white border border-slate-100 text-slate-800 w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-slate-50/50 border-b border-slate-100 p-6 px-8 flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-black">{editingEvent ? 'Edit Event' : 'Publish New Event'}</h2>
-                <p className="text-blue-200 text-[10px] font-black uppercase tracking-[0.2em] mt-1">OrderClick Administrator</p>
+                <h2 className="text-lg font-black tracking-tight uppercase font-mono text-slate-800">{editingEvent ? 'Modify Entry' : 'Create New Event'}</h2>
+                <p className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-widest mt-0.5">OrderClick Secure Panel</p>
               </div>
-              <button onClick={closeModal} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-all"><X size={24} /></button>
+              <button onClick={closeModal} className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 text-slate-400 hover:text-slate-600 transition-all"><X size={16} /></button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
+            <form onSubmit={handleSubmit} className="p-8 space-y-5 font-mono">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Event Title</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Event Title</label>
                 <input 
                   type="text"
                   required
-                  placeholder="e.g. IT Career Fair 2026"
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#004a80] focus:bg-white transition-all text-sm font-bold placeholder:text-slate-300"
+                  placeholder="E.G. IT CAREER FAIR 2026"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-[#003d3d] text-xs font-bold text-slate-800 uppercase placeholder:text-slate-300 transition-all"
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Event Date</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Event Date</label>
                   <input 
                     type="date"
                     required
-                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#004a80] text-sm font-bold"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-[#003d3d] text-xs font-bold text-slate-800 transition-all"
                     value={formData.event_date}
                     onChange={(e) => setFormData({...formData, event_date: e.target.value})}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Location</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Location</label>
                   <input 
                     type="text"
                     required
-                    placeholder="Room/Building"
-                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#004a80] text-sm font-bold placeholder:text-slate-300"
+                    placeholder="BUILDING/ROOM"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-[#003d3d] text-xs font-bold text-slate-800 uppercase placeholder:text-slate-300 transition-all"
                     value={formData.location}
                     onChange={(e) => setFormData({...formData, location: e.target.value})}
                   />
@@ -244,11 +347,11 @@ const AdminEvent = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Description</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Description</label>
                 <textarea 
                   rows={4}
-                  placeholder="Tell students what this event is about..."
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-[#004a80] text-sm font-bold resize-none placeholder:text-slate-300"
+                  placeholder="PROVIDE INSTITUTIONAL ACTIVITY DATA CRITERIA SUMMARY..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-[#003d3d] text-xs font-bold text-slate-800 uppercase placeholder:text-slate-300 resize-none transition-all font-['Inter'] normal-case"
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                 />
@@ -256,9 +359,9 @@ const AdminEvent = () => {
 
               <button 
                 type="submit"
-                className="w-full bg-[#004a80] text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-blue-900/20 hover:bg-[#003d66] hover:-translate-y-0.5 transition-all text-xs uppercase tracking-[0.25em] mt-2"
+                className="w-full bg-[#003d3d] hover:bg-[#002d2d] text-white font-black py-4 rounded-xl shadow-sm transition-all text-xs uppercase tracking-widest mt-2 hover:-translate-y-0.5"
               >
-                {editingEvent ? 'Update Event Details' : 'Publish to Portal'}
+                {editingEvent ? 'Save Modifications' : 'Commit to Database'}
               </button>
             </form>
           </div>
