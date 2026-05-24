@@ -31,13 +31,13 @@ export const CUSTOMER_MENU = [
   },
   { 
     id: 'receipts', 
-    label: 'My Orders', 
+    label: 'Orders', 
     icon: Receipt, 
     component: CustomerOrders 
   },
   { 
     id: 'events', 
-    label: 'My Events', 
+    label: 'Events', 
     icon: CalendarDays, 
     component: CustomerEvent 
   },
