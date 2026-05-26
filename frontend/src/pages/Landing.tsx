@@ -9,7 +9,57 @@ const Landing = ({ setView }: LandingProps) => {
   // Modal tracking state
   const [modalType, setModalType] = useState<null | 'help' | 'privacy' | 'terms'>(null);
 
+  // 🚀 Added state management for the visitor message submission form
+  const [formData, setFormData] = useState({
+    fullname: '',
+    email: '',
+    message: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+
   const closeModal = () => setModalType(null);
+
+  // 🚀 Handles form input text changes dynamically
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // 🚀 Submits contact data directly to the messages database schema pipeline
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.fullname || !formData.email || !formData.message) {
+      alert("Please fill in all layout blocks to submit your approach request.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/admin/messages/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to dispatch user message payload.');
+      }
+
+      alert(data.message || "Message dispatched successfully!");
+      
+      // Clean form inputs on success stream
+      setFormData({ fullname: '', email: '', message: '' });
+    } catch (error: any) {
+      console.error("Transmission error tracking landing form:", error);
+      alert(error.message || "Something went wrong sending your message. Please check server connections.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 scroll-smooth">
@@ -231,11 +281,43 @@ const Landing = ({ setView }: LandingProps) => {
               </div>
             </div>
           </div>
-          <form className="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 space-y-4 border border-slate-100">
-            <input type="text" placeholder="Full Name" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20" />
-            <input type="email" placeholder="Email Address" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20" />
-            <textarea placeholder="Your Message" rows={4} className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20"></textarea>
-            <button className="w-full py-4 bg-[#0f966c] text-white font-black rounded-2xl shadow-lg shadow-[#0f966c]/20 hover:bg-[#0d8560] transition-all">Send Message</button>
+          
+          {/* 🚀 FORM UPDATED: Tied onSubmit handler and value inputs to backend state hook loops */}
+          <form onSubmit={handleFormSubmit} className="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 space-y-4 border border-slate-100">
+            <input 
+              type="text" 
+              name="fullname"
+              value={formData.fullname}
+              onChange={handleInputChange}
+              placeholder="Full Name" 
+              className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20" 
+              disabled={submitting}
+            />
+            <input 
+              type="email" 
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              placeholder="Email Address" 
+              className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20" 
+              disabled={submitting}
+            />
+            <textarea 
+              name="message"
+              value={formData.message}
+              onChange={handleInputChange}
+              placeholder="Your Message" 
+              rows={4} 
+              className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500/20"
+              disabled={submitting}
+            ></textarea>
+            <button 
+              type="submit"
+              disabled={submitting}
+              className="w-full py-4 bg-[#0f966c] text-white font-black rounded-2xl shadow-lg shadow-[#0f966c]/20 hover:bg-[#0d8560] transition-all disabled:opacity-50"
+            >
+              {submitting ? 'Sending Transmission...' : 'Send Message'}
+            </button>
           </form>
         </div>
       </section>
