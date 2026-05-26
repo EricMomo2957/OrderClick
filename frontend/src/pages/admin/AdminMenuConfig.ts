@@ -7,7 +7,8 @@ import {
   Calendar,
   ShoppingBag,
   Megaphone,
-  KeyRound 
+  KeyRound, 
+  MessageSquare
 } from 'lucide-react';
 
 import AdminOverview from './AdminOverview';
@@ -21,6 +22,7 @@ import ManageForgotPassword from './ManageForgotPassword';
 
 // 🚀 NEW: Import your Guest Order management interface
 import ManageGuestOrder from './ManageGuestOrder';
+import ManageMessage from './ManageMessage'; // Import the new message management component
 
 export const ADMIN_MENU = [
   { id: 'dashboard', label: 'Overview', icon: LayoutDashboard, component: AdminOverview },
@@ -32,4 +34,5 @@ export const ADMIN_MENU = [
   { id: 'customers', label: 'User Directory', icon: Users, component: ManageUser },
   { id: 'forgot-password', label: 'Account Recovery', icon: KeyRound, component: ManageForgotPassword },
   { id: 'file-upload', label: 'Media Upload', icon: Package, component: FileUploadSample },
+  { id: 'messages', label: 'Visitor Messages', icon: MessageSquare, component: ManageMessage }, // Add the new menu item for message management
 ];
