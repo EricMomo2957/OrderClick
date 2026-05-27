@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, Mail, Calendar, RefreshCw, FileText } from 'lucide-react';
+import { User, Mail, Calendar, RefreshCw, FileText, Search, X } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -13,6 +13,8 @@ interface Customer {
 const ManageUser = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  // State layer for filtering engine input
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Unified Fetch Function pointing to the REAL backend endpoint path with structural fixes
   const fetchCustomers = useCallback(async () => {
@@ -60,7 +62,19 @@ const ManageUser = () => {
     fetchCustomers();
   }, [fetchCustomers]);
 
-  // PDF Generation for the full list
+  // Comprehensive client-side lookup filtering core engine
+  const filteredCustomers = customers.filter((user) => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+
+    const matchesName = (user.fullname || '').toLowerCase().includes(query);
+    const matchesEmail = (user.email || '').toLowerCase().includes(query);
+    const matchesIdString = `#usr-${user.id}`.includes(query) || `usr-${user.id}`.includes(query);
+
+    return matchesName || matchesEmail || matchesIdString;
+  });
+
+  // PDF Generation for the filtered or full list
   const exportUserListPDF = () => {
     const doc = new jsPDF();
     
@@ -73,8 +87,11 @@ const ManageUser = () => {
     doc.setTextColor(100);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
 
+    // Use filtered dataset if active to keep data consistent with view
+    const targetDataset = filteredCustomers.length > 0 ? filteredCustomers : customers;
+
     // Table Generation
-    const tableRows = customers.map(user => [
+    const tableRows = targetDataset.map(user => [
       `#USR-${user.id}`,
       user.fullname,
       user.email,
@@ -95,30 +112,55 @@ const ManageUser = () => {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-center mb-8">
+      {/* Upper Layout Controls Flex Grid Panel */}
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-black text-slate-800">User Directory</h2>
           <p className="text-slate-500 text-sm">Manage and view all registered customer accounts.</p>
         </div>
         
-        <div className="flex gap-3">
-          {/* PDF Download Button */}
-          <button 
-            onClick={exportUserListPDF}
-            disabled={customers.length === 0 || loading}
-            className="flex items-center gap-2 text-xs font-bold text-white bg-[#003d3d] px-5 py-2.5 rounded-xl hover:bg-[#002d2d] transition-all disabled:opacity-50"
-          >
-            <FileText size={14} /> Export PDF
-          </button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Functional Search Engine Inline Input Box */}
+          <div className="relative min-w-[280px]">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <Search size={16} />
+            </div>
+            <input 
+              type="text"
+              placeholder="Search customer name, email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-9 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[#003d3d]/20 focus:bg-white transition-all"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
 
-          {/* Refresh Button */}
-          <button 
-            onClick={fetchCustomers}
-            disabled={loading}
-            className="flex items-center gap-2 text-xs font-bold text-[#003d3d] bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition-all disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh List
-          </button>
+          <div className="flex gap-2 shrink-0">
+            {/* PDF Download Button */}
+            <button 
+              onClick={exportUserListPDF}
+              disabled={customers.length === 0 || loading}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-bold text-white bg-[#003d3d] px-5 py-2.5 rounded-xl hover:bg-[#002d2d] transition-all disabled:opacity-50"
+            >
+              <FileText size={14} /> Export PDF
+            </button>
+
+            {/* Refresh Button */}
+            <button 
+              onClick={fetchCustomers}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 text-xs font-bold text-[#003d3d] bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition-all disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh List
+            </button>
+          </div>
         </div>
       </div>
 
@@ -142,8 +184,8 @@ const ManageUser = () => {
                   </div>
                 </td>
               </tr>
-            ) : customers.length > 0 ? (
-              customers.map((user) => (
+            ) : filteredCustomers.length > 0 ? (
+              filteredCustomers.map((user) => (
                 <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-8 py-5 font-mono text-xs text-slate-400">#USR-{user.id}</td>
                   <td className="px-8 py-5">
@@ -171,7 +213,7 @@ const ManageUser = () => {
             ) : (
               <tr>
                 <td colSpan={4} className="px-8 py-20 text-center text-slate-400 italic">
-                  No customers found.
+                  {searchQuery ? `No customers found matching "${searchQuery}"` : 'No customers found.'}
                 </td>
               </tr>
             )}
