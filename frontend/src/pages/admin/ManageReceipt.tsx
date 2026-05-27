@@ -133,7 +133,7 @@ const ManageReceipt = () => {
                                         {r.product_name} <span className="text-gray-400 ml-2 font-normal">x{r.quantity}</span>
                                     </td>
                                     
-                                    {/* Updated Dynamic Reference Column Block */}
+                                    {/* Aligned Dynamic Reference Column Block */}
                                     <td className="py-4 px-6 font-mono text-teal-600 font-bold">
                                         {r.reference_number && r.reference_number.trim() !== "" ? (
                                             r.reference_number
@@ -148,7 +148,7 @@ const ManageReceipt = () => {
                                         {r.payment_method}
                                     </td>
                                     <td className="py-4 px-6 text-center font-black text-[#004a80]">
-                                        Public ₱{Number(r.total_price).toLocaleString()}
+                                        ₱{Number(r.total_price).toLocaleString()}
                                     </td>
                                     <td className="py-4 px-6 text-center">
                                         <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
