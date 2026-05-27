@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, Mail, Phone, MapPin, Calendar, RefreshCw, FileText, CheckCircle2, XCircle } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, RefreshCw, FileText, CheckCircle2, XCircle, Search, X } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -21,6 +21,8 @@ interface GuestOrder {
 const ManageGuestOrder = () => {
   const [orders, setOrders] = useState<GuestOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  // State layer for filtering engine input
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch guest orders from API
   const fetchGuestOrders = useCallback(async () => {
@@ -53,6 +55,20 @@ const ManageGuestOrder = () => {
   useEffect(() => {
     fetchGuestOrders();
   }, [fetchGuestOrders]);
+
+  // Comprehensive client-side lookup filtering core engine
+  const filteredOrders = orders.filter((order) => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+
+    const matchesName = (order.guest_name || '').toLowerCase().includes(query);
+    const matchesEmail = (order.guest_email || '').toLowerCase().includes(query);
+    const matchesPhone = (order.guest_phone || '').toLowerCase().includes(query);
+    const matchesRef = (order.reference_number || '').toLowerCase().includes(query);
+    const matchesIdString = `#ord-${order.id}`.includes(query) || `ord-${order.id}`.includes(query);
+
+    return matchesName || matchesEmail || matchesPhone || matchesRef || matchesIdString;
+  });
 
   // Handle verification status modifications
   const handleUpdateStatus = async (orderId: number, newStatus: 'verified' | 'rejected') => {
@@ -93,7 +109,10 @@ const ManageGuestOrder = () => {
     doc.setTextColor(100);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 148, 22, { align: 'center' });
 
-    const tableRows = orders.map(order => [
+    // Use filtered orders list if active, ensuring matching reports
+    const targetDataset = filteredOrders.length > 0 ? filteredOrders : orders;
+
+    const tableRows = targetDataset.map(order => [
       `#ORD-${order.id}`,
       order.guest_name,
       order.guest_email,
@@ -119,28 +138,53 @@ const ManageGuestOrder = () => {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-center mb-8">
+      {/* Upper Dashboard Grid Panel Controls */}
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-black text-slate-800">Guest Order Requests</h2>
           <p className="text-slate-500 text-sm">Review transactions, audit credentials and verify GCash Reference numbers from unauthenticated guests.</p>
         </div>
         
-        <div className="flex gap-3">
-          <button 
-            onClick={exportGuestOrdersPDF}
-            disabled={orders.length === 0}
-            className="flex items-center gap-2 text-xs font-bold text-white bg-[#003d3d] px-5 py-2.5 rounded-xl hover:bg-[#002d2d] transition-all disabled:opacity-50"
-          >
-            <FileText size={14} /> Export PDF
-          </button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* Functional Responsive Engine Layout Box */}
+          <div className="relative min-w-[280px]">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <Search size={16} />
+            </div>
+            <input 
+              type="text"
+              placeholder="Search guest name, ref, contact..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-9 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[#003d3d]/20 focus:bg-white transition-all"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
 
-          <button 
-            onClick={fetchGuestOrders}
-            disabled={loading}
-            className="flex items-center gap-2 text-xs font-bold text-[#003d3d] bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition-all disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh List
-          </button>
+          <div className="flex gap-2 shrink-0">
+            <button 
+              onClick={exportGuestOrdersPDF}
+              disabled={orders.length === 0}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-bold text-white bg-[#003d3d] px-5 py-2.5 rounded-xl hover:bg-[#002d2d] transition-all disabled:opacity-50"
+            >
+              <FileText size={14} /> Export PDF
+            </button>
+
+            <button 
+              onClick={fetchGuestOrders}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 text-xs font-bold text-[#003d3d] bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition-all disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh List
+            </button>
+          </div>
         </div>
       </div>
 
@@ -158,12 +202,12 @@ const ManageGuestOrder = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {orders.length > 0 ? (
-                orders.map((order) => (
+              {filteredOrders.length > 0 ? (
+                filteredOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
                     {/* Order Meta Info */}
                     <td className="px-6 py-5 font-mono text-xs text-slate-500">
-                      <span className="font-bold block text-slate-700">#ORD-{order.id}</span>
+                      <span className="font-bold block text-slate-700">#ORD-${order.id}</span>
                       <div className="flex items-center gap-1 mt-1 text-[11px] text-slate-400">
                         <Calendar size={12} />
                         {new Date(order.created_at).toLocaleDateString()}
@@ -246,7 +290,7 @@ const ManageGuestOrder = () => {
               ) : (
                 <tr>
                   <td colSpan={6} className="px-8 py-20 text-center text-slate-400 italic">
-                    {loading ? 'Fetching guest database rows...' : 'No guest orders match your database search filters.'}
+                    {loading ? 'Fetching guest database rows...' : searchQuery ? `No records found matching "${searchQuery}"` : 'No guest orders found.'}
                   </td>
                 </tr>
               )}

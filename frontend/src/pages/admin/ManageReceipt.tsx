@@ -13,7 +13,6 @@ interface Receipt {
     total_price: number;
     status: 'pending' | 'verified' | 'rejected';
     created_at?: string; 
-    // Added new fields for GCash verification
     reference_number: string | null;
     payment_method: string;
 }
@@ -21,6 +20,8 @@ interface Receipt {
 const ManageReceipt = () => {
     const [receipts, setReceipts] = useState<Receipt[]>([]);
     const [loading, setLoading] = useState(true);
+    // State to hold the user's active search query
+    const [searchQuery, setSearchQuery] = useState('');
     
     const API_BASE = 'http://localhost:5000/api/orders'; 
 
@@ -42,6 +43,24 @@ const ManageReceipt = () => {
 
     useEffect(() => { fetchAllReceipts(); }, []);
 
+    // Filter computation layer engine
+    const filteredReceipts = receipts.filter((receipt) => {
+        const query = searchQuery.toLowerCase().trim();
+        if (!query) return true;
+
+        const customerName = (receipt.display_name || '').toLowerCase();
+        const productName = (receipt.product_name || '').toLowerCase();
+        const explicitRef = (receipt.reference_number || '').toLowerCase();
+        const standardFallbackRef = `ref-${receipt.id}`;
+
+        return (
+            customerName.includes(query) ||
+            productName.includes(query) ||
+            explicitRef.includes(query) ||
+            standardFallbackRef.includes(query)
+        );
+    });
+
     const generatePDF = (receipt: Receipt) => {
         const doc = new jsPDF();
         const date = receipt.created_at ? new Date(receipt.created_at).toLocaleDateString() : new Date().toLocaleDateString();
@@ -54,7 +73,6 @@ const ManageReceipt = () => {
         doc.text(`Customer: ${receipt.display_name}`, 20, 50);
         doc.text(`Date: ${date}`, 20, 60);
         
-        // Dynamically compute tracking reference for the print layout
         const fallbackRef = receipt.reference_number && receipt.reference_number.trim() !== "" 
             ? receipt.reference_number 
             : `REF-${receipt.id}`;
@@ -100,96 +118,131 @@ const ManageReceipt = () => {
     return (
         <div className="p-2">
             <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-8">
-                <div className="mb-8">
-                    <h2 className="text-2xl font-black text-slate-800">Orders & <span className="text-[#004a80]">Receipts</span></h2>
-                    <p className="text-gray-400 text-sm">Review transactions and verify GCash Reference numbers.</p>
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                    <div>
+                        <h2 className="text-2xl font-black text-slate-800">Orders & <span className="text-[#004a80]">Receipts</span></h2>
+                        <p className="text-gray-400 text-sm">Review transactions and verify GCash Reference numbers.</p>
+                    </div>
+                    
+                    {/* Search Engine Input Control */}
+                    <div className="relative w-full md:w-80">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search name, product, or ref..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-sm focus:outline-none focus:border-blue-200 focus:bg-white text-slate-700 font-medium transition-all"
+                        />
+                        {searchQuery && (
+                            <button 
+                                onClick={() => setSearchQuery('')}
+                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-slate-600"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
                 </div>
                 
+                {/* Data Tables Layout Container */}
                 <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                        <thead>
-                            <tr className="border-b border-gray-100 text-gray-400 uppercase text-[11px] font-bold tracking-widest">
-                                <th className="py-4 px-6 text-left">Customer</th>
-                                <th className="py-4 px-6 text-left">Product</th>
-                                <th className="py-4 px-6 text-left">Reference No.</th>
-                                <th className="py-4 px-6 text-left">Method</th>
-                                <th className="py-4 px-6 text-center">Total</th>
-                                <th className="py-4 px-6 text-center">Status</th>
-                                <th className="py-4 px-6 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-slate-600 text-sm">
-                            {receipts.map((r) => (
-                                <tr key={r.id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
-                                    <td className="py-4 px-6">
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-slate-700">{r.display_name}</span>
-                                            {r.guest_name && (
-                                                <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full w-fit font-black mt-1">GUEST</span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="py-4 px-6 font-medium">
-                                        {r.product_name} <span className="text-gray-400 ml-2 font-normal">x{r.quantity}</span>
-                                    </td>
-                                    
-                                    {/* Aligned Dynamic Reference Column Block */}
-                                    <td className="py-4 px-6 font-mono text-teal-600 font-bold">
-                                        {r.reference_number && r.reference_number.trim() !== "" ? (
-                                            r.reference_number
-                                        ) : (
-                                            <span className="text-slate-400 italic font-normal">
-                                                REF-{r.id}
-                                            </span>
-                                        )}
-                                    </td>
-                                    
-                                    <td className="py-4 px-6 text-xs uppercase font-semibold text-slate-400">
-                                        {r.payment_method}
-                                    </td>
-                                    <td className="py-4 px-6 text-center font-black text-[#004a80]">
-                                        ₱{Number(r.total_price).toLocaleString()}
-                                    </td>
-                                    <td className="py-4 px-6 text-center">
-                                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
-                                            r.status === 'pending' ? 'bg-orange-100 text-orange-600' : 
-                                            r.status === 'verified' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                                        }`}>
-                                            {r.status}
-                                        </span>
-                                    </td>
-                                    <td className="py-4 px-6 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            {r.status === 'pending' ? (
-                                                <button 
-                                                    onClick={() => handleUpdateStatus(r.id, 'verified')} 
-                                                    className="bg-[#004a80] hover:bg-[#00355c] text-white px-4 py-2 rounded-xl text-[10px] font-bold shadow-md shadow-blue-900/10"
-                                                >
-                                                    Verify
-                                                </button>
-                                            ) : (
-                                                <button 
-                                                    onClick={() => generatePDF(r)} 
-                                                    className="bg-white border border-blue-200 text-[#004a80] hover:bg-blue-50 px-4 py-2 rounded-xl text-[10px] font-bold transition-all"
-                                                >
-                                                    PDF
-                                                </button>
-                                            )}
-                                            <button 
-                                                onClick={() => handleDelete(r.id)} 
-                                                className="text-gray-300 hover:text-red-500 p-2 transition-colors"
-                                                title="Delete Record"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </td>
+                    {filteredReceipts.length === 0 ? (
+                        <div className="text-center py-12 text-gray-400 font-medium">
+                            No receipts found matching "{searchQuery}"
+                        </div>
+                    ) : (
+                        <table className="min-w-full">
+                            <thead>
+                                <tr className="border-b border-gray-100 text-gray-400 uppercase text-[11px] font-bold tracking-widest">
+                                    <th className="py-4 px-6 text-left">Customer</th>
+                                    <th className="py-4 px-6 text-left">Product</th>
+                                    <th className="py-4 px-6 text-left">Reference No.</th>
+                                    <th className="py-4 px-6 text-left">Method</th>
+                                    <th className="py-4 px-6 text-center">Total</th>
+                                    <th className="py-4 px-6 text-center">Status</th>
+                                    <th className="py-4 px-6 text-right">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="text-slate-600 text-sm">
+                                {filteredReceipts.map((r) => (
+                                    <tr key={r.id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
+                                        <td className="py-4 px-6">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-slate-700">{r.display_name}</span>
+                                                {r.guest_name && (
+                                                    <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full w-fit font-black mt-1">GUEST</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-6 font-medium">
+                                            {r.product_name} <span className="text-gray-400 ml-2 font-normal">x{r.quantity}</span>
+                                        </td>
+                                        
+                                        <td className="py-4 px-6 font-mono text-teal-600 font-bold">
+                                            {r.reference_number && r.reference_number.trim() !== "" ? (
+                                                r.reference_number
+                                            ) : (
+                                                <span className="text-slate-400 italic font-normal">
+                                                    REF-{r.id}
+                                                </span>
+                                            )}
+                                        </td>
+                                        
+                                        <td className="py-4 px-6 text-xs uppercase font-semibold text-slate-400">
+                                            {r.payment_method}
+                                        </td>
+                                        <td className="py-4 px-6 text-center font-black text-[#004a80]">
+                                            ₱{Number(r.total_price).toLocaleString()}
+                                        </td>
+                                        <td className="py-4 px-6 text-center">
+                                            <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
+                                                r.status === 'pending' ? 'bg-orange-100 text-orange-600' : 
+                                                r.status === 'verified' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                                            }`}>
+                                                {r.status}
+                                            </span>
+                                        </td>
+                                        <td className="py-4 px-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                {r.status === 'pending' ? (
+                                                    <button 
+                                                        onClick={() => handleUpdateStatus(r.id, 'verified')} 
+                                                        className="bg-[#004a80] hover:bg-[#00355c] text-white px-4 py-2 rounded-xl text-[10px] font-bold shadow-md shadow-blue-900/10"
+                                                    >
+                                                        Verify
+                                                    </button>
+                                                ) : (
+                                                    <button 
+                                                        onClick={() => generatePDF(r)} 
+                                                        className="bg-white border border-blue-200 text-[#004a80] hover:bg-blue-50 px-4 py-2 rounded-xl text-[10px] font-bold transition-all"
+                                                    >
+                                                        PDF
+                                                    </button>
+                                                )}
+                                                <button 
+                                                    onClick={() => handleDelete(r.id)} 
+                                                    className="text-gray-300 hover:text-red-500 p-2 transition-colors"
+                                                    title="Delete Record"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
         </div>
