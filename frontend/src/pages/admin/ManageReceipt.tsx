@@ -53,7 +53,13 @@ const ManageReceipt = () => {
         doc.text(`Receipt ID: #REC-${receipt.id}`, 20, 40);
         doc.text(`Customer: ${receipt.display_name}`, 20, 50);
         doc.text(`Date: ${date}`, 20, 60);
-        doc.text(`Payment: ${receipt.payment_method} (${receipt.reference_number || 'N/A'})`, 20, 70);
+        
+        // Dynamically compute tracking reference for the print layout
+        const fallbackRef = receipt.reference_number && receipt.reference_number.trim() !== "" 
+            ? receipt.reference_number 
+            : `REF-${receipt.id}`;
+
+        doc.text(`Payment: ${receipt.payment_method} (${fallbackRef})`, 20, 70);
         doc.text(`Status: ${receipt.status.toUpperCase()}`, 20, 80);
 
         autoTable(doc, {
@@ -126,10 +132,18 @@ const ManageReceipt = () => {
                                     <td className="py-4 px-6 font-medium">
                                         {r.product_name} <span className="text-gray-400 ml-2 font-normal">x{r.quantity}</span>
                                     </td>
-                                    {/* New Reference Columns */}
+                                    
+                                    {/* Aligned Dynamic Reference Column Block */}
                                     <td className="py-4 px-6 font-mono text-teal-600 font-bold">
-                                        {r.reference_number || 'N/A'}
+                                        {r.reference_number && r.reference_number.trim() !== "" ? (
+                                            r.reference_number
+                                        ) : (
+                                            <span className="text-slate-400 italic font-normal">
+                                                REF-{r.id}
+                                            </span>
+                                        )}
                                     </td>
+                                    
                                     <td className="py-4 px-6 text-xs uppercase font-semibold text-slate-400">
                                         {r.payment_method}
                                     </td>
