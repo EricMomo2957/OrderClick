@@ -11,6 +11,8 @@ interface Product {
 }
 
 const VALID_CATEGORIES = ['Fragrance', 'Makeup', 'Face Care', 'Home Nutrition', 'Bath and Body', 'Men\'s Store'];
+// Central configuration threshold for safety low stock alerts
+const LOW_STOCK_THRESHOLD = 5;
 
 const ManageProduct = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -118,29 +120,62 @@ const ManageProduct = () => {
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-5 md:grid-cols-10 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-4 sm:grid-cols-10 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {filteredProducts.map(p => (
-          <div key={p.id} className="bg-white rounded-lg border border-gray-100 overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all" onClick={() => { setSelectedProduct(p); setShowViewModal(true); }}>
-            <img src={`http://localhost:5000${p.image_url}`} className="w-full aspect-square object-cover" alt={p.name} />
-            <div className="p-2">
-              <span className="text-[9px] text-teal-600 font-bold uppercase">{p.category}</span>
-              <h3 className="text-xs font-bold truncate">{p.name}</h3>
-              <p className="text-blue-900 font-bold">₱{Number(p.price).toLocaleString()}</p>
-              <div className="flex gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
+          <div 
+            key={p.id} 
+            className="bg-white rounded-lg border border-gray-100 overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all relative flex flex-col justify-between" 
+            onClick={() => { setSelectedProduct(p); setShowViewModal(true); }}
+          >
+            <div>
+              <div className="relative w-full aspect-square bg-gray-50">
+                <img src={`http://localhost:5000${p.image_url}`} className="w-full h-full object-cover" alt={p.name} />
+                
+                {/* FLOATING ACTIONABLE STOCK ALERT CORNER BADGES */}
+                {p.stock === 0 ? (
+                  <span className="absolute top-2 right-2 bg-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow">
+                    OUT OF STOCK
+                  </span>
+                ) : p.stock <= LOW_STOCK_THRESHOLD ? (
+                  <span className="absolute top-2 right-2 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded shadow animate-pulse">
+                    ONLY {p.stock} LEFT
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="p-2">
+                <span className="text-[9px] text-teal-600 font-bold uppercase block mb-0.5">{p.category}</span>
+                <h3 className="text-xs font-bold truncate text-slate-800">{p.name}</h3>
+                <p className="text-blue-900 font-bold text-sm mt-0.5">₱{Number(p.price).toLocaleString()}</p>
+                
+                {/* SUBTITLE STATUS METRICS SUMMARY TEXT */}
+                <p className={`text-[10px] font-medium mt-1 ${
+                  p.stock === 0 ? 'text-rose-600 font-bold' : 
+                  p.stock <= LOW_STOCK_THRESHOLD ? 'text-amber-600 font-bold' : 'text-slate-400'
+                }`}>
+                  Stock: {p.stock}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-2 pt-0" onClick={(e) => e.stopPropagation()}>
+              <div className="flex gap-1 mt-1">
                 <button onClick={() => {
                   setEditingId(p.id);
                   setFormData({ name: p.name, price: p.price.toString(), stock: p.stock.toString(), category: p.category, description: p.description || '' });
                   setShowFormModal(true);
-                }} className="flex-1 py-1 bg-gray-100 rounded text-[10px] font-bold">Edit</button>
-                <button onClick={() => handleDelete(p.id)} className="px-2 py-1 bg-red-50 text-red-500 rounded text-[10px] font-bold">Del</button>
+                }} className="flex-1 py-1 bg-gray-100 text-slate-700 hover:bg-gray-200 rounded text-[10px] font-bold transition-colors">
+                  Edit
+                </button>
+                <button onClick={() => handleDelete(p.id)} className="px-2 py-1 bg-red-50 text-red-500 hover:bg-red-100 rounded text-[10px] font-bold transition-colors">
+                  Del
+                </button>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* --- THE MISSING MODALS START HERE --- */}
-      
       {/* FORM MODAL (Add/Edit) */}
       {showFormModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
@@ -170,16 +205,41 @@ const ManageProduct = () => {
       {showViewModal && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4" onClick={() => setShowViewModal(false)}>
           <div className="bg-white rounded-2xl overflow-hidden w-full max-w-sm shadow-xl" onClick={e => e.stopPropagation()}>
-            <img src={`http://localhost:5000${selectedProduct.image_url}`} className="w-full h-64 object-cover" alt="" />
+            <div className="relative w-full h-64 bg-gray-50">
+              <img src={`http://localhost:5000${selectedProduct.image_url}`} className="w-full h-full object-cover" alt="" />
+              {/* MODAL HERO BLOCK ALERT COVERS */}
+              {selectedProduct.stock === 0 ? (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <span className="bg-rose-600 text-white text-xs font-black tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                    OUT OF STOCK
+                  </span>
+                </div>
+              ) : selectedProduct.stock <= LOW_STOCK_THRESHOLD ? (
+                <span className="absolute bottom-3 right-3 bg-amber-500 text-white text-[11px] font-bold px-3 py-1 rounded-md shadow">
+                  Low Stock Warning
+                </span>
+              ) : null}
+            </div>
+            
             <div className="p-6">
-              <h2 className="text-2xl font-bold">{selectedProduct.name}</h2>
-              <p className="text-teal-600 font-bold">{selectedProduct.category}</p>
-              <p className="mt-2 text-gray-600">{selectedProduct.description}</p>
-              <div className="mt-4 flex justify-between items-center">
-                <span className="text-xl font-bold text-blue-900">₱{selectedProduct.price}</span>
-                <span className="text-gray-400">{selectedProduct.stock} in stock</span>
+              <h2 className="text-2xl font-bold text-slate-800">{selectedProduct.name}</h2>
+              <p className="text-teal-600 font-bold text-xs uppercase tracking-wider mt-0.5">{selectedProduct.category}</p>
+              <p className="mt-3 text-gray-600 text-sm leading-relaxed">{selectedProduct.description || 'No descriptive information provided.'}</p>
+              <div className="mt-5 flex justify-between items-center border-t border-slate-100 pt-4">
+                <span className="text-xl font-bold text-blue-900">₱{Number(selectedProduct.price).toLocaleString()}</span>
+                
+                {/* DYNAMIC METRIC DISPLAYS FOR DETAILED AUDITS */}
+                <span className={`text-sm font-bold px-2.5 py-1 rounded-lg ${
+                  selectedProduct.stock === 0 ? 'text-rose-700 bg-rose-50 border border-rose-100' :
+                  selectedProduct.stock <= LOW_STOCK_THRESHOLD ? 'text-amber-700 bg-amber-50 border border-amber-100' :
+                  'text-slate-500 bg-slate-50'
+                }`}>
+                  {selectedProduct.stock === 0 ? 'Unavailable' : `${selectedProduct.stock} units remaining`}
+                </span>
               </div>
-              <button onClick={() => setShowViewModal(false)} className="w-full mt-6 py-2 bg-gray-800 text-white rounded-lg">Close</button>
+              <button onClick={() => setShowViewModal(false)} className="w-full mt-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl transition-colors text-sm shadow-sm">
+                Close
+              </button>
             </div>
           </div>
         </div>
