@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Search } from 'lucide-react'; // Added lucide-react Search icon for UI match
 
 interface ResetRequest {
   id: number;
@@ -13,6 +14,7 @@ const ManageForgotPassword = () => {
   const [requests, setRequests] = useState<ResetRequest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'resolved'>('pending');
+  const [searchQuery, setSearchQuery] = useState<string>(''); // Search query state
 
   // Fetch password reset tickets from backend
   const fetchRequests = async () => {
@@ -70,9 +72,17 @@ const ManageForgotPassword = () => {
     }
   };
 
+  // Combined Status Filter and Search Logic
   const filteredRequests = requests.filter(req => {
-    if (filter === 'all') return true;
-    return req.status === filter;
+    // 1. Handle Status Filter
+    const matchesStatus = filter === 'all' ? true : req.status === filter;
+    
+    // 2. Handle Search Box Input (Matches fullname or email)
+    const matchesSearch = 
+      (req.fullname || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+      req.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesStatus && matchesSearch;
   });
 
   return (
@@ -112,6 +122,28 @@ const ManageForgotPassword = () => {
         </div>
       </div>
 
+      {/* SEARCH INTERACTIVE INPUT BAR */}
+      <div className="relative w-full max-w-md">
+        <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
+          <Search size={16} />
+        </span>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search by customer name or email..."
+          className="w-full pl-11 pr-4 py-2.5 bg-slate-50 text-slate-800 text-sm font-medium rounded-2xl border border-slate-200 focus:outline-none focus:bg-white focus:border-[#003d3d] focus:ring-1 focus:ring-[#003d3d] transition-all placeholder:text-slate-400"
+        />
+        {searchQuery && (
+          <button 
+            onClick={() => setSearchQuery('')}
+            className="absolute inset-y-0 right-0 flex items-center pr-4 text-xs font-bold text-slate-400 hover:text-slate-600 uppercase tracking-wider"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
       {/* CORE CONTENT REGION */}
       {loading ? (
         <div className="flex justify-center items-center h-48 text-slate-400 font-medium text-sm animate-pulse">
@@ -120,9 +152,14 @@ const ManageForgotPassword = () => {
       ) : filteredRequests.length === 0 ? (
         <div className="bg-white border border-dashed border-slate-300 rounded-3xl p-12 text-center max-w-md mx-auto mt-8">
           <div className="h-12 w-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4 font-bold text-xl">✓</div>
-          <h3 className="text-slate-800 font-bold text-lg mb-1">System is Clear</h3>
+          <h3 className="text-slate-800 font-bold text-lg mb-1">
+            {searchQuery ? 'No Results Found' : 'System is Clear'}
+          </h3>
           <p className="text-slate-400 text-sm">
-            No customer accounts are currently flag-locked or waiting for password intervention adjustments.
+            {searchQuery 
+              ? `No logs match your current search parameters for "${searchQuery}". Try revising your search text.`
+              : 'No customer accounts are currently flag-locked or waiting for password intervention adjustments.'
+            }
           </p>
         </div>
       ) : (
