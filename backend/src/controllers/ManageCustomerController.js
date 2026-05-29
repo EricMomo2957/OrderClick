@@ -22,15 +22,17 @@ export const getAllCustomers = async (req, res) => {
 /**
  * Gathers summary data for the Admin Dashboard.
  * Fixes the 'ER_PARSE_ERROR' by running queries individually in parallel.
+ * Now calculates true low stock count (items with stock between 1 and 5).
  */
 export const getStats = async (req, res) => {
     try {
         // Promise.all runs these queries simultaneously, which is faster and
         // bypasses the security restriction against multiple statements in one string.
-        const [revenueRes, receiptsRes, productsRes] = await Promise.all([
+        const [revenueRes, receiptsRes, productsRes, lowStockRes] = await Promise.all([
             db.promise().execute("SELECT SUM(total_price) as revenue FROM receipts WHERE status = 'verified'"),
             db.promise().execute("SELECT COUNT(*) as receipts FROM receipts"),
-            db.promise().execute("SELECT COUNT(*) as products FROM products")
+            db.promise().execute("SELECT COUNT(*) as products FROM products"),
+            db.promise().execute("SELECT COUNT(*) as lowStock FROM products WHERE stock > 0 AND stock <= 5")
         ]);
 
         // Mapping the results. 
@@ -40,7 +42,7 @@ export const getStats = async (req, res) => {
             revenue: revenueRes[0][0].revenue || 0,
             receipts: receiptsRes[0][0].receipts || 0,
             products: productsRes[0][0].products || 0,
-            lowStock: 0 // Placeholder for future inventory logic
+            lowStock: lowStockRes[0][0].lowStock || 0 // Replaced placeholder with true low stock query data
         };
 
         res.json(stats);
