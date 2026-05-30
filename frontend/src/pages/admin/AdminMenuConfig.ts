@@ -19,6 +19,7 @@ import AdminEvent from './AdminEvent';
 import AdminAnnouncement from './AdminAnnouncement';
 import FileUploadSample from './FileUploadSample';
 import ManageForgotPassword from './ManageForgotPassword';
+import ManageAuditLogs from './ManageAuditLog';
 
 // 🚀 NEW: Import your Guest Order management interface
 import ManageGuestOrder from './ManageGuestOrder';
@@ -32,6 +33,8 @@ export const ADMIN_MENU = [
   { id: 'events', label: 'Event Manager', icon: Calendar, component: AdminEvent },
   { id: 'announcements', label: 'Broadcast', icon: Megaphone, component: AdminAnnouncement },
   { id: 'customers', label: 'User Directory', icon: Users, component: ManageUser },
+  { id: 'audit-logs', label: 'Audit Logs', icon: LayoutDashboard, component: ManageAuditLogs },
+
   { id: 'forgot-password', label: 'Account Recovery', icon: KeyRound, component: ManageForgotPassword },
   { id: 'file-upload', label: 'Media Upload', icon: Package, component: FileUploadSample },
   { id: 'messages', label: 'Visitor Messages', icon: MessageSquare, component: ManageMessage }, // Add the new menu item for message management
