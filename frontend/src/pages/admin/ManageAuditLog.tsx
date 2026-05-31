@@ -429,12 +429,17 @@ const ManageAuditLog = () => {
                               if (log.details.trim().startsWith('{') || log.details.trim().startsWith('[')) {
                                 const parsedDetails = JSON.parse(log.details);
                                 
-                                // 1. Check if it's the specific broadcast/announcement custom structure
+                                // 1. Check if it's a nested custom telemetry action object wrapper
+                                if (parsedDetails.details && typeof parsedDetails.details === 'object' && parsedDetails.details.message) {
+                                  return parsedDetails.details.message;
+                                }
+
+                                // 2. Check if it's the direct broadcast/announcement custom structure root message
                                 if (parsedDetails.message) {
                                   return parsedDetails.message;
                                 }
                                 
-                                // 2. Handle product updates / inventory edits dynamically
+                                // 3. Handle product updates / inventory edits dynamically
                                 if (parsedDetails.updated_fields) {
                                   const fields = Object.keys(parsedDetails.updated_fields)
                                     .filter(key => key !== 'timestamp') // Ignore metadata timestamps if appended
@@ -442,7 +447,7 @@ const ManageAuditLog = () => {
                                   return `Modified product parameters: [${fields}]`;
                                 }
 
-                                // 3. General JSON key fallback
+                                // 4. General JSON key fallback
                                 return parsedDetails.details || log.details;
                               }
                               
