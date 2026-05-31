@@ -1,3 +1,4 @@
+// BACKEND/src/routes/announcementRoutes.js
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
@@ -6,7 +7,7 @@ import * as announcementController from '../controllers/announcementController.j
 
 const router = express.Router();
 
-// --- 1. DEFINE MULTER CONFIG FIRST ---
+// --- 1. DEFINE MULTER STORAGE CONFIGURATION ---
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'uploads/'); 
@@ -16,15 +17,15 @@ const storage = multer.diskStorage({
     }
 });
 
-// This defines the 'upload' variable that was missing
+// Instance configuration processing multi-part form payloads
 const upload = multer({ storage }); 
 
-// --- 2. PUBLIC ROUTES ---
+// --- 2. PUBLIC CONSUMER DASHBOARD STREAM ENDPOINTS ---
 router.get('/latest', announcementController.getLatest);
 router.get('/', announcementController.getAllAnnouncements); 
 
-// --- 3. PROTECTED ADMIN ROUTES ---
-// Now 'upload' is defined and can be used here
+// --- 3. PROTECTED ADMINISTRATIVE PIPELINE ROUTING CRITERIA ---
+// Authentication & multi-part storage interception occur before database mutations/audit entries execute
 router.post(
     '/', 
     verifyToken, 

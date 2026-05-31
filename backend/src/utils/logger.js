@@ -3,9 +3,10 @@ import db from '../config/db.js';
 
 /**
  * Robust tracking utility to record user, admin, or system activity to the audit registry.
- * It automatically extracts operator parameters from the request if provided.
+ * It automatically extracts operator parameters from the request context if provided, 
+ * fallback structures, or direct parameters overriding execution contexts.
  */
-export const logAction = async ({ 
+export const logActivity = async ({ 
     req = null, 
     action, 
     resource, 
@@ -13,7 +14,9 @@ export const logAction = async ({
     details = null,
     userId = null, 
     fullname = null, 
-    role = null 
+    role = null,
+    ipAddress = null,
+    userAgent = null
 }) => {
     try {
         // 1. Fallback Hierarchy: Extract actor identifiers from verified request context or direct overrides
@@ -22,14 +25,14 @@ export const logAction = async ({
         const actorRole = role || req?.user?.role || 'system';
 
         // 2. Network Parameters Extraction
-        let ipAddress = '::1';
+        let resolvedIpAddress = ipAddress || '::1';
         if (req) {
-            ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '::1';
+            resolvedIpAddress = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '::1';
             // Normalize standard localhost IPv6 looping string variant if detected
-            if (ipAddress === '::ffff:127.0.0.1') ipAddress = '::1';
+            if (resolvedIpAddress === '::ffff:127.0.0.1') resolvedIpAddress = '::1';
         }
         
-        const userAgent = req ? (req.headers['user-agent'] || 'Unknown Agent') : 'System Process';
+        const resolvedUserAgent = userAgent || (req ? (req.headers['user-agent'] || 'Unknown Agent') : 'System Process');
 
         // 3. Normalize Detail Parameters (Supports strings or complex structured JSON telemetry tracking)
         let logDetails = null;
@@ -45,6 +48,7 @@ export const logAction = async ({
         // 4. Driver Validation: Checks if pool demands .promise() explicitly or handles it natively
         const queryExecutionBuffer = db.promise ? db.promise() : db;
 
+        // Uses standard execute syntax to handle parameters and escape injection sets safely
         await queryExecutionBuffer.execute(query, [
             actorId,
             actorName,
@@ -53,8 +57,8 @@ export const logAction = async ({
             resource,
             resourceId,
             logDetails,
-            ipAddress,
-            userAgent
+            resolvedIpAddress,
+            resolvedUserAgent
         ]);
 
     } catch (error) {
@@ -62,3 +66,6 @@ export const logAction = async ({
         console.error("CRITICAL: Failed to save system audit tracking entry:", error);
     }
 };
+
+// Aliased fallback export to ensure compliance if components expect logAction mapping namespaces
+export const logAction = logActivity;
