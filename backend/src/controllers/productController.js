@@ -1,4 +1,6 @@
+// BACKEND/src/controllers/productController.js
 import db from '../config/db.js';
+import { logAction } from '../utils/logger.js';
 
 // Define the categories to match your MySQL ENUM
 const VALID_CATEGORIES = [
@@ -10,7 +12,9 @@ const VALID_CATEGORIES = [
     'Men\'s Store'
 ];
 
-// Get all products
+/**
+ * Get all products
+ */
 export const getAllProducts = (req, res) => {
     db.query('SELECT * FROM products ORDER BY created_at DESC', (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -18,7 +22,9 @@ export const getAllProducts = (req, res) => {
     });
 };
 
-// Add a new product
+/**
+ * Add a new product
+ */
 export const addProduct = (req, res) => {
     const { name, description = null, price, stock, category } = req.body;
     
@@ -31,18 +37,41 @@ export const addProduct = (req, res) => {
     const parsedStock = parseInt(stock);
 
     const query = 'INSERT INTO products (name, description, price, stock, category, image_url) VALUES (?, ?, ?, ?, ?, ?)';
-    db.query(query, [name, description, parsedPrice, parsedStock, category, image_url], (err, result) => {
+    db.query(query, [name, description, parsedPrice, parsedStock, category, image_url], async (err, result) => {
         if (err) {
             console.error("DB Error:", err.message); 
             return res.status(500).json({ error: err.message });
         }
+
+        // ─── 🚀 AUDIT TRACKING TRIGGER: PRODUCT CREATION ─────────────────────
+        try {
+            await logAction({
+                userId: req.user?.id,
+                fullname: req.user?.fullname || req.user?.email || 'Unknown Admin', 
+                role: req.user?.role || 'admin',
+                action: 'CREATE_PRODUCT', 
+                resource: 'products',
+                resourceId: result.insertId,
+                details: JSON.stringify({
+                    message: `Admin successfully added a new inventory item: "${name}" under the "${category}" category.`,
+                    initial_fields: { name, category, price: parsedPrice, stock: parsedStock }
+                }),
+                req: req
+            });
+        } catch (logErr) {
+            console.error("Non-blocking audit log capture failure on addProduct:", logErr);
+        }
+        // ────────────────────────────────────────────────────────────────────
+
         res.status(201).json({ message: 'Product added!', id: result.insertId });
     });
 };
 
-// Update an existing product
-export const updateProduct = (req, res) => {
-    const { id } = req.params;
+/**
+ * Update an existing product (Using clean async/await & telemetry extraction)
+ */
+export const updateProduct = async (req, res) => {
+    const productId = req.params.id;
     const { name, description = null, price, stock, category } = req.body;
     
     if (category && !VALID_CATEGORIES.includes(category)) {
@@ -52,44 +81,94 @@ export const updateProduct = (req, res) => {
     const parsedPrice = parseFloat(price);
     const parsedStock = parseInt(stock);
 
-    let query = 'UPDATE products SET name=?, description=?, price=?, stock=?, category=?';
+    let sqlQuery = 'UPDATE products SET name=?, description=?, price=?, stock=?, category=?';
     let params = [name, description, parsedPrice, parsedStock, category];
 
     if (req.file) {
-        query += ', image_url=?';
+        sqlQuery += ', image_url=?';
         params.push(`/uploads/${req.file.filename}`);
     }
 
-    query += ' WHERE id=?';
-    params.push(id);
+    sqlQuery += ' WHERE id=?';
+    params.push(productId);
 
-    db.query(query, params, (err) => {
-        if (err) {
-            console.error("DB Update Error:", err.message);
-            return res.status(500).json({ error: err.message });
-        }
-        res.json({ message: 'Product updated!' });
-    });
+    try {
+        // Convert to promise-compatible query call if your driver supports it, or use standard callback execution wrapper
+        db.query(sqlQuery, params, async (err, result) => {
+            if (err) {
+                console.error("DB Update Error:", err.message);
+                return res.status(500).json({ error: err.message });
+            }
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: "Target product row not found." });
+            }
+
+            // ─── 🚀 AUDIT TRACKING TRIGGER: PRODUCT MODIFICATION ─────────────────
+            try {
+                await logAction({
+                    userId: req.user?.id,
+                    fullname: req.user?.fullname || req.user?.email || "Unknown Admin",
+                    role: req.user?.role || 'admin',
+                    action: 'UPDATE_PRODUCT', // Matches your frontend badge mapping rules beautifully!
+                    resource: 'products',
+                    resourceId: productId,
+                    details: JSON.stringify({
+                        updated_fields: { name, price: parsedPrice, stock: parsedStock, category },
+                        timestamp: new Date().toISOString()
+                    }),
+                    req: req
+                });
+            } catch (logErr) {
+                console.error("Non-blocking audit log capture failure on updateProduct:", logErr);
+            }
+            // ────────────────────────────────────────────────────────────────────
+
+            return res.status(200).json({ message: 'Product updated!' });
+        });
+
+    } catch (error) {
+        console.error("Backend controller operation failure:", error);
+        return res.status(500).json({ error: "Internal server error execution context." });
+    }
 };
 
-// Delete a product
+/**
+ * Delete a product
+ */
 export const deleteProduct = (req, res) => {
     const { id } = req.params;
-    db.query('DELETE FROM products WHERE id = ?', [id], (err) => {
+    db.query('DELETE FROM products WHERE id = ?', [id], async (err, result) => {
         if (err) {
             console.error("DB Delete Error:", err.message);
             return res.status(500).json({ error: err.message });
         }
+
+        // ─── 🚀 AUDIT TRACKING TRIGGER: PRODUCT PURGE ────────────────────────
+        try {
+            await logAction({
+                userId: req.user?.id,
+                fullname: req.user?.fullname || req.user?.email || 'Unknown Admin',
+                role: req.user?.role || 'admin',
+                action: 'DELETE_PRODUCT',
+                resource: 'products',
+                resourceId: id,
+                details: JSON.stringify({ message: `Permanent deletion execution cleared product data row matching index ID #${id}.` }),
+                req: req
+            });
+        } catch (logErr) {
+            console.error("Non-blocking audit log capture failure on deleteProduct:", logErr);
+        }
+        // ────────────────────────────────────────────────────────────────────
+
         res.json({ message: 'Product deleted!' });
     });
 };
 
-// src/controllers/productController.js
-
-// src/controllers/productController.js
-
+/**
+ * Get all admin receipts
+ */
 export const getAllAdminReceipts = (req, res) => {
-    // This query links the receipt to the product to get the Category
     const query = `
         SELECT 
             r.*, 

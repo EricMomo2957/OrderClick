@@ -1,6 +1,8 @@
+// backend/src/controllers/authController.js
 import db from '../config/db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { logAction } from '../utils/logger.js';
 
 /**
  * ============================================================================
@@ -22,14 +24,33 @@ export const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const sql = 'INSERT INTO users (fullname, email, password, role) VALUES (?, ?, ?, ?)';
+    const TargetRole = role || 'customer';
     
-    db.query(sql, [fullname, email, hashedPassword, role || 'customer'], (err, result) => {
+    db.query(sql, [fullname, email, hashedPassword, TargetRole], async (err, result) => {
       if (err) {
         if (err.code === 'ER_DUP_ENTRY') {
           return res.status(400).json({ error: "Registration failed. Email already exists." });
         }
         return res.status(500).json({ error: "Database error during registration." });
       }
+
+      // ─── 🚀 AUDIT TRACKING TRIGGER: USER REGISTRATION ───────────────────
+      try {
+        await logAction({
+          userId: result.insertId,
+          fullname: fullname,
+          role: TargetRole,
+          action: 'USER_REGISTERED',
+          resource: 'users',
+          resourceId: result.insertId,
+          details: `New account entity registration established for ${fullname} (${email}) initialized with role: [${TargetRole}].`,
+          req: req
+        });
+      } catch (logErr) {
+        console.error("Non-blocking audit capture error during registration:", logErr);
+      }
+      // ────────────────────────────────────────────────────────────────────
+
       res.status(201).json({ message: "User registered successfully!" });
     });
 
@@ -65,11 +86,30 @@ export const login = (req, res) => {
         { 
           id: user.id,          
           email: user.email, 
-          role: user.role 
+          role: user.role,
+          fullname: user.fullname // Ensured fullname payload is present for downstream middleware matching
         },
         process.env.JWT_SECRET || 'secret_key_orderclick',
         { expiresIn: '1d' }
       );
+
+      // ─── 🚀 AUDIT TRACKING TRIGGER: INDEPENDENT USER SIGN-IN ─────────────
+      // Since req.user is not yet mounted on public login endpoints, we pass a custom override identity frame
+      try {
+        await logAction({
+          userId: user.id,
+          fullname: user.fullname,
+          role: user.role,
+          action: user.role === 'admin' ? 'ADMIN_LOGIN' : 'CUSTOMER_LOGIN',
+          resource: 'users',
+          resourceId: user.id,
+          details: `User identity verified. Session signature token successfully generated for '${user.fullname}'.`,
+          req: req
+        });
+      } catch (logErr) {
+        console.error("Non-blocking audit capture error during authentication:", logErr);
+      }
+      // ────────────────────────────────────────────────────────────────────
 
       res.json({ 
         message: "Login successful",
@@ -104,18 +144,35 @@ export const requestPasswordReset = (req, res) => {
     return res.status(400).json({ error: "Email parameter is required." });
   }
 
-  // Look up user to get user_id
-  db.query('SELECT id FROM users WHERE email = ?', [email], (err, users) => {
+  db.query('SELECT id, fullname, role FROM users WHERE email = ?', [email], (err, users) => {
     if (err) return res.status(500).json({ error: "Database lookup failure." });
     if (users.length === 0) {
       return res.status(404).json({ error: "No account linked to this email address." });
     }
 
-    const userId = users[0].id;
+    const targetedUser = users[0];
     const insertSql = 'INSERT INTO password_resets (user_id, email, status) VALUES (?, ?, "pending")';
     
-    db.query(insertSql, [userId, email], (insertErr) => {
+    db.query(insertSql, [targetedUser.id, email], async (insertErr, result) => {
       if (insertErr) return res.status(500).json({ error: "Failed to store recovery record." });
+      
+      // ─── 🚀 AUDIT TRACKING TRIGGER: PASSWORD RESET SUBMISSION ────────────
+      try {
+        await logAction({
+          userId: targetedUser.id,
+          fullname: targetedUser.fullname,
+          role: targetedUser.role,
+          action: 'PASSWORD_RESET_REQUESTED',
+          resource: 'password_resets',
+          resourceId: result.insertId,
+          details: `An account recovery ticket has been logged for ${targetedUser.fullname} (${email}). Status set to pending admin resolution.`,
+          req: req
+        });
+      } catch (logErr) {
+        console.error("Non-blocking audit error:", logErr);
+      }
+      // ────────────────────────────────────────────────────────────────────
+
       res.status(200).json({ message: "Password reset request submitted successfully." });
     });
   });
@@ -126,7 +183,6 @@ export const requestPasswordReset = (req, res) => {
  * GET /api/admin/forgot-password-requests
  */
 export const getPasswordResetRequests = (req, res) => {
-  // Uses a JOIN against users table to populate the customer name field in your UI Matrix
   const sql = `
     SELECT pr.id, pr.user_id, pr.email, pr.status, pr.created_at, pr.updated_at, u.fullname 
     FROM password_resets pr
@@ -149,19 +205,33 @@ export const getPasswordResetRequests = (req, res) => {
  */
 export const resolvePasswordResetRequest = (req, res) => {
   const { id } = req.params;
-  const { status } = req.body; // Expecting { status: 'resolved' }
-
-  if (!status) {
-    return res.status(400).json({ error: "Status parameter is required." });
-  }
+  const status = req.body.status || 'resolved';
 
   const sql = 'UPDATE password_resets SET status = ?, updated_at = NOW() WHERE id = ?';
 
-  db.query(sql, [status, id], (err, result) => {
+  db.query(sql, [status, id], async (err, result) => {
     if (err) {
       console.error("Error updating record:", err);
       return res.status(500).json({ error: "Failed to complete resolution transaction." });
     }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Password request log entry not found." });
+    }
+
+    // ─── 🚀 TRIGGER AUDIT ACTION: PASSWORD RESOLUTION MATRIX ──────────────
+    await logAction({
+        userId: req.user?.id,        
+        fullname: req.user?.fullname,
+        role: 'admin',
+        action: 'RESOLVED_PASSWORD_REQUEST',
+        resource: 'password_resets', 
+        resourceId: id,
+        details: `Resolved account recovery ticket for request ID #${id}`,
+        req: req                    
+    });
+    // ──────────────────────────────────────────────────────────────────────
+
     res.status(200).json({ message: "Request status updated successfully." });
   });
 };
