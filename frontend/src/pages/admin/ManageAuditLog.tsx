@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Search, ShieldAlert, Terminal, RefreshCw, Layers, User, Settings, Info, Trash2, PlusCircle, Edit3, AlertTriangle } from 'lucide-react';
+import { 
+  Search, ShieldAlert, Terminal, RefreshCw, Layers, User, Settings, 
+  Info, Trash2, PlusCircle, Edit3, AlertTriangle, CheckSquare, Square 
+} from 'lucide-react';
 
 interface AuditLog {
   id: number;
   user_id: number | null;
   fullname: string | null;
-  role: 'admin' | 'customer' | 'system';
+  role: 'all' | 'admin' | 'customer' | 'system';
   action: string;
   resource: string;
   resource_id: number | null; // Ensures matching with database schemas
@@ -18,10 +21,13 @@ interface AuditLog {
 const ManageAuditLog = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'customer'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'customer' | 'system'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [purging, setPurging] = useState<boolean>(false);
+  
+  // State variables for individual and batch deletions
+  const [selectedLogIds, setSelectedLogIds] = useState<number[]>([]);
 
   // Fetch security audit logs from the backend configuration
   const fetchAuditLogs = async () => {
@@ -36,8 +42,8 @@ const ManageAuditLog = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        // Enforce safe array parsing to eliminate UI blankouts
         setLogs(Array.isArray(data) ? data : []);
+        setSelectedLogIds([]); // Reset selection on fresh download feed
       } else {
         console.error(data.error || "Failed to load audit registry stream");
       }
@@ -48,10 +54,10 @@ const ManageAuditLog = () => {
     }
   };
 
-  // Administrative command pipeline to wipe the system operations audit trail
+  // Administrative command pipeline to wipe the system operations audit trail completely
   const handlePurgeLogs = async () => {
     const doubleCheck = window.confirm(
-      "CRITICAL SECURITY ACTION:\nAre you sure you want to permanently delete all system operation audit logs? This action is irreversible."
+      "CRITICAL SECURITY ACTION:\nAre you sure you want to permanently delete ALL system operation audit logs? This action is completely irreversible."
     );
     if (!doubleCheck) return;
 
@@ -69,7 +75,8 @@ const ManageAuditLog = () => {
       const data = await response.json();
       if (response.ok) {
         alert("System operations audit trails have been cleared successfully.");
-        setLogs([]); // Wipe local UI layout representation immediately
+        setLogs([]);
+        setSelectedLogIds([]);
       } else {
         alert(data.error || "Failed to purge structural system matrix log files.");
       }
@@ -81,9 +88,89 @@ const ManageAuditLog = () => {
     }
   };
 
+  // Delete a specific target row entry
+  const handleDeleteSingleLog = async (id: number) => {
+    const confirmDelete = window.confirm(`Are you sure you want to delete Log Record #${id}?`);
+    if (!confirmDelete) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/admin/audit-logs/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setLogs(prev => prev.filter(log => log.id !== id));
+        setSelectedLogIds(prev => prev.filter(selectedId => selectedId !== id));
+      } else {
+        alert(data.error || "Failed to delete target log item instance.");
+      }
+    } catch (err) {
+      console.error("Error executing row delete context:", err);
+      alert("Network failure interface communicating singular row removal.");
+    }
+  };
+
+  // Batch delete the collection of checked row entities
+  const handleBulkDeleteLogs = async () => {
+    if (selectedLogIds.length === 0) return;
+
+    const confirmBulk = window.confirm(`Are you sure you want to delete the ${selectedLogIds.length} selected audit log records?`);
+    if (!confirmBulk) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/admin/audit-logs/bulk-delete', {
+        method: 'POST', // standard endpoint structural matrix pattern handling payloads arrays
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ logIds: selectedLogIds }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert("Selected operation logs deleted successfully.");
+        setLogs(prev => prev.filter(log => !selectedLogIds.includes(log.id)));
+        setSelectedLogIds([]);
+      } else {
+        alert(data.error || "Failed to process structural bulk deletion requests.");
+      }
+    } catch (err) {
+      console.error("Error executing collection batch deletion stream:", err);
+      alert("Network timeout parsing array configuration context elements.");
+    }
+  };
+
   useEffect(() => {
     fetchAuditLogs();
   }, []);
+
+  // Selection toggle handling logic pipelines
+  const toggleSelectLog = (id: number) => {
+    setSelectedLogIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllFiltered = (filteredList: AuditLog[]) => {
+    const filteredIds = filteredList.map(l => l.id);
+    const allFilteredSelected = filteredIds.every(id => selectedLogIds.includes(id));
+
+    if (allFilteredSelected) {
+      // Remove all currently filtered elements from global selections
+      setSelectedLogIds(prev => prev.filter(id => !filteredIds.includes(id)));
+    } else {
+      // Merge elements safely keeping matches immutable
+      setSelectedLogIds(prev => Array.from(new Set([...prev, ...filteredIds])));
+    }
+  };
 
   // Live client-side processing pipeline for search keyword tracking & tab selection
   const filteredLogs = logs.filter(log => {
@@ -156,6 +243,17 @@ const ManageAuditLog = () => {
             Refresh Feed
           </button>
 
+          {selectedLogIds.length > 0 && (
+            <button 
+              onClick={handleBulkDeleteLogs}
+              disabled={loading}
+              className="flex items-center gap-2 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 px-4 py-2.5 rounded-xl hover:bg-rose-100 transition-all active:scale-95"
+            >
+              <Trash2 size={14} /> 
+              Delete Selected ({selectedLogIds.length})
+            </button>
+          )}
+
           {logs.length > 0 && (
             <button 
               onClick={handlePurgeLogs}
@@ -167,24 +265,30 @@ const ManageAuditLog = () => {
             </button>
           )}
 
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold uppercase tracking-wider">
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold uppercase tracking-wider overflow-x-auto max-w-full">
             <button
               onClick={() => setRoleFilter('all')}
-              className={`px-4 py-2 rounded-lg transition-all ${roleFilter === 'all' ? 'bg-white text-[#003d3d] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`px-4 py-2 rounded-lg transition-all whitespace-nowrap ${roleFilter === 'all' ? 'bg-white text-[#003d3d] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
               All Logs ({logs.length})
             </button>
             <button
               onClick={() => setRoleFilter('admin')}
-              className={`px-4 py-2 rounded-lg transition-all ${roleFilter === 'admin' ? 'bg-white text-[#003d3d] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`px-4 py-2 rounded-lg transition-all whitespace-nowrap ${roleFilter === 'admin' ? 'bg-white text-[#003d3d] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
               Admin ({logs.filter(l => l.role === 'admin').length})
             </button>
             <button
               onClick={() => setRoleFilter('customer')}
-              className={`px-4 py-2 rounded-lg transition-all ${roleFilter === 'customer' ? 'bg-white text-[#003d3d] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`px-4 py-2 rounded-lg transition-all whitespace-nowrap ${roleFilter === 'customer' ? 'bg-white text-[#003d3d] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
               Customers ({logs.filter(l => l.role === 'customer').length})
+            </button>
+            <button
+              onClick={() => setRoleFilter('system')}
+              className={`px-4 py-2 rounded-lg transition-all whitespace-nowrap ${roleFilter === 'system' ? 'bg-white text-[#003d3d] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              System ({logs.filter(l => l.role === 'system').length})
             </button>
           </div>
         </div>
@@ -235,21 +339,50 @@ const ManageAuditLog = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/70 border-b border-slate-200/80 text-[11px] font-black uppercase tracking-wider text-slate-500">
+                  <th className="px-6 py-4 w-10">
+                    <button 
+                      type="button"
+                      onClick={() => toggleSelectAllFiltered(filteredLogs)} 
+                      className="text-slate-400 hover:text-[#003d3d] transition-colors focus:outline-none"
+                    >
+                      {filteredLogs.length > 0 && filteredLogs.every(l => selectedLogIds.includes(l.id)) ? (
+                        <CheckSquare size={16} className="text-[#003d3d]" />
+                      ) : (
+                        <Square size={16} />
+                      )}
+                    </button>
+                  </th>
                   <th className="px-6 py-4">Actor Entity</th>
                   <th className="px-6 py-4">Action Signature</th>
                   <th className="px-6 py-4">Target Resource</th>
                   <th className="px-6 py-4">Mutation Description Snippet</th>
                   <th className="px-6 py-4">IP Address</th>
                   <th className="px-6 py-4">Execution Timestamp</th>
-                  <th className="px-6 py-4 text-right">Diagnostic Parameters</th>
+                  <th className="px-6 py-4 text-right">Diagnostic Matrix Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm text-slate-700 font-medium">
                 {filteredLogs.map((log) => {
                   const badge = getActionBadgeStyle(log.action);
+                  const isChecked = selectedLogIds.includes(log.id);
                   return (
-                    <tr key={log.id} className="hover:bg-slate-50/40 transition-colors">
+                    <tr key={log.id} className={`hover:bg-slate-50/40 transition-colors ${isChecked ? 'bg-slate-50/70' : ''}`}>
                       
+                      {/* CHECKBOX CELL */}
+                      <td className="px-6 py-4">
+                        <button 
+                          type="button"
+                          onClick={() => toggleSelectLog(log.id)}
+                          className="text-slate-400 hover:text-[#003d3d] transition-colors focus:outline-none"
+                        >
+                          {isChecked ? (
+                            <CheckSquare size={16} className="text-[#003d3d]" />
+                          ) : (
+                            <Square size={16} />
+                          )}
+                        </button>
+                      </td>
+
                       {/* ACTOR CAPTURE */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2.5">
@@ -287,8 +420,38 @@ const ManageAuditLog = () => {
 
                       {/* MUTATION CONTEXT DETAILED STRING OVERVIEW */}
                       <td className="px-6 py-4 max-w-xs">
-                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal">
-                          {log.details || <span className="italic text-slate-300">No descriptive string context.</span>}
+                        <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                          {(() => {
+                            try {
+                              if (!log.details) return <span className="italic text-slate-300">No descriptive string context.</span>;
+                              
+                              // Check if the payload is a stringified JSON object
+                              if (log.details.trim().startsWith('{') || log.details.trim().startsWith('[')) {
+                                const parsedDetails = JSON.parse(log.details);
+                                
+                                // 1. Check if it's the specific broadcast/announcement custom structure
+                                if (parsedDetails.message) {
+                                  return parsedDetails.message;
+                                }
+                                
+                                // 2. Handle product updates / inventory edits dynamically
+                                if (parsedDetails.updated_fields) {
+                                  const fields = Object.keys(parsedDetails.updated_fields)
+                                    .filter(key => key !== 'timestamp') // Ignore metadata timestamps if appended
+                                    .join(', ');
+                                  return `Modified product parameters: [${fields}]`;
+                                }
+
+                                // 3. General JSON key fallback
+                                return parsedDetails.details || log.details;
+                              }
+                              
+                              return log.details;
+                            } catch (e) {
+                              // Fallback direct rendering for plain text strings
+                              return log.details || "No description provided";
+                            }
+                          })()}
                         </p>
                       </td>
 
@@ -302,15 +465,24 @@ const ManageAuditLog = () => {
                         {log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A'}
                       </td>
 
-                      {/* LOG INSPECTOR CONTROLLER */}
+                      {/* LOG INSPECTOR CONTROLLER & REMOVALS */}
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => setSelectedLog(log)}
-                          className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-[#003d3d] transition-all inline-flex items-center gap-1 text-xs font-bold"
-                          title="Inspect Log Packet JSON Payload"
-                        >
-                          <Info size={15} /> Inspect
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => setSelectedLog(log)}
+                            className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-[#003d3d] transition-all inline-flex items-center gap-1 text-xs font-bold"
+                            title="Inspect Log Packet JSON Payload"
+                          >
+                            <Info size={15} /> Inspect
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSingleLog(log.id)}
+                            className="p-2 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-600 transition-all inline-flex items-center gap-1"
+                            title="Delete This Record Entry Instance"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </td>
 
                     </tr>
