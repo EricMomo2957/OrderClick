@@ -1,3 +1,4 @@
+// FRONTEND/src/pages/ManageProduct.tsx
 import { useState, useEffect } from 'react';
 
 interface Product {
@@ -52,6 +53,7 @@ const ManageProduct = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const token = localStorage.getItem('token'); // Retrieve the secure operational token
     const data = new FormData();
     data.append('name', formData.name);
     data.append('price', formData.price);
@@ -61,24 +63,54 @@ const ManageProduct = () => {
     if (imageFile) data.append('image', imageFile);
 
     try {
-      const url = editingId ? `http://localhost:5000/api/products/${editingId}` : 'http://localhost:5000/api/products/add';
-      const res = await fetch(url, { method: editingId ? 'PUT' : 'POST', body: data });
+      // 🔥 UPDATED HERE: Appended /update/ into the string literal for PUT requests to perfectly sync with productRoutes.js
+      const url = editingId 
+        ? `http://localhost:5000/api/products/update/${editingId}` 
+        : 'http://localhost:5000/api/products/add';
+        
+      const res = await fetch(url, { 
+        method: editingId ? 'PUT' : 'POST', 
+        headers: {
+          'Authorization': `Bearer ${token}` // Bind identity authorization payload context
+        },
+        body: data 
+      });
+      
       if (res.ok) {
         setShowFormModal(false);
         setEditingId(null);
         setFormData({ name: '', price: '', stock: '', category: VALID_CATEGORIES[0], description: '' });
         setImageFile(null);
         fetchProducts();
+      } else {
+        const errorData = await res.json();
+        alert(errorData.error || errorData.message || "Failed to finalize inventory operation record.");
       }
-    } catch (err) { console.error("Connection Error:", err); }
+    } catch (err) { 
+      console.error("Connection Error:", err); 
+    }
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm("Delete this product?")) {
+    if (window.confirm("Delete this product? This action will generate a permanent security audit record.")) {
+      const token = localStorage.getItem('token'); // Retrieve the secure operational token
       try {
-        const res = await fetch(`http://localhost:5000/api/products/${id}`, { method: 'DELETE' });
-        if (res.ok) fetchProducts();
-      } catch (err) { console.error("Delete error:", err); }
+        const res = await fetch(`http://localhost:5000/api/products/${id}`, { 
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`, // Bind identity authorization payload context
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) {
+          fetchProducts();
+        } else {
+          const errorData = await res.json();
+          alert(errorData.error || errorData.message || "Unauthorized context executing administrative deletion sequence.");
+        }
+      } catch (err) { 
+        console.error("Delete error:", err); 
+      }
     }
   };
 
