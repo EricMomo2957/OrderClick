@@ -19,7 +19,7 @@ export const logActivity = async ({
     userAgent = null
 }) => {
     try {
-        // 1. Fallback Hierarchy: Extract actor identifiers from verified request context or direct overrides
+        // 1. Fallback Hierarchy: Extract actor identifiers from request or direct overrides
         const actorId = userId || req?.user?.id || null;
         const actorName = fullname || req?.user?.fullname || req?.user?.email || "System Engine";
         const actorRole = role || req?.user?.role || 'system';
@@ -34,21 +34,36 @@ export const logActivity = async ({
         
         const resolvedUserAgent = userAgent || (req ? (req.headers['user-agent'] || 'Unknown Agent') : 'System Process');
 
-        // 3. Normalize Detail Parameters (Supports strings or complex structured JSON telemetry tracking)
-        let logDetails = null;
+        // 3. Normalize Detail Parameters (Extract string from object if needed)
+        let logDetails = "No execution details provided.";
         if (details) {
-            logDetails = typeof details === 'object' ? JSON.stringify(details) : details;
+            if (typeof details === 'object') {
+                // If it passes an object containing a message property, use it; otherwise stringify the object
+                logDetails = details.message || JSON.stringify(details);
+            } else {
+                logDetails = details;
+            }
         }
 
+        // 4. Exact Query Matching Your phpMyAdmin Database Columns
         const query = `
-            INSERT INTO audit_logs (user_id, fullname, role, action, resource, resource_id, details, ip_address, user_agent)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO audit_logs (
+                user_id, 
+                fullname, 
+                role, 
+                action, 
+                resource, 
+                resource_id, 
+                details, 
+                ip_address, 
+                user_agent
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
-        // 4. Driver Validation: Checks if pool demands .promise() explicitly or handles it natively
+        // 5. Driver Validation: Checks if pool demands .promise() explicitly
         const queryExecutionBuffer = db.promise ? db.promise() : db;
 
-        // Uses standard execute syntax to handle parameters and escape injection sets safely
+        // Execute query parameters safely to avoid sql injections
         await queryExecutionBuffer.execute(query, [
             actorId,
             actorName,
@@ -62,10 +77,10 @@ export const logActivity = async ({
         ]);
 
     } catch (error) {
-        // Keeps pipeline error non-blocking so a database issue doesn't crash customer-facing routes
+        // Keeps pipeline error non-blocking so an audit issue doesn't break app flow
         console.error("CRITICAL: Failed to save system audit tracking entry:", error);
     }
 };
 
-// Aliased fallback export to ensure compliance if components expect logAction mapping namespaces
+// Aliased fallback export to support both logAction and logActivity namespaces in controllers
 export const logAction = logActivity;
