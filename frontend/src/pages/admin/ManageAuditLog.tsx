@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Search, ShieldAlert, Terminal, RefreshCw, Layers, User, Settings, 
-  Info, Trash2, PlusCircle, Edit3, AlertTriangle, CheckSquare, Square 
+  Info, Trash2, PlusCircle, Edit3, AlertTriangle, CheckSquare, Square, FileText 
 } from 'lucide-react';
 
 interface AuditLog {
@@ -126,7 +126,7 @@ const ManageAuditLog = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5000/api/admin/audit-logs/bulk-delete', {
-        method: 'POST', // standard endpoint structural matrix pattern handling payloads arrays
+        method: 'POST', 
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -228,7 +228,7 @@ const ManageAuditLog = () => {
             </h1>
           </div>
           <p className="text-slate-500 text-sm mt-0.5">
-            Immutable tracking matrix capturing backend events, configuration alterations, and administrative execution records.
+            Immutable tracking matrix capturing backend events, receipt processing checkpoints, and structural transaction streams.
           </p>
         </div>
 
@@ -303,7 +303,7 @@ const ManageAuditLog = () => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search logs by operator, actions, or schemas..."
+          placeholder="Search logs by operator, actions, receipts, or schemas..."
           className="w-full pl-11 pr-4 py-2.5 bg-slate-50 text-slate-800 text-sm font-medium rounded-2xl border border-slate-200 focus:outline-none focus:bg-white focus:border-[#003d3d] focus:ring-1 focus:ring-[#003d3d] transition-all placeholder:text-slate-400"
         />
         {searchQuery && (
@@ -413,7 +413,13 @@ const ManageAuditLog = () => {
                       {/* TARGET RESOURCE SCHEMA MATCH */}
                       <td className="px-6 py-4">
                         <div className="text-slate-600">
-                          <span className="font-semibold text-slate-800 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 text-xs">{log.resource}</span>
+                          <span className={`font-semibold px-2 py-0.5 rounded border text-xs ${
+                            log.resource === 'receipts' || log.resource === 'orders'
+                              ? 'bg-teal-50 text-[#003d3d] border-teal-100 font-bold'
+                              : 'bg-slate-50 text-slate-800 border-slate-100'
+                          }`}>
+                            {log.resource}
+                          </span>
                           {log.resource_id && <span className="text-xs text-slate-400 ml-1.5 font-mono font-bold">#{log.resource_id}</span>}
                         </div>
                       </td>
@@ -425,6 +431,18 @@ const ManageAuditLog = () => {
                             try {
                               if (!log.details) return <span className="italic text-slate-300">No descriptive string context.</span>;
                               
+                              // Handle specific updates to receipts / order logs natively
+                              if (log.resource === 'receipts' || log.resource === 'orders') {
+                                if (log.details.trim().startsWith('{') || log.details.trim().startsWith('[')) {
+                                  const parsedDetails = JSON.parse(log.details);
+                                  if (parsedDetails.order_id || parsedDetails.receipt_id) {
+                                    return `Order tracking pipeline mutation updated for reference tracking sequence #${parsedDetails.order_id || parsedDetails.receipt_id}`;
+                                  }
+                                  if (parsedDetails.message) return parsedDetails.message;
+                                  if (parsedDetails.status) return `Receipt transaction status shifted status to [${parsedDetails.status.toUpperCase()}]`;
+                                }
+                              }
+
                               // Check if the payload is a stringified JSON object
                               if (log.details.trim().startsWith('{') || log.details.trim().startsWith('[')) {
                                 const parsedDetails = JSON.parse(log.details);
@@ -444,7 +462,7 @@ const ManageAuditLog = () => {
                                   const fields = Object.keys(parsedDetails.updated_fields)
                                     .filter(key => key !== 'timestamp') // Ignore metadata timestamps if appended
                                     .join(', ');
-                                  return `Modified product parameters: [${fields}]`;
+                                  return `Modified parameters: [${fields}]`;
                                 }
 
                                 // 4. General JSON key fallback
@@ -534,6 +552,22 @@ const ManageAuditLog = () => {
                   <span className="text-slate-800 font-bold">{selectedLog.ip_address || "Direct Core Pipe"}</span>
                 </div>
               </div>
+
+              {/* SPECIAL ORDER RECEIPT CONTEXT BANNER */}
+              {(selectedLog.resource === 'receipts' || selectedLog.resource === 'orders') && (
+                <div className="bg-teal-50/50 border border-teal-100 p-4 rounded-2xl flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <FileText className="text-[#003d3d]" size={18} />
+                    <div>
+                      <h5 className="text-xs font-bold text-slate-800">Linked to ManageReceipt Dashboard</h5>
+                      <p className="text-[11px] text-slate-500">This action altered validation elements belonging to operational orders.</p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-mono font-black text-[#003d3d] bg-white border border-teal-100 px-2 py-1 rounded-lg">
+                    Target #{selectedLog.resource_id || 'N/A'}
+                  </span>
+                </div>
+              )}
 
               <div>
                 <h4 className="text-xs uppercase font-black text-slate-400 tracking-wider mb-2">Operation Parameters Overview</h4>
