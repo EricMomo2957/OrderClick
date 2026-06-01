@@ -1,4 +1,5 @@
 import db from '../config/db.js';
+import { logActivity } from '../utils/logger.js';
 
 // ==========================================
 // ---          ORDER PLACEMENT           ---
@@ -9,7 +10,6 @@ import db from '../config/db.js';
  * Handles orders for logged-in users, including payment reference tracking.
  */
 export const placeOrder = (req, res) => {
-    // Destructuring new fields from the request body
     const { 
         userId, 
         productId, 
@@ -19,19 +19,16 @@ export const placeOrder = (req, res) => {
         paymentMethod 
     } = req.body;
 
-    // Validation to ensure critical IDs are present
     if (!userId || !productId) {
         return res.status(400).json({ message: "Missing User ID or Product ID" });
     }
 
-    // SQL updated to include reference_number and payment_method
     const orderSql = `
         INSERT INTO receipts 
         (user_id, product_id, quantity, total_price, reference_number, payment_method, status) 
         VALUES (?, ?, ?, ?, ?, ?, "pending")
     `;
     
-    // Execute the order insertion
     db.query(
         orderSql, 
         [userId, productId, quantity, totalPrice, referenceNumber, paymentMethod], 
@@ -44,19 +41,27 @@ export const placeOrder = (req, res) => {
                 });
             }
 
-            // Successfully inserted into receipts, now deduct stock from products table
+            const orderId = result.insertId;
+
+            // Log entry tracking for registered customer account placement
+            logActivity({
+                req,
+                action: 'CUSTOMER_ORDER_PLACE',
+                resource: 'receipts',
+                resourceId: orderId,
+                details: `Customer placed order #${orderId} via ${paymentMethod || 'Cash'}. Total: ₱${Number(totalPrice).toLocaleString()}`
+            });
+
+            // Deduct stock from products table
             const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
-            
             db.query(updateStockSql, [quantity, productId], (updateErr) => {
                 if (updateErr) {
-                    // We log the error but don't fail the response since the receipt is already created
                     console.error("Stock Update Error:", updateErr);
                 }
 
-                // Return success with the new Order ID (result.insertId)
                 res.status(200).json({ 
                     message: 'Order placed successfully!', 
-                    orderId: result.insertId,
+                    orderId: orderId,
                     reference: referenceNumber
                 });
             });
@@ -69,7 +74,6 @@ export const placeOrder = (req, res) => {
  * Handles rapid checkouts directly from landing components for unregistered users.
  */
 export const placeExternalOrder = (req, res) => {
-    // Corrected destructuring to match your OrderNow.tsx client key payloads perfectly
     const { 
         guest_name, 
         guest_email, 
@@ -87,15 +91,16 @@ export const placeExternalOrder = (req, res) => {
     let completed = 0;
     let hasError = false;
     let savedOrderIds = [];
+    let cumulativeTotal = 0;
 
     items.forEach((item) => {
-        // 1. Updated SQL to include reference_number and payment_method columns
         const orderSql = `
             INSERT INTO receipts 
             (user_id, product_id, quantity, total_price, reference_number, payment_method, status, guest_name, guest_email, guest_phone, guest_address) 
             VALUES (NULL, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
         `;
         const totalPrice = item.price * item.qty;
+        cumulativeTotal += totalPrice;
 
         db.query(
             orderSql, 
@@ -103,8 +108,8 @@ export const placeExternalOrder = (req, res) => {
                 item.id, 
                 item.qty, 
                 totalPrice, 
-                reference_number || null, // Saves the generated REF token or NULL for cash
-                payment_method,           // Saves 'Cash' or 'GCash'
+                reference_number || null, 
+                payment_method,          
                 guest_name, 
                 guest_email, 
                 guest_phone, 
@@ -118,7 +123,6 @@ export const placeExternalOrder = (req, res) => {
                     savedOrderIds.push(result.insertId);
                 }
 
-                // 2. Deduct stock from products table
                 const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
                 db.query(updateStockSql, [item.qty, item.id], (updateErr) => {
                     if (updateErr) {
@@ -127,13 +131,22 @@ export const placeExternalOrder = (req, res) => {
                     }
 
                     completed++;
-                    // Once all items in the array are processed, send final response
                     if (completed === items.length) {
                         if (hasError) {
                             return res.status(500).json({ message: "Order processed with some database errors." });
                         }
                         
-                        // Send response containing the main inserted reference details back to the front-end
+                        const trackingOrderId = savedOrderIds.length > 0 ? savedOrderIds[0] : null;
+
+                        // Public visitor submission logs to system audit registry stream
+                        logActivity({
+                            req,
+                            action: 'VISITOR_MESSAGE_SUBMIT', // Matches standard public landing page signature format
+                            resource: 'messages',
+                            resourceId: trackingOrderId,
+                            details: `Visitor "${guest_name}" (${guest_email}) submitted a landing check-out order. Total: ₱${cumulativeTotal.toLocaleString()}`
+                        });
+
                         return res.status(200).json({ 
                             message: "Order placed and stock updated successfully!",
                             orderId: savedOrderIds.length > 0 ? `ORD-${savedOrderIds[0]}` : null
@@ -192,25 +205,30 @@ export const placeCheckoutOrder = (req, res) => {
             });
         }
 
-        // Successfully inserted into receipts, now deduct stock from products table
+        const orderId = result.insertId;
+        const orderIdString = `ORD-${orderId}`;
+
+        // Polymorphic Logger Evaluation
+        logActivity({
+            req,
+            action: userId ? 'CUSTOMER_ORDER_PLACE' : 'VISITOR_MESSAGE_SUBMIT',
+            resource: userId ? 'receipts' : 'messages',
+            resourceId: orderId,
+            details: `${userId ? 'Registered Customer' : `Guest Form "${guestName || 'Anonymous'}"`} processed transaction ${orderIdString}. Total Amount: ₱${Number(totalPrice).toLocaleString()}`
+        });
+
         const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
-        
         db.query(updateStockSql, [quantity, productId], (updateErr) => {
             if (updateErr) {
                 console.error("Stock Update Error:", updateErr);
-                // Logged but not failing the response since the receipt row is safely generated
             }
 
-            // Generate the clean Order ID format matching your UI layout display
-            const orderIdString = `ORD-${result.insertId}`;
-
-            // Return the exact object structure your React confirmation modal state needs
             return res.status(201).json({
                 success: true,
                 message: "Order placed successfully!",
                 orderData: {
                     orderId: orderIdString,
-                    receiptId: result.insertId,
+                    receiptId: orderId,
                     paymentMethod: paymentMethod,
                     referenceNumber: referenceNumber,
                     totalPaid: totalPrice
@@ -222,7 +240,7 @@ export const placeCheckoutOrder = (req, res) => {
 
 
 // ==========================================
-// ---           DATA FETCHING            ---
+// ---          DATA FETCHING             ---
 // ==========================================
 
 /**
@@ -249,7 +267,6 @@ export const getUserOrders = (req, res) => {
 
 /**
  * GET ALL RECEIPTS (Admin Panel View)
- * Combines Registered and Guest names to safely construct display names.
  */
 export const getAllReceipts = (req, res) => {
     const sql = `
@@ -257,7 +274,6 @@ export const getAllReceipts = (req, res) => {
             r.*, 
             p.name as product_name, 
             u.fullname as registered_name,
-            /* If guest_name exists (from OrderNow form), use it. Otherwise, use registered user's name */
             COALESCE(r.guest_name, u.fullname) as display_name
         FROM receipts r 
         JOIN products p ON r.product_id = p.id 
@@ -285,9 +301,20 @@ export const getAllReceipts = (req, res) => {
 export const updateReceiptStatus = (req, res) => {
     const { id } = req.params;
     const { status } = req.body; 
+    
     const sql = 'UPDATE receipts SET status = ? WHERE id = ?';
     db.query(sql, [status, id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
+
+        // Admin system alteration monitoring log
+        logActivity({
+            req,
+            action: 'UPDATE_MESSAGE_STATUS',
+            resource: 'receipts',
+            resourceId: id,
+            details: `Altered order receipt ID #${id} processing parameter state to: "${status}".`
+        });
+
         res.json({ message: `Order ${status} successfully` });
     });
 };
@@ -297,8 +324,19 @@ export const updateReceiptStatus = (req, res) => {
  */
 export const deleteReceipt = (req, res) => {
     const { id } = req.params;
-    db.query('DELETE FROM receipts WHERE id = ?', [id], (err) => {
+    
+    db.query('DELETE FROM receipts WHERE WHERE id = ?', [id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
+
+        // Admin permanent removal trace log
+        logActivity({
+            req,
+            action: 'DELETE_MESSAGE',
+            resource: 'receipts',
+            resourceId: id,
+            details: `Permanently removed order transaction record reference matrix ID #${id} from the database.`
+        });
+
         res.json({ message: "Record deleted" });
     });
 };
