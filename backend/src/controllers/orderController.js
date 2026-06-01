@@ -1,5 +1,7 @@
 import db from '../config/db.js';
 import { logActivity } from '../utils/logger.js';
+// Assuming createAuditLog is imported from your logging utility middleware
+import { createAuditLog } from '../utils/logger.js'; 
 
 // ==========================================
 // ---          ORDER PLACEMENT           ---
@@ -298,22 +300,30 @@ export const getAllReceipts = (req, res) => {
 /**
  * UPDATE RECEIPT STATUS
  */
-export const updateReceiptStatus = (req, res) => {
+export const updateReceiptStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body; 
     
     const sql = 'UPDATE receipts SET status = ? WHERE id = ?';
-    db.query(sql, [status, id], (err) => {
+    db.query(sql, [status, id], async (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
-        // Admin system alteration monitoring log
-        logActivity({
-            req,
-            action: 'UPDATE_MESSAGE_STATUS',
-            resource: 'receipts',
-            resourceId: id,
-            details: `Altered order receipt ID #${id} processing parameter state to: "${status}".`
-        });
+        try {
+            // Admin system alteration tracking integration using custom audit model layout
+            await createAuditLog({
+                user_id: req.user?.id || null,
+                fullname: req.user?.fullname || 'System Admin',
+                role: req.user?.role || 'ADMIN',
+                action: status === 'verified' ? 'VERIFY_RECEIPT' : 'REJECT_RECEIPT',
+                resource: 'receipts',
+                resource_id: id,
+                details: `Admin processed receipt for order #${id} as ${status}.`,
+                ip_address: req.ip || req.headers['x-forwarded-for'] || '::1'
+            });
+        } catch (auditErr) {
+            console.error("Audit Logging Failure:", auditErr);
+            // Optionally decide if you want to fail the response if tracking breaks
+        }
 
         res.json({ message: `Order ${status} successfully` });
     });
@@ -325,7 +335,8 @@ export const updateReceiptStatus = (req, res) => {
 export const deleteReceipt = (req, res) => {
     const { id } = req.params;
     
-    db.query('DELETE FROM receipts WHERE WHERE id = ?', [id], (err) => {
+    // Corrected SQL statement syntax error 'WHERE WHERE'
+    db.query('DELETE FROM receipts WHERE id = ?', [id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
         // Admin permanent removal trace log
