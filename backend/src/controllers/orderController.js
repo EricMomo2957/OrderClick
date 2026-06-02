@@ -1,7 +1,5 @@
 import db from '../config/db.js';
 import { logActivity } from '../utils/logger.js';
-// Assuming createAuditLog is imported from your logging utility middleware
-import { createAuditLog } from '../utils/logger.js'; 
 
 // ==========================================
 // ---          ORDER PLACEMENT           ---
@@ -143,7 +141,7 @@ export const placeExternalOrder = (req, res) => {
                         // Public visitor submission logs to system audit registry stream
                         logActivity({
                             req,
-                            action: 'VISITOR_MESSAGE_SUBMIT', // Matches standard public landing page signature format
+                            action: 'VISITOR_MESSAGE_SUBMIT', 
                             resource: 'messages',
                             resourceId: trackingOrderId,
                             details: `Visitor "${guest_name}" (${guest_email}) submitted a landing check-out order. Total: ₱${cumulativeTotal.toLocaleString()}`
@@ -300,30 +298,22 @@ export const getAllReceipts = (req, res) => {
 /**
  * UPDATE RECEIPT STATUS
  */
-export const updateReceiptStatus = async (req, res) => {
+export const updateReceiptStatus = (req, res) => {
     const { id } = req.params;
     const { status } = req.body; 
     
     const sql = 'UPDATE receipts SET status = ? WHERE id = ?';
-    db.query(sql, [status, id], async (err) => {
+    db.query(sql, [status, id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
-        try {
-            // Admin system alteration tracking integration using custom audit model layout
-            await createAuditLog({
-                user_id: req.user?.id || null,
-                fullname: req.user?.fullname || 'System Admin',
-                role: req.user?.role || 'ADMIN',
-                action: status === 'verified' ? 'VERIFY_RECEIPT' : 'REJECT_RECEIPT',
-                resource: 'receipts',
-                resource_id: id,
-                details: `Admin processed receipt for order #${id} as ${status}.`,
-                ip_address: req.ip || req.headers['x-forwarded-for'] || '::1'
-            });
-        } catch (auditErr) {
-            console.error("Audit Logging Failure:", auditErr);
-            // Optionally decide if you want to fail the response if tracking breaks
-        }
+        // Reuse your existing logActivity utility here
+        logActivity({
+            req,
+            action: status === 'verified' ? 'VERIFY_RECEIPT' : 'REJECT_RECEIPT',
+            resource: 'receipts',
+            resourceId: id,
+            details: `Admin processed receipt for order #${id} as ${status}.`
+        });
 
         res.json({ message: `Order ${status} successfully` });
     });
@@ -335,7 +325,6 @@ export const updateReceiptStatus = async (req, res) => {
 export const deleteReceipt = (req, res) => {
     const { id } = req.params;
     
-    // Corrected SQL statement syntax error 'WHERE WHERE'
     db.query('DELETE FROM receipts WHERE id = ?', [id], (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
