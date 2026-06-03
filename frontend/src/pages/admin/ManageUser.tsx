@@ -91,8 +91,8 @@ const ManageUser = () => {
     const token = getAuthToken();
 
     try {
-      // Updated Frontend endpoint execution string matching back-end routes blueprint layout layout
-      const response = await fetch(`http://localhost:5000/api/admin/update-customer/${selectedCustomer.id}`, {
+      // NOTE: Pointing directly to your backend directory resource structure
+      const response = await fetch(`http://localhost:5000/api/admin/customers/${selectedCustomer.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -107,7 +107,7 @@ const ManageUser = () => {
       if (response.ok) {
         alert("Customer details updated successfully.");
         closeEditModal();
-        fetchCustomers(); // Refresh grid dataset records matrix
+        fetchCustomers(); // Refresh grid layout dataset matrix
       } else {
         const errorData = await response.json();
         alert(`Update failed: ${errorData.message || 'Server error'}`);
@@ -122,14 +122,13 @@ const ManageUser = () => {
 
   // DELETE: Permanent database deletion routine
   const handleDeleteClick = async (id: number, name: string) => {
-    const confirmDeletion = window.confirm(`Are you absolutely sure you want to permanently delete account signature context for "${name}" (#USR-${id})? This will generate a transaction log record.`);
+    const confirmDeletion = window.confirm(`Are you absolutely sure you want to permanently delete account signature context for "${name}" (#USR-${id})? This will alter active receipt history logs reference data metrics.`);
     if (!confirmDeletion) return;
 
     const token = getAuthToken();
 
     try {
-      // Updated Frontend endpoint execution string matching back-end routes blueprint layout layout
-      const response = await fetch(`http://localhost:5000/api/admin/delete-customer/${id}`, {
+      const response = await fetch(`http://localhost:5000/api/admin/customers/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -141,12 +140,10 @@ const ManageUser = () => {
         alert("Customer trace logs deleted from system storage state entries.");
         fetchCustomers();
       } else {
-        const errorData = await response.json();
-        alert(`Failed to remove account parameters: ${errorData.message || 'Ensure authorization permissions'}`);
+        alert("Failed to remove account parameters. Ensure authorization tier permissions are active.");
       }
     } catch (err) {
       console.error("Database structural drops exception processing:", err);
-      alert("Failed to reach server for account removal context.");
     }
   };
 
@@ -162,7 +159,7 @@ const ManageUser = () => {
     return matchesName || matchesEmail || matchesIdString;
   });
 
-  // PDF Generation for the filtered list
+  // PDF Generation for the filtered or full list
   const exportUserListPDF = () => {
     const doc = new jsPDF();
     
@@ -295,7 +292,7 @@ const ManageUser = () => {
                       {new Date(user.created_at).toLocaleDateString()}
                     </div>
                   </td>
-                  {/* Action Layout Buttons Panel */}
+                  {/* Newly Integrated Interactivity Action Controls Row Cells */}
                   <td className="px-8 py-5 text-right">
                     <div className="flex items-center justify-end gap-3">
                       <button
@@ -327,7 +324,7 @@ const ManageUser = () => {
       </div>
 
       {/* ========================================== */}
-      {/* ---      MODAL: EDIT MODIFIER FORM    --- */}
+      {/* ---       MODAL: EDIT MODIFIER FORM    --- */}
       {/* ========================================== */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
