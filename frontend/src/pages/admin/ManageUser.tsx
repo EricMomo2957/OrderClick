@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, Mail, Calendar, RefreshCw, FileText, Search, X } from 'lucide-react';
+import { User, Mail, Calendar, RefreshCw, FileText, Search, X, Edit3, Trash2, ShieldAlert } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -13,23 +13,30 @@ interface Customer {
 const ManageUser = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
-  // State layer for filtering engine input
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Unified Fetch Function pointing to the REAL backend endpoint path with structural fixes
+  // Form State Layers for the Edit Modal
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [editFullname, setEditFullname] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Helper helper to get cleaned admin token securely
+  const getAuthToken = () => {
+    let token = localStorage.getItem('token');
+    if (token) {
+      token = token.replace(/^"|"$/g, ''); 
+    }
+    return token;
+  };
+
+  // Unified Fetch Function pointing to backend endpoints
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
-    
-    // Get token and trim any accidental whitespace or quotes
-    let token = localStorage.getItem('token'); 
-    if (token) {
-      token = token.replace(/^"|"$/g, ''); // Removes wrapping quotes if stored as JSON string
-    }
-
-    console.log("Current Admin Token being sent:", token); // <-- Diagnostic log
+    const token = getAuthToken();
 
     try {
-      // NOTE: Using port 5000 based on your working backend configuration setup
       const response = await fetch('http://localhost:5000/api/admin/customers', {
         method: 'GET',
         headers: {
@@ -38,8 +45,6 @@ const ManageUser = () => {
         }
       });
       
-      console.log("Server Response Status:", response.status); // <-- Diagnostic log
-
       if (response.status === 401 || response.status === 403) {
         alert("Session expired or unauthorized access. Please re-login.");
         return;
@@ -48,7 +53,6 @@ const ManageUser = () => {
       if (!response.ok) throw new Error(`HTTP Error! Status: ${response.status}`);
 
       const data = await response.json();
-      console.log("Data successfully fetched:", data); // <-- Diagnostic log
       setCustomers(data);
     } catch (err) {
       console.error("Failed to load customers:", err);
@@ -57,10 +61,94 @@ const ManageUser = () => {
     }
   }, []);
 
-  // Triggers automatically when you enter the tab layout view
+  // Triggers automatically when dashboard view mounts
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
+
+  // Open Edit Dialog Modal Framework
+  const openEditModal = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setEditFullname(customer.fullname);
+    setEditEmail(customer.email);
+    setIsEditModalOpen(true);
+  };
+
+  // Close Edit Dialog Framework Reset
+  const closeEditModal = () => {
+    setSelectedCustomer(null);
+    setEditFullname('');
+    setEditEmail('');
+    setIsEditModalOpen(false);
+  };
+
+  // PUT: Update Profile Records Submission Handler
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomer) return;
+
+    setActionLoading(true);
+    const token = getAuthToken();
+
+    try {
+      // Updated Frontend endpoint execution string matching back-end routes blueprint layout layout
+      const response = await fetch(`http://localhost:5000/api/admin/update-customer/${selectedCustomer.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fullname: editFullname,
+          email: editEmail
+        })
+      });
+
+      if (response.ok) {
+        alert("Customer details updated successfully.");
+        closeEditModal();
+        fetchCustomers(); // Refresh grid dataset records matrix
+      } else {
+        const errorData = await response.json();
+        alert(`Update failed: ${errorData.message || 'Server error'}`);
+      }
+    } catch (err) {
+      console.error("Error modifying customer record context:", err);
+      alert("Failed to contact API server layout system.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // DELETE: Permanent database deletion routine
+  const handleDeleteClick = async (id: number, name: string) => {
+    const confirmDeletion = window.confirm(`Are you absolutely sure you want to permanently delete account signature context for "${name}" (#USR-${id})? This will generate a transaction log record.`);
+    if (!confirmDeletion) return;
+
+    const token = getAuthToken();
+
+    try {
+      // Updated Frontend endpoint execution string matching back-end routes blueprint layout layout
+      const response = await fetch(`http://localhost:5000/api/admin/delete-customer/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        alert("Customer trace logs deleted from system storage state entries.");
+        fetchCustomers();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to remove account parameters: ${errorData.message || 'Ensure authorization permissions'}`);
+      }
+    } catch (err) {
+      console.error("Database structural drops exception processing:", err);
+      alert("Failed to reach server for account removal context.");
+    }
+  };
 
   // Comprehensive client-side lookup filtering core engine
   const filteredCustomers = customers.filter((user) => {
@@ -74,11 +162,10 @@ const ManageUser = () => {
     return matchesName || matchesEmail || matchesIdString;
   });
 
-  // PDF Generation for the filtered or full list
+  // PDF Generation for the filtered list
   const exportUserListPDF = () => {
     const doc = new jsPDF();
     
-    // Header
     doc.setFontSize(20);
     doc.setTextColor(0, 61, 61); // Matches #003d3d theme
     doc.text("ORDERCLICK: USER DIRECTORY", 105, 15, { align: 'center' });
@@ -87,10 +174,8 @@ const ManageUser = () => {
     doc.setTextColor(100);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
 
-    // Use filtered dataset if active to keep data consistent with view
     const targetDataset = filteredCustomers.length > 0 ? filteredCustomers : customers;
 
-    // Table Generation
     const tableRows = targetDataset.map(user => [
       `#USR-${user.id}`,
       user.fullname,
@@ -111,7 +196,7 @@ const ManageUser = () => {
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="relative animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Upper Layout Controls Flex Grid Panel */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-8">
         <div>
@@ -164,6 +249,7 @@ const ManageUser = () => {
         </div>
       </div>
 
+      {/* Main Grid View Controller Interface Layout Panel */}
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -172,12 +258,13 @@ const ManageUser = () => {
               <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Name</th>
               <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</th>
               <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Joined Date</th>
+              <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Diagnostic Matrix Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {loading ? (
               <tr>
-                <td colSpan={4} className="px-8 py-20 text-center text-slate-400 italic">
+                <td colSpan={5} className="px-8 py-20 text-center text-slate-400 italic">
                   <div className="flex items-center justify-center gap-2">
                     <RefreshCw size={14} className="animate-spin text-[#003d3d]" />
                     <span>Fetching users...</span>
@@ -208,11 +295,29 @@ const ManageUser = () => {
                       {new Date(user.created_at).toLocaleDateString()}
                     </div>
                   </td>
+                  {/* Action Layout Buttons Panel */}
+                  <td className="px-8 py-5 text-right">
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        onClick={() => openEditModal(user)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#003d3d] bg-slate-100 hover:bg-[#003d3d]/10 px-3 py-1.5 rounded-xl transition-all"
+                      >
+                        <Edit3 size={12} />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(user.id, user.fullname)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 px-3 py-1.5 rounded-xl transition-all"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="px-8 py-20 text-center text-slate-400 italic">
+                <td colSpan={5} className="px-8 py-20 text-center text-slate-400 italic">
                   {searchQuery ? `No customers found matching "${searchQuery}"` : 'No customers found.'}
                 </td>
               </tr>
@@ -220,6 +325,77 @@ const ManageUser = () => {
           </tbody>
         </table>
       </div>
+
+      {/* ========================================== */}
+      {/* ---      MODAL: EDIT MODIFIER FORM    --- */}
+      {/* ========================================== */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] border border-slate-100 w-full max-w-md p-8 shadow-xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-bold text-[#003d3d] uppercase tracking-wider mb-1">
+                  <ShieldAlert size={14} />
+                  <span>Administrative Mutation</span>
+                </div>
+                <h3 className="text-xl font-black text-slate-800">Modify Account Profile</h3>
+              </div>
+              <button 
+                onClick={closeEditModal} 
+                className="text-slate-400 hover:text-slate-600 bg-slate-50 p-1.5 rounded-xl transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Customer Full Name</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editFullname}
+                  onChange={(e) => setEditFullname(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:border-[#003d3d]/30 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Email Address Target</label>
+                <input 
+                  type="email" 
+                  required
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:border-[#003d3d]/30 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-slate-100 mt-6">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  disabled={actionLoading}
+                  className="flex-1 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200/70 py-3 rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="flex-1 inline-flex items-center justify-center gap-2 text-xs font-bold text-white bg-[#003d3d] hover:bg-[#002d2d] py-3 rounded-xl transition-all shadow-md disabled:opacity-50"
+                >
+                  {actionLoading ? (
+                    <RefreshCw size={14} className="animate-spin" />
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
