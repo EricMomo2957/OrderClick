@@ -12,13 +12,15 @@ import {
 
 import { 
     getGuestOrders, 
-    updateGuestOrderStatus 
-} from '../controllers/adminController.js'; // Clean import pointing to your updated guest order handlers
+    updateGuestOrderStatus,
+    updateCustomerProfile,  // Unified administration import hook
+    deleteCustomerProfile,  // Unified administration import hook
+    resolveForgotPasswordRequest // 🚀 FIXED NAME MATCH: Pointing to your resolution handler
+} from '../controllers/adminController.js'; 
 
 import { 
-    getPasswordResetRequests,
-    resolvePasswordResetRequest 
-} from '../controllers/authController.js'; // Clean source of truth for handling password reset matrix logs
+    getPasswordResetRequests
+} from '../controllers/authController.js'; 
 
 import { 
     submitMessage, 
@@ -55,6 +57,9 @@ router.get('/top-products', verifyToken, isAdmin, getTopProducts);
 
 // --- User Directory ---
 router.get('/customers', verifyToken, isAdmin, getAllCustomers);
+// Ensure the parameter is named ":id" exactly to match req.params.id in the adminController
+router.put('/update-customer/:id', verifyToken, isAdmin, updateCustomerProfile);
+router.delete('/delete-customer/:id', verifyToken, isAdmin, deleteCustomerProfile);
 
 // --- Guest Order Checkouts ---
 router.get('/guest-orders', verifyToken, isAdmin, getGuestOrders);
@@ -69,7 +74,7 @@ router.delete('/messages/:messageId', verifyToken, isAdmin, deleteMessage);
 // GET requests to render rows cleanly into your dashboard component grid
 router.get('/forgot-password-requests', verifyToken, isAdmin, getPasswordResetRequests);
 // PUT requests to handle state mutation hooks securely
-router.put('/forgot-password-requests/:id', verifyToken, isAdmin, resolvePasswordResetRequest);
+router.put('/forgot-password-requests/:id', verifyToken, isAdmin, resolveForgotPasswordRequest); // 🚀 FIXED
 
 // --- System Operations Audit Trails ---
 // Feeds the dynamic immutable transaction table view in your UI dashboard panel
