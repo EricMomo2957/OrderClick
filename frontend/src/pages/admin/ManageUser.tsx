@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, Mail, Calendar, RefreshCw, FileText, Search, X, Edit3, Trash2, ShieldAlert } from 'lucide-react';
+import { User, Mail, Calendar, RefreshCw, FileText, Search, X, Edit3, Trash2, ShieldAlert, CheckCircle, AlertCircle } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -8,6 +8,13 @@ interface Customer {
   fullname: string;
   email: string;
   created_at: string;
+}
+
+// Interface configuration schema for our custom inline status banners
+interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error';
 }
 
 const ManageUser = () => {
@@ -21,6 +28,28 @@ const ManageUser = () => {
   const [editFullname, setEditFullname] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Custom Toast State Layout Configuration
+  const [toast, setToast] = useState<ToastState>({
+    show: false,
+    message: '',
+    type: 'success'
+  });
+
+  // Helper utility to trigger smooth modal notification toasts
+  const triggerToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
+  // Automatically clear notification banners over time
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(() => {
+        setToast((prev) => ({ ...prev, show: false }));
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show]);
 
   // Helper helper to get cleaned admin token securely
   const getAuthToken = () => {
@@ -46,7 +75,7 @@ const ManageUser = () => {
       });
       
       if (response.status === 401 || response.status === 403) {
-        alert("Session expired or unauthorized access. Please re-login.");
+        triggerToast("Session expired or unauthorized access. Please re-login.", 'error');
         return;
       }
 
@@ -56,6 +85,7 @@ const ManageUser = () => {
       setCustomers(data);
     } catch (err) {
       console.error("Failed to load customers:", err);
+      triggerToast("Failed to fetch customer directories from cluster.", 'error');
     } finally {
       setLoading(false);
     }
@@ -91,7 +121,6 @@ const ManageUser = () => {
     const token = getAuthToken();
 
     try {
-      // Updated Frontend endpoint execution string matching back-end routes blueprint layout layout
       const response = await fetch(`http://localhost:5000/api/admin/update-customer/${selectedCustomer.id}`, {
         method: 'PUT',
         headers: {
@@ -105,16 +134,16 @@ const ManageUser = () => {
       });
 
       if (response.ok) {
-        alert("Customer details updated successfully.");
+        triggerToast("Customer details updated successfully.", 'success');
         closeEditModal();
-        fetchCustomers(); // Refresh grid dataset records matrix
+        fetchCustomers(); 
       } else {
         const errorData = await response.json();
-        alert(`Update failed: ${errorData.message || 'Server error'}`);
+        triggerToast(`Update failed: ${errorData.message || 'Server error'}`, 'error');
       }
     } catch (err) {
       console.error("Error modifying customer record context:", err);
-      alert("Failed to contact API server layout system.");
+      triggerToast("Failed to contact API server layout system.", 'error');
     } finally {
       setActionLoading(false);
     }
@@ -128,7 +157,6 @@ const ManageUser = () => {
     const token = getAuthToken();
 
     try {
-      // Updated Frontend endpoint execution string matching back-end routes blueprint layout layout
       const response = await fetch(`http://localhost:5000/api/admin/delete-customer/${id}`, {
         method: 'DELETE',
         headers: {
@@ -138,15 +166,15 @@ const ManageUser = () => {
       });
 
       if (response.ok) {
-        alert("Customer trace logs deleted from system storage state entries.");
+        triggerToast("Customer trace logs deleted from system storage.", 'success');
         fetchCustomers();
       } else {
         const errorData = await response.json();
-        alert(`Failed to remove account parameters: ${errorData.message || 'Ensure authorization permissions'}`);
+        triggerToast(`Deletion failed: ${errorData.message || 'Ensure authorization permissions'}`, 'error');
       }
     } catch (err) {
       console.error("Database structural drops exception processing:", err);
-      alert("Failed to reach server for account removal context.");
+      triggerToast("Failed to reach server for account removal context.", 'error');
     }
   };
 
@@ -197,6 +225,28 @@ const ManageUser = () => {
 
   return (
     <div className="relative animate-in fade-in slide-in-from-bottom-4 duration-500">
+      
+      {/* ========================================== */}
+      {/* ---      CUSTOM TOAST NOTIFICATION     --- */}
+      {/* ========================================== */}
+      {toast.show && (
+        <div className="fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 min-w-[320px] bg-white border border-slate-100 rounded-2xl shadow-xl animate-in slide-in-from-top-6 duration-300">
+          <div className={`p-2 rounded-xl ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+            {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          </div>
+          <div className="flex-1">
+            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wide">System Notice</h4>
+            <p className="text-slate-500 font-medium text-[11px] mt-0.5 leading-relaxed">{toast.message}</p>
+          </div>
+          <button 
+            onClick={() => setToast((prev) => ({ ...prev, show: false }))}
+            className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Upper Layout Controls Flex Grid Panel */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-8">
         <div>
@@ -327,7 +377,7 @@ const ManageUser = () => {
       </div>
 
       {/* ========================================== */}
-      {/* ---      MODAL: EDIT MODIFIER FORM    --- */}
+      {/* ---       MODAL: EDIT MODIFIER FORM    --- */}
       {/* ========================================== */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
