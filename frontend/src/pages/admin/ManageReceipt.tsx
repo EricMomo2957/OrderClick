@@ -12,7 +12,8 @@ import {
   RefreshCw, 
   AlertCircle,
   User,
-  HelpCircle
+  HelpCircle,
+  Download
 } from 'lucide-react';
 
 interface Receipt {
@@ -60,7 +61,7 @@ const ManageReceipt = () => {
       console.error("Failed to fetch receipts:", error);
       showAlert(error.response?.status === 401 ? "Unauthorized access token clearance." : "Failed loading system transactions.", "error");
     } finally {
-      setLoading(false);
+      loading && setLoading(false);
       setRefreshing(false);
     }
   };
@@ -89,6 +90,7 @@ const ManageReceipt = () => {
     );
   });
 
+  // Individual Receipt PDF Generation logic
   const generatePDF = (receipt: Receipt) => {
     const doc = new jsPDF();
     const date = receipt.created_at ? new Date(receipt.created_at).toLocaleString() : new Date().toLocaleString();
@@ -146,6 +148,60 @@ const ManageReceipt = () => {
     showAlert(`Successfully printed receipt #REC-${receipt.id}`);
   };
 
+  // Master List PDF Export Function 
+  const exportFullLedgerPDF = () => {
+    if (filteredReceipts.length === 0) return;
+
+    const doc = new jsPDF();
+    
+    // Header Branding
+    doc.setFontSize(20);
+    doc.setTextColor(0, 74, 128); // Theme matching #004a80
+    doc.text("ORDERCLICK: SYSTEM MANAGEMENT LEDGER", 105, 15, { align: 'center' });
+    
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(`Exported Registry Records: ${filteredReceipts.length} Entries Found | Generated on: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
+
+    // Table Row Mapping 
+    const tableRows = filteredReceipts.map(receipt => {
+      const fallbackRef = receipt.reference_number && receipt.reference_number.trim() !== "" 
+        ? receipt.reference_number 
+        : `REF-${receipt.id}`;
+      
+      return [
+        `#REC-${receipt.id}`,
+        `${receipt.display_name} ${receipt.guest_name ? '(Guest)' : '(Reg)'}`,
+        receipt.product_name,
+        `x${receipt.quantity}`,
+        fallbackRef,
+        receipt.payment_method ? receipt.payment_method.toUpperCase() : 'CASH',
+        `PHP ${Number(receipt.total_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+        receipt.status.toUpperCase()
+      ];
+    });
+
+    // AutoTable Structure Definition
+    autoTable(doc, {
+      startY: 30,
+      head: [['ID', 'Customer Entity', 'Allocated Product', 'Qty', 'Reference Key', 'Method', 'Total Price', 'Status']],
+      body: tableRows,
+      headStyles: { fillColor: [0, 74, 128], textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      theme: 'striped',
+      styles: { fontSize: 8.5, cellPadding: 3 },
+      columnStyles: {
+        0: { fontStyle: 'bold' },
+        6: { fontStyle: 'bold', halign: 'right' },
+        7: { fontStyle: 'bold' }
+      },
+      margin: { top: 30 },
+    });
+
+    doc.save("OrderClick_Receipts_Master_Ledger.pdf");
+    showAlert("Successfully downloaded master records summary report.");
+  };
+
   // FIXED: Expanded parameters to accurately match all expected string literals from the UI actions
   const handleUpdateStatus = async (id: number, status: 'pending' | 'verified' | 'rejected') => {
     try {
@@ -158,7 +214,6 @@ const ManageReceipt = () => {
   };
 
   const handleDelete = async (id: number) => {
-    // Elegant fallback replacement avoiding crude blocking native alerts
     if (confirm(`Are you sure you want to permanently purge record ledger reference entry #REC-${id}?`)) {
       try {
         await axios.delete(`${API_BASE}/${id}`, getAuthHeader());
@@ -194,14 +249,26 @@ const ManageReceipt = () => {
               <h2 className="text-2xl font-black text-slate-800 tracking-tight">
                 Orders & <span className="text-[#004a80]">Receipts Ledger</span>
               </h2>
-              <button 
-                onClick={() => fetchAllReceipts(true)} 
-                disabled={refreshing || loading}
-                className="p-1.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-400 hover:text-[#004a80] hover:bg-blue-50 transition-all disabled:opacity-50"
-                title="Force Reload Registries"
-              >
-                <RefreshCw size={14} className={refreshing ? 'animate-spin text-[#004a80]' : ''} />
-              </button>
+              <div className="flex gap-1.5">
+                <button 
+                  onClick={() => fetchAllReceipts(true)} 
+                  disabled={refreshing || loading}
+                  className="p-1.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-400 hover:text-[#004a80] hover:bg-blue-50 transition-all disabled:opacity-50"
+                  title="Force Reload Registries"
+                >
+                  <RefreshCw size={14} className={refreshing ? 'animate-spin text-[#004a80]' : ''} />
+                </button>
+
+                {/* Added Export Master PDF Report Button */}
+                <button 
+                  onClick={exportFullLedgerPDF} 
+                  disabled={loading || filteredReceipts.length === 0}
+                  className="flex items-center gap-1.5 text-[11px] font-black tracking-wide text-white bg-[#004a80] px-4 py-1.5 rounded-xl hover:bg-[#003861] transition-all disabled:opacity-50 shadow-sm"
+                  title="Export Current Filtered Registry View"
+                >
+                  <Download size={13} /> Export Summary
+                </button>
+              </div>
             </div>
             <p className="text-gray-400 text-sm font-medium">Review transactions, issue invoice reports, and clear pending customer balance entries.</p>
           </div>
