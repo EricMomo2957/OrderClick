@@ -16,6 +16,7 @@ import manageCustomerRoutes from './routes/ManageCustomerRoutes.js';
 import eventRoutes from './routes/eventRoutes.js'; 
 import announcementRoutes from './routes/announcementRoutes.js'; 
 import adminRoutes from './routes/adminRoutes.js'; // Unified Administrative & Audit Tracking Routes
+import documentRoutes from './routes/documentRoutes.js'; // Document Upload & Management Routes
 
 dotenv.config();
 
@@ -103,7 +104,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/events', eventRoutes); 
 app.use('/api/announcements', announcementRoutes); 
-
+app.use('/api/documents', documentRoutes); 
 // --- Core Administration Operations Routers ---
 // Handles: /api/admin/stats, /api/admin/forgot-password-requests, /api/admin/audit-logs, etc.
 app.use('/api/admin', adminRoutes); 
