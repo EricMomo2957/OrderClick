@@ -14,6 +14,7 @@ import CustomerEvent from './CustomerEvent';
 import CustomerCart from './CustomerCart';
 import CustomerProfile from './CustomerProfile';
 import CustomerAnnouncement from './CustomerAnnouncement'; // Import the announcement component
+import UserDocument from './UserDocument'; // Import the user document component
 
 export const CUSTOMER_MENU = [
   // I recommend putting Announcements at the top so it's the first thing customers see
@@ -53,4 +54,10 @@ export const CUSTOMER_MENU = [
     icon: User, 
     component: CustomerProfile 
   },
+  { 
+    id: 'documents', 
+    label: 'User Documents', 
+    icon: User, 
+    component: UserDocument 
+  }
 ];
