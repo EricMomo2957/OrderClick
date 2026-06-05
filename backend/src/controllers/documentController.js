@@ -51,3 +51,59 @@ exports.getCustomerDocuments = (req, res) => {
         return res.status(200).json(results);
     });
 };
+
+// Retrieve ALL documents across all users (Admin view)
+exports.getAllDocumentsForAdmin = (req, res) => {
+    // Selects document fields plus user info from the linked users table
+    const query = `
+        SELECT 
+            d.id,
+            d.user_id,
+            d.document_title,
+            d.file_name,
+            d.file_path,
+            d.mime_type,
+            d.file_size,
+            d.status,
+            d.created_at,
+            u.fullname,
+            u.email
+        FROM documents d
+        INNER JOIN users u ON d.user_id = u.id
+        ORDER BY d.created_at DESC
+    `;
+
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error("Database retrieval failure for admin:", err);
+            return res.status(500).json({ message: "Failed extracting structural document registries." });
+        }
+        return res.status(200).json(results);
+    });
+};
+
+// Update the validation status of a document (Admin action)
+exports.updateDocumentStatus = (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate incoming status parameters
+    if (!['pending', 'verified', 'rejected'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status value provided." });
+    }
+
+    const query = `UPDATE documents SET status = ? WHERE id = ?`;
+
+    db.query(query, [status, id], (err, result) => {
+        if (err) {
+            console.error("Database update error:", err);
+            return res.status(500).json({ message: "Failed to update document status." });
+        }
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Document record not found." });
+        }
+
+        return res.status(200).json({ message: "Document status updated successfully." });
+    });
+};
