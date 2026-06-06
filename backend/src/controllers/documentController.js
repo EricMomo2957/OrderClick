@@ -1,7 +1,7 @@
-const db = require('../config/db'); // Path to your MySQL connection pool
+import db from '../config/db.js'; // Using ES Module import syntax with explicit extension
 
 // Handle single document submission upload pipelines
-exports.uploadDocument = async (req, res) => {
+export const uploadDocument = async (req, res) => {
     try {
         const userId = req.user.id; // Extracted securely from your JWT middleware
         const { document_title } = req.body;
@@ -33,13 +33,17 @@ exports.uploadDocument = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Fatal document upload handling exception:", error);
-        return res.status(500).json({ message: "Internal server operational exception." });
+        // CRITICAL: This will print the actual error message in your terminal console!
+        console.error("🔥 DETAILED UPLOAD CRASH ERROR:", error);
+        return res.status(500).json({ 
+            message: "Internal server operational exception.",
+            error: error.message 
+        });
     }
 };
 
 // Retrieve history logs for a specific logged-in customer entity
-exports.getCustomerDocuments = (req, res) => {
+export const getCustomerDocuments = (req, res) => {
     const userId = req.user.id;
     const query = `SELECT id, document_title, file_name, status, created_at FROM documents WHERE user_id = ? ORDER BY created_at DESC`;
 
@@ -53,7 +57,7 @@ exports.getCustomerDocuments = (req, res) => {
 };
 
 // Retrieve ALL documents across all users (Admin view)
-exports.getAllDocumentsForAdmin = (req, res) => {
+export const getAllDocumentsForAdmin = (req, res) => {
     // Selects document fields plus user info from the linked users table
     const query = `
         SELECT 
@@ -83,7 +87,7 @@ exports.getAllDocumentsForAdmin = (req, res) => {
 };
 
 // Update the validation status of a document (Admin action)
-exports.updateDocumentStatus = (req, res) => {
+export const updateDocumentStatus = (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
@@ -107,3 +111,13 @@ exports.updateDocumentStatus = (req, res) => {
         return res.status(200).json({ message: "Document status updated successfully." });
     });
 };
+
+// Group everything into a default object export to satisfy documentRoutes.js
+const documentController = {
+    uploadDocument,
+    getCustomerDocuments,
+    getAllDocumentsForAdmin,
+    updateDocumentStatus
+};
+
+export default documentController;

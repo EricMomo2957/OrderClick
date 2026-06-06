@@ -1,14 +1,29 @@
-const express = require('express');
-const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const documentController = require('../controllers/documentController');
-const { verifyToken } = require('../middleware/authMiddleware'); // Path to your auth structural guard middleware
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs'; // Import File System to automate folder creation
+import { fileURLToPath } from 'url';
+import documentController from '../controllers/documentController.js';
+import { verifyToken, verifyAdmin } from '../middleware/authMiddleware.js';
 
-// Configure local folder directory parameters
+const router = express.Router();
+
+// Resolve absolute paths cleanly within ES Modules context
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Configure local folder directory parameters absolutely
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/documents/'); // Make sure this folder path exists structurally in your server root!
+        // Points safely to your server absolute root: /backend/uploads/documents/
+        const targetPath = path.join(__dirname, '../../uploads/documents/');
+        
+        // Safety guard: Automatically create the folder if it does not exist yet
+        if (!fs.existsSync(targetPath)) {
+            fs.mkdirSync(targetPath, { recursive: true });
+        }
+        
+        cb(null, targetPath);
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -18,8 +33,12 @@ const storage = multer.diskStorage({
 
 // Structural boundary validation filter configurations 
 const fileFilter = (req, file, cb) => {
-    const allowedExtensions = /.\.(jpeg|jpg|png|pdf|docx)$/i;
-    const isMimeValid = ['image/jpeg', 'image/png', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.mimetype);
+    const isMimeValid = [
+        'image/jpeg', 
+        'image/png', 
+        'application/pdf', 
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ].includes(file.mimetype);
     
     if (isMimeValid) {
         cb(null, true);
@@ -34,8 +53,14 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB Maximum File Size Limit Parameters
 });
 
-// Secure endpoint routing entries mapping logic
+// --- 1. Static Customer Routes ---
 router.post('/submit', verifyToken, upload.single('document'), documentController.uploadDocument);
 router.get('/my-logs', verifyToken, documentController.getCustomerDocuments);
 
-module.exports = router;
+// --- 2. Static Admin Routes ---
+router.get('/admin/all', verifyToken, verifyAdmin, documentController.getAllDocumentsForAdmin);
+
+// --- 3. Dynamic Parameter Routes ---
+router.put('/admin/status/:id', verifyToken, verifyAdmin, documentController.updateDocumentStatus);
+
+export default router;

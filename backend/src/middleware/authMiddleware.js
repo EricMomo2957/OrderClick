@@ -28,16 +28,20 @@ export const verifyToken = (req, res, next) => {
 };
 
 /**
- * isAdmin Middleware
- * Ensures the logged-in user has an 'admin' role.
+ * verifyAdmin Middleware
+ * Ensures the logged-in user has an 'admin' role or flag.
  * MUST be used after verifyToken.
  */
-export const isAdmin = (req, res, next) => {
-    if (req.user && req.user.role === 'admin') {
-        next();
+export const verifyAdmin = (req, res, next) => {
+    // Check if req.user exists (set by verifyToken) and has an admin flag/role
+    if (req.user && (req.user.role === 'admin' || req.user.isAdmin)) {
+        next(); // CRITICAL: This passes the request to the next controller/handler
     } else {
         return res.status(403).json({ error: "Access Restricted. Admin permissions required." });
     }
 };
+
+// Keeping isAdmin as an alias just in case other routes in your app still use it
+export const isAdmin = verifyAdmin;
 
 export default verifyToken;
