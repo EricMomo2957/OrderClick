@@ -57,10 +57,14 @@ const upload = multer({
 router.post('/submit', verifyToken, upload.single('document'), documentController.uploadDocument);
 router.get('/my-logs', verifyToken, documentController.getCustomerDocuments);
 
-// --- 2. Static Admin Routes ---
+// --- 2. New Customer Mutation Registries (Update & Delete) ---
+router.put('/update/:id', verifyToken, upload.single('document'), documentController.updateDocument);
+router.delete('/delete/:id', verifyToken, documentController.deleteDocument);
+
+// --- 3. Static Admin Routes ---
 router.get('/admin/all', verifyToken, verifyAdmin, documentController.getAllDocumentsForAdmin);
 
-// --- 3. Dynamic Parameter Routes ---
+// --- 4. Dynamic Parameter Admin Routes ---
 router.put('/admin/status/:id', verifyToken, verifyAdmin, documentController.updateDocumentStatus);
 
 export default router;
