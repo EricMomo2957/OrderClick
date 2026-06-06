@@ -11,6 +11,8 @@ interface Receipt {
   quantity: number;
   total_price: number;
   status: 'pending' | 'verified' | 'rejected';
+  payment_method?: string;      // Added field mapping from backend model
+  reference_number?: string | null; // Added field mapping from backend model
   created_at: string;
 }
 
@@ -21,12 +23,10 @@ const CustomerOrders = ({ user }: { user: any }) => {
   const fetchReceipts = useCallback(async () => {
     if (!user?.id) return;
     
-    // 1. Retrieve the token from localStorage
     const token = localStorage.getItem('token'); 
 
     setLoading(true);
     try {
-      // 2. Fetch using the Authorization header to pass the verifyToken check
       const res = await fetch(`http://localhost:5000/api/orders/user/${user.id}`, {
         method: 'GET',
         headers: {
@@ -35,7 +35,6 @@ const CustomerOrders = ({ user }: { user: any }) => {
         }
       });
 
-      // Handle session expiration or unauthorized access
       if (res.status === 401) {
         console.error("Authorization failed: Token is missing or expired.");
         setReceipts([]);
@@ -44,7 +43,6 @@ const CustomerOrders = ({ user }: { user: any }) => {
 
       const data = await res.json();
       
-      // Ensure data is an array before updating state
       if (Array.isArray(data)) {
         setReceipts(data);
       } else {
@@ -64,17 +62,30 @@ const CustomerOrders = ({ user }: { user: any }) => {
   const generatePDF = (receipt: Receipt) => {
     const doc = new jsPDF();
     
-    // UI Styling for PDF
+    // UI Styling for PDF Header
     doc.setFontSize(22);
     doc.setTextColor(0, 61, 61); 
     doc.text("OrderClick Official Receipt", 14, 22);
     
     doc.setFontSize(10);
     doc.setTextColor(100);
+    
+    // Left Metadata Block
     doc.text(`Customer Name: ${user?.fullname || user?.name || 'Valued Shopper'}`, 14, 32);
     doc.text(`Order ID: #ORD-${receipt.id}`, 14, 38);
-    // Use the actual creation date from the database record
     doc.text(`Date Ordered: ${new Date(receipt.created_at).toLocaleDateString()}`, 14, 44);
+
+    // Right Metadata Block (Dynamic Payment info rendering)
+    if (receipt.payment_method) {
+      doc.text(`Payment Method: ${receipt.payment_method}`, 130, 32);
+    }
+    if (receipt.reference_number) {
+      doc.setFont("Helvetica", "bold");
+      doc.setTextColor(13, 148, 136); // Teal-600 colored text accent match
+      doc.text(`Reference No: ${receipt.reference_number}`, 130, 38);
+      doc.setFont("Helvetica", "normal");
+      doc.setTextColor(100);
+    }
 
     autoTable(doc, {
       startY: 50,
@@ -118,7 +129,7 @@ const CustomerOrders = ({ user }: { user: any }) => {
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
               <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Order ID</th>
-              <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Product</th>
+              <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Product Details</th>
               <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Amount</th>
               <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
               <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
@@ -128,11 +139,30 @@ const CustomerOrders = ({ user }: { user: any }) => {
             {receipts.length > 0 ? (
               receipts.map((r) => (
                 <tr key={r.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-8 py-5 font-mono text-xs text-slate-400">#ORD-{r.id}</td>
+                  <td className="px-8 py-5 font-mono text-xs text-slate-400">
+                    <div className="flex flex-col">
+                      <span className="font-bold">#ORD-{r.id}</span>
+                      {r.reference_number && (
+                        <span className="text-[9px] font-mono font-black text-teal-600 mt-1 bg-teal-50/50 px-1.5 py-0.5 rounded w-max">
+                          {r.reference_number}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-8 py-5">
                     <div className="flex flex-col">
                       <span className="font-bold text-slate-800">{r.product_name}</span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase">Qty: {r.quantity}</span>
+                      <div className="flex gap-2 items-center mt-0.5">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">Qty: {r.quantity}</span>
+                        {r.payment_method && (
+                          <>
+                            <span className="text-[10px] text-slate-300">•</span>
+                            <span className="text-[10px] text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-md">
+                              {r.payment_method}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-8 py-5 text-center font-black text-[#003d3d] text-lg">
