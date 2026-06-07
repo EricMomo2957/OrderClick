@@ -36,8 +36,11 @@ const ManageUserDocument = () => {
   
   // Interactive global floating notification block
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  // Tracking element state during update status network mutations
+  const [processingId, setProcessingId] = useState<number | null>(null);
 
-  const API_BASE = 'http://localhost:5000/api/documents'; // Replace with your standard backend routing configuration context
+  const API_BASE = 'http://localhost:5000/api/documents'; // Standard backend routing configuration context
 
   const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -77,11 +80,14 @@ const ManageUserDocument = () => {
   // Handle multi-state moderation pipelines (Clear / Reject)
   const handleUpdateStatus = async (id: number, status: 'pending' | 'verified' | 'rejected') => {
     try {
+      setProcessingId(id);
       await axios.put(`${API_BASE}/admin/status/${id}`, { status }, getAuthHeader());
       showAlert(`Document pipeline verification safely updated to "${status}".`);
-      fetchAllDocuments();
+      await fetchAllDocuments(true);
     } catch (error) {
       showAlert("Authorization validation error: Update criteria parameters rejected.", "error");
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -122,7 +128,7 @@ const ManageUserDocument = () => {
       
       {/* Floating Operational Notification Status Banner */}
       {alertMessage && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl transition-all border animate-bounce ${
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl transition-all border animate-in slide-in-from-bottom-5 ${
           alertMessage.type === 'success' 
             ? 'bg-emerald-50 text-emerald-800 border-emerald-100' 
             : 'bg-rose-50 text-rose-800 border-rose-100'
@@ -139,15 +145,15 @@ const ManageUserDocument = () => {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-                User Verification <span className="text-[#004a80]">Documents Ledger</span>
+                User Verification <span className="text-[#003d3d]">Documents Ledger</span>
               </h2>
               <button 
                 onClick={() => fetchAllDocuments(true)} 
                 disabled={refreshing || loading}
-                className="p-1.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-400 hover:text-[#004a80] hover:bg-blue-50 transition-all disabled:opacity-50"
+                className="p-1.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-400 hover:text-[#003d3d] hover:bg-emerald-50 transition-all disabled:opacity-50"
                 title="Force Reload Document Registries"
               >
-                <RefreshCw size={14} className={refreshing ? 'animate-spin text-[#004a80]' : ''} />
+                <RefreshCw size={14} className={refreshing ? 'animate-spin text-[#003d3d]' : ''} />
               </button>
             </div>
             <p className="text-gray-400 text-sm font-medium">Verify customer credentials, clear identity files, and process incoming data validation uploads.</p>
@@ -163,7 +169,7 @@ const ManageUserDocument = () => {
               placeholder="Search by name, email, document parameters..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs focus:outline-none focus:border-blue-200 focus:bg-white text-slate-700 font-bold tracking-wide transition-all placeholder:text-slate-400"
+              className="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs focus:outline-none focus:border-emerald-200 focus:bg-white text-slate-700 font-bold tracking-wide transition-all placeholder:text-slate-400"
             />
             {searchQuery && (
               <button 
@@ -223,107 +229,117 @@ const ManageUserDocument = () => {
                 </tr>
               </thead>
               <tbody className="text-slate-600 text-xs font-medium divide-y divide-slate-50 bg-white">
-                {filteredDocuments.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-blue-50/10 transition-colors group">
-                    
-                    {/* User Account Details Context Node */}
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-50 text-[#004a80]">
-                          <User size={13} />
+                {filteredDocuments.map((doc) => {
+                  // Normalize windows file paths safely to standard web address urls
+                  const cleanStaticPath = doc.file_path ? doc.file_path.replace(/\\/g, '/') : '';
+                  const targetResourceUrl = `http://localhost:5000/${cleanStaticPath}`;
+                  const isOperating = processingId === doc.id;
+
+                  return (
+                    <tr key={doc.id} className="hover:bg-slate-50/40 transition-colors group">
+                      
+                      {/* User Account Details Context Node */}
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-50 text-[#003d3d]">
+                            <User size={13} />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-black text-slate-800 tracking-tight">{doc.fullname}</span>
+                            <span className="text-[10px] text-slate-400 font-semibold tracking-wide">{doc.email}</span>
+                          </div>
                         </div>
+                      </td>
+
+                      {/* Document Meta Class Assignment Block */}
+                      <td className="py-4 px-6">
                         <div className="flex flex-col">
-                          <span className="font-black text-slate-800 tracking-tight">{doc.fullname}</span>
-                          <span className="text-[10px] text-slate-400 font-semibold tracking-wide">{doc.email}</span>
+                          <span className="font-bold text-slate-700">{doc.document_title}</span>
+                          <span className="text-[9px] text-slate-400 tracking-wider font-semibold">ID: #DOC-{doc.id}</span>
                         </div>
-                      </div>
-                    </td>
-
-                    {/* Document Meta Class Assignment Block */}
-                    <td className="py-4 px-6">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-700">{doc.document_title}</span>
-                        <span className="text-[9px] text-slate-400 tracking-wider font-semibold">ID: #DOC-{doc.id}</span>
-                      </div>
-                    </td>
-                    
-                    {/* File Attachment Parameters Block */}
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-2 font-mono text-[11px]">
-                        <FileText size={14} className="text-slate-400" />
-                        <div className="flex flex-col">
-                          <span className="text-slate-600 truncate max-w-xs font-bold" title={doc.file_name}>
-                            {doc.file_name}
-                          </span>
-                          <span className="text-[9px] text-slate-400 font-normal">
-                            {formatBytes(doc.file_size)} | {doc.mime_type.split('/')[1].toUpperCase()}
-                          </span>
+                      </td>
+                      
+                      {/* File Attachment Parameters Block */}
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-2 font-mono text-[11px]">
+                          <FileText size={14} className="text-slate-400" />
+                          <div className="flex flex-col">
+                            <span className="text-slate-600 truncate max-w-xs font-bold" title={doc.file_name}>
+                              {doc.file_name}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-normal">
+                              {formatBytes(doc.file_size)} | {doc.mime_type ? doc.mime_type.split('/')[1].toUpperCase() : 'UNKNOWN'}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    
-                    {/* Date Submission Timestamp Column */}
-                    <td className="py-4 px-6 text-center text-slate-500 font-semibold text-[11px]">
-                      {new Date(doc.created_at).toLocaleDateString()}
-                    </td>
+                      </td>
+                      
+                      {/* Date Submission Timestamp Column */}
+                      <td className="py-4 px-6 text-center text-slate-500 font-semibold text-[11px]">
+                        {new Date(doc.created_at).toLocaleDateString()}
+                      </td>
 
-                    {/* Moderation Clearance Badge */}
-                    <td className="py-4 px-6 text-center">
-                      <span className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider border inline-flex items-center gap-1 ${
-                        doc.status === 'pending' ? 'bg-orange-50 text-orange-600 border-orange-100' : 
-                        doc.status === 'verified' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
-                        'bg-rose-50 text-rose-800 border-rose-100'
-                      }`}>
-                        {doc.status === 'pending' && <Clock size={10} />}
-                        {doc.status}
-                      </span>
-                    </td>
+                      {/* Moderation Clearance Badge */}
+                      <td className="py-4 px-6 text-center">
+                        <span className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider border inline-flex items-center gap-1 ${
+                          doc.status === 'pending' ? 'bg-orange-50 text-orange-600 border-orange-100' : 
+                          doc.status === 'verified' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                          'bg-rose-50 text-rose-800 border-rose-100'
+                        }`}>
+                          {doc.status === 'pending' && <Clock size={10} />}
+                          {doc.status}
+                        </span>
+                      </td>
 
-                    {/* Operational Admin Pipeline Options */}
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        
-                        {/* Target file inspector anchor */}
-                        <a 
-                          href={`http://localhost:5000/${doc.file_path}`} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 p-1.5 rounded-xl transition-all flex items-center gap-1 text-[10px] font-bold px-2.5"
-                          title="Open attached resource asset in a new viewport"
-                        >
-                          <Eye size={12} /> View File
-                        </a>
-
-                        {doc.status === 'pending' ? (
-                          <>
-                            <button 
-                              onClick={() => handleUpdateStatus(doc.id, 'verified')} 
-                              className="bg-[#004a80] hover:bg-[#003861] text-white p-1.5 rounded-xl transition-all shadow-sm flex items-center gap-1 text-[10px] font-bold px-2.5"
-                              title="Approve verification identity criteria matching rules"
-                            >
-                              <CheckCircle size={12} /> Approve
-                            </button>
-                            <button 
-                              onClick={() => handleUpdateStatus(doc.id, 'rejected')} 
-                              className="bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 p-1.5 rounded-xl transition-all flex items-center gap-1 text-[10px] font-bold px-2"
-                              title="Reject submission file parameters"
-                            >
-                              <XCircle size={12} /> Reject
-                            </button>
-                          </>
-                        ) : (
-                          <button 
-                            onClick={() => handleUpdateStatus(doc.id, 'pending')}
-                            className="text-[10px] text-slate-400 hover:text-slate-600 px-2.5 py-1.5 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all font-bold border border-slate-100"
-                            title="Revert status mapping workflow back into moderation processing status"
+                      {/* Operational Admin Pipeline Options */}
+                      <td className="py-4 px-6 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          
+                          {/* Target file inspector anchor */}
+                          <a 
+                            href={targetResourceUrl} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 p-1.5 rounded-xl transition-all flex items-center gap-1 text-[10px] font-bold px-2.5"
+                            title="Open attached resource asset in a new viewport"
                           >
-                            Reset State
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            <Eye size={12} /> View File
+                          </a>
+
+                          {doc.status === 'pending' ? (
+                            <>
+                              <button 
+                                onClick={() => handleUpdateStatus(doc.id, 'verified')} 
+                                disabled={isOperating}
+                                className="bg-[#003d3d] hover:bg-[#002d2d] text-white p-1.5 rounded-xl transition-all shadow-sm flex items-center gap-1 text-[10px] font-bold px-2.5 disabled:opacity-50"
+                                title="Approve verification identity criteria matching rules"
+                              >
+                                <CheckCircle size={12} /> Approve
+                              </button>
+                              <button 
+                                onClick={() => handleUpdateStatus(doc.id, 'rejected')} 
+                                disabled={isOperating}
+                                className="bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 p-1.5 rounded-xl transition-all flex items-center gap-1 text-[10px] font-bold px-2 disabled:opacity-50"
+                                title="Reject submission file parameters"
+                              >
+                                <XCircle size={12} /> Reject
+                              </button>
+                            </>
+                          ) : (
+                            <button 
+                              onClick={() => handleUpdateStatus(doc.id, 'pending')}
+                              disabled={isOperating}
+                              className="text-[10px] text-slate-400 hover:text-slate-600 px-2.5 py-1.5 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all font-bold border border-slate-100 disabled:opacity-50"
+                              title="Revert status mapping workflow back into moderation processing status"
+                            >
+                              Reset State
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
