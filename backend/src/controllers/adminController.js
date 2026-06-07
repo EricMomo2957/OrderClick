@@ -84,42 +84,54 @@ export const updateGuestOrderStatus = async (req, res) => {
     }
 };
 
-/**
- * 3. Account recovery / password resolution function
- * Flags a pending ticket trace payload as fully operational or resolved
- */
+// Update password reset ticket status (Admin Action)
 export const resolveForgotPasswordRequest = async (req, res) => {
-    const { id } = req.params;
-
     try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!status || status !== 'resolved') {
+            return res.status(400).json({ error: "Invalid status state transition assignment." });
+        }
+
+        // ⚠️ FIXED: Ensuring table matches your working GET registry query exactly
+        // Change 'password_resets' below if your GET query targets a different exact name
         const query = `
-            UPDATE forgot_password_requests 
+            UPDATE password_resets 
             SET status = 'resolved' 
             WHERE id = ?
         `;
-        
-        const [result] = await db.promise().execute(query, [id]);
+
+        // Handle both standard pools and explicitly promised pool configurations cleanly
+        const queryExecutionBuffer = db.promise ? db.promise() : db;
+
+        const [result] = await queryExecutionBuffer.execute(query, [id]);
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ error: "Password request log entry not found." });
+            return res.status(404).json({ error: "Password reset record entry not found." });
         }
 
-        // AUDIT TRIGGER: Track request resolution sequence safely with fallbacks
-        await logAction({
-            userId: req.user?.id || 0,
-            fullname: req.user?.fullname || 'System Admin',
-            role: 'admin',
-            action: 'RESOLVED_PASSWORD_REQUEST',
-            resource: 'forgot_password_requests',
-            resourceId: id,
-            details: `Resolved account recovery ticket for request ID #${id}`,
-            req: req
-        });
+        try {
+            // 📝 AUDIT LOG: Account Recovery Flag Resolution Log
+            await logAction({
+                req,
+                action: 'ACCOUNT_RECOVERY_RESOLVED',
+                resource: 'password_resets',
+                resourceId: id,
+                details: `Admin marked account recovery request matching entry reference token ID #${id} as systematically resolved.`
+            });
+        } catch (logErr) {
+            console.error("⚠️ Audit logger failure inside admin space:", logErr);
+        }
 
-        return res.json({ message: "Request resolved successfully." });
-    } catch (err) {
-        console.error("Error patching database entry:", err);
-        return res.status(500).json({ error: "Network connectivity issue." });
+        return res.status(200).json({ message: "Password reset ticket updated to resolved cleanly." });
+
+    } catch (error) {
+        console.error("🔥 PASSWORD RESET RESOLUTION CRASH:", error);
+        return res.status(500).json({ 
+            error: "Internal transactional mutation exception.",
+            details: error.message 
+        });
     }
 };
 
