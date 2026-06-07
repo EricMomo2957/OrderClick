@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   Search, ShieldAlert, Terminal, RefreshCw, Layers, User, Settings, 
   Info, Trash2, PlusCircle, Edit3, AlertTriangle, CheckSquare, Square, 
-  FileText, CheckCircle2, XCircle, Calendar, Download
+  FileText, CheckCircle2, XCircle, Calendar, Download, BarChart3
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -31,7 +31,7 @@ const ManageAuditLog = () => {
   const [selectedLogIds, setSelectedLogIds] = useState<number[]>([]);
 
   // Time-based sorting and filtering states
-  const [filterDate, setFilterDate] = useState<string>(''); // YYYY-MM-DD format from native HTML input
+  const [filterDate, setFilterDate] = useState<string>(''); 
   const [timeGranularity, setTimeGranularity] = useState<'month' | 'week' | 'day'>('month');
 
   // Fetch security audit logs from the backend configuration
@@ -184,49 +184,58 @@ const ManageAuditLog = () => {
     return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
   };
 
-  // Comprehensive client-side log filtration engine
-  const filteredLogs = logs.filter(log => {
-    // 1. Role-based filtration processing
-    const matchesTab = roleFilter === 'all' ? true : log.role === roleFilter;
-    
-    // 2. Main textual keywords parsing
-    const searchTarget = `
-      ${log.fullname || ''} 
-      ${log.action || ''} 
-      ${log.resource || ''} 
-      ${log.ip_address || ''} 
-      ${log.details || ''}
-    `.toLowerCase();
-    const matchesSearch = searchTarget.includes(searchQuery.toLowerCase());
+  // Helper method to look strictly at date/text filtration to build accurate dashboard statistics widgets
+  const getLogsMatchingTimeAndSearch = () => {
+    return logs.filter(log => {
+      // Text keyword checks
+      const searchTarget = `
+        ${log.fullname || ''} 
+        ${log.action || ''} 
+        ${log.resource || ''} 
+        ${log.ip_address || ''} 
+        ${log.details || ''}
+      `.toLowerCase();
+      const matchesSearch = searchTarget.includes(searchQuery.toLowerCase());
 
-    // 3. Calendar timeframe extraction mechanics
-    let matchesTimeframe = true;
-    if (filterDate && log.created_at) {
-      const logDate = new Date(log.created_at);
-      const targetDate = new Date(filterDate);
+      // Time restrictions
+      let matchesTimeframe = true;
+      if (filterDate && log.created_at) {
+        const logDate = new Date(log.created_at);
+        const targetDate = new Date(filterDate);
 
-      if (timeGranularity === 'day') {
-        matchesTimeframe = logDate.toDateString() === targetDate.toDateString();
-      } else if (timeGranularity === 'week') {
-        const logYear = logDate.getFullYear();
-        const targetYear = targetDate.getFullYear();
-        const logWeek = getWeekNumber(logDate);
-        const targetWeek = getWeekNumber(targetDate);
-        matchesTimeframe = logYear === targetYear && logWeek === targetWeek;
-      } else if (timeGranularity === 'month') {
-        matchesTimeframe = logDate.getFullYear() === targetDate.getFullYear() && 
-                           logDate.getMonth() === targetDate.getMonth();
+        if (timeGranularity === 'day') {
+          matchesTimeframe = logDate.toDateString() === targetDate.toDateString();
+        } else if (timeGranularity === 'week') {
+          const logYear = logDate.getFullYear();
+          const targetYear = targetDate.getFullYear();
+          const logWeek = getWeekNumber(logDate);
+          const targetWeek = getWeekNumber(targetDate);
+          matchesTimeframe = logYear === targetYear && logWeek === targetWeek;
+        } else if (timeGranularity === 'month') {
+          matchesTimeframe = logDate.getFullYear() === targetDate.getFullYear() && 
+                             logDate.getMonth() === targetDate.getMonth();
+        }
       }
-    }
 
-    return matchesTab && matchesSearch && matchesTimeframe;
-  });
+      return matchesSearch && matchesTimeframe;
+    });
+  };
 
-  // Export Filtered View Matrix Dataset to a clean standalone PDF table
+  // Derived data metrics for the dynamic KPI analytics cards
+  const activePool = getLogsMatchingTimeAndSearch();
+  const countAll = activePool.length;
+  const countAdmin = activePool.filter(l => l.role === 'admin').length;
+  const countCustomer = activePool.filter(l => l.role === 'customer').length;
+  const countSystem = activePool.filter(l => l.role === 'system').length;
+
+  // Final view array after handling role tab filter configurations
+  const filteredLogs = activePool.filter(log => roleFilter === 'all' ? true : log.role === roleFilter);
+
+  // Export Report Document PDF Action Method
   const handleExportPDF = () => {
     if (filteredLogs.length === 0) return;
 
-    const doc = new jsPDF('l', 'mm', 'a4'); // Use landscape mode for detailed operational matrix columns
+    const doc = new jsPDF('l', 'mm', 'a4');
     
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(16);
@@ -270,7 +279,7 @@ const ManageAuditLog = () => {
         1: { cellWidth: 40 },
         2: { cellWidth: 35 },
         3: { cellWidth: 30 },
-        4: { cellWidth: 75 }, // Assigns wider wrapping space context for the mutation string details
+        4: { cellWidth: 75 },
         5: { cellWidth: 30 },
         6: { cellWidth: 40 }
       },
@@ -336,7 +345,7 @@ const ManageAuditLog = () => {
           </p>
         </div>
 
-        {/* INTERACTIVE CONTROLS: REFRESH, EXPORT, PURGE, & BULK DELETIONS */}
+        {/* INTERACTIVE CONTROLS */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
           <button 
             onClick={fetchAuditLogs}
@@ -380,11 +389,62 @@ const ManageAuditLog = () => {
         </div>
       </div>
 
-      {/* FILTER CONTROL BAR: SEARCH PARAMETERS AND MULTI-GRAIN DATETIME SORTING */}
+      {/* NEW STATISTICAL MATRIX DASHBOARD CARDS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div 
+          onClick={() => setRoleFilter('all')}
+          className={`p-4 rounded-2xl border transition-all cursor-pointer ${roleFilter === 'all' ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-800 border-slate-200/80 hover:border-slate-300'}`}
+        >
+          <div className="flex justify-between items-center text-slate-400">
+            <span className="text-[10px] font-black tracking-widest uppercase">All System Logs</span>
+            <BarChart3 size={16} className={roleFilter === 'all' ? 'text-emerald-400' : 'text-slate-400'} />
+          </div>
+          <p className="text-2xl font-black mt-2 font-mono tracking-tight">{countAll}</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Total events captured</p>
+        </div>
+
+        <div 
+          onClick={() => setRoleFilter('admin')}
+          className={`p-4 rounded-2xl border transition-all cursor-pointer ${roleFilter === 'admin' ? 'bg-orange-600 text-white border-orange-600 shadow-lg' : 'bg-white text-slate-800 border-slate-200/80 hover:border-slate-300'}`}
+        >
+          <div className="flex justify-between items-center text-slate-400">
+            <span className="text-[10px] font-black tracking-widest uppercase">Admin Matrix</span>
+            <Settings size={16} className={roleFilter === 'admin' ? 'text-white' : 'text-orange-500'} />
+          </div>
+          <p className="text-2xl font-black mt-2 font-mono tracking-tight">{countAdmin}</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Administrative changes</p>
+        </div>
+
+        <div 
+          onClick={() => setRoleFilter('customer')}
+          className={`p-4 rounded-2xl border transition-all cursor-pointer ${roleFilter === 'customer' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white text-slate-800 border-slate-200/80 hover:border-slate-300'}`}
+        >
+          <div className="flex justify-between items-center text-slate-400">
+            <span className="text-[10px] font-black tracking-widest uppercase">Customer Traffic</span>
+            <User size={16} className={roleFilter === 'customer' ? 'text-white' : 'text-blue-500'} />
+          </div>
+          <p className="text-2xl font-black mt-2 font-mono tracking-tight">{countCustomer}</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">User workspace triggers</p>
+        </div>
+
+        <div 
+          onClick={() => setRoleFilter('system')}
+          className={`p-4 rounded-2xl border transition-all cursor-pointer ${roleFilter === 'system' ? 'bg-purple-600 text-white border-purple-600 shadow-lg' : 'bg-white text-slate-800 border-slate-200/80 hover:border-slate-300'}`}
+        >
+          <div className="flex justify-between items-center text-slate-400">
+            <span className="text-[10px] font-black tracking-widest uppercase">System Core Engine</span>
+            <ShieldAlert size={16} className={roleFilter === 'system' ? 'text-white' : 'text-purple-500'} />
+          </div>
+          <p className="text-2xl font-black mt-2 font-mono tracking-tight">{countSystem}</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Automated runtime logs</p>
+        </div>
+      </div>
+
+      {/* FILTER CONTROL BAR */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
         
         {/* TEXT SEARCH */}
-        <div className="relative w-full lg:col-span-4">
+        <div className="relative w-full lg:col-span-5">
           <span className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">
             <Search size={16} />
           </span>
@@ -392,14 +452,14 @@ const ManageAuditLog = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search logs by keyword patterns..."
+            placeholder="Search operator patterns, description contexts, actions..."
             className="w-full pl-11 pr-4 py-2 bg-white text-slate-800 text-sm font-medium rounded-xl border border-slate-200 focus:outline-none focus:border-[#003d3d] focus:ring-1 focus:ring-[#003d3d] transition-all placeholder:text-slate-400"
           />
         </div>
 
         {/* ADVANCED TIMEFRAME RADIAL CALENDAR CONTROLLER */}
-        <div className="flex flex-wrap items-center gap-2 lg:col-span-5 w-full">
-          <div className="relative flex-1 min-w-[160px]">
+        <div className="flex flex-wrap items-center gap-2 lg:col-span-7 w-full justify-start lg:justify-end">
+          <div className="relative flex-1 max-w-[200px] min-w-[160px]">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
               <Calendar size={14} />
             </span>
@@ -418,7 +478,7 @@ const ManageAuditLog = () => {
                   key={mode}
                   type="button"
                   onClick={() => setTimeGranularity(mode)}
-                  className={`px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${timeGranularity === mode ? 'bg-[#003d3d] text-white' : 'text-slate-500 hover:text-slate-800'}`}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${timeGranularity === mode ? 'bg-[#003d3d] text-white' : 'text-slate-500 hover:text-slate-800'}`}
                 >
                   {mode}
                 </button>
@@ -435,22 +495,6 @@ const ManageAuditLog = () => {
             </button>
           )}
         </div>
-
-        {/* ROLE FILTER SEGMENTATION TAB SYSTEM */}
-        <div className="flex justify-end lg:col-span-3 w-full">
-          <div className="flex bg-slate-200/60 p-0.5 rounded-xl border border-slate-200 text-[10px] font-bold uppercase tracking-wider w-full lg:w-auto overflow-x-auto scrollbar-none">
-            {(['all', 'admin', 'customer', 'system'] as const).map((role) => (
-              <button
-                key={role}
-                onClick={() => setRoleFilter(role)}
-                className={`px-3 py-2 flex-1 lg:flex-none text-center rounded-lg transition-all whitespace-nowrap cursor-pointer ${roleFilter === role ? 'bg-white text-[#003d3d] shadow-sm font-black' : 'text-slate-500 hover:text-slate-800'}`}
-              >
-                {role === 'all' ? 'All' : role}
-              </button>
-            ))}
-          </div>
-        </div>
-
       </div>
 
       {/* DYNAMIC ACTIVITY TRAILS FEED */}
