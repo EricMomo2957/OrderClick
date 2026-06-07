@@ -1,9 +1,11 @@
-import db from '../config/db.js'; // Using ES Module import syntax with explicit extension
+// BACKEND/src/controllers/documentController.js
+import db from '../config/db.js'; 
+import { logAction } from '../utils/logger.js'; 
 
 // Handle single document submission upload pipelines
 export const uploadDocument = async (req, res) => {
     try {
-        const userId = req.user.id; // Extracted securely from your JWT middleware
+        const userId = req.user?.id; // Extracted securely from your JWT middleware
         const { document_title } = req.body;
 
         if (!req.file) {
@@ -20,10 +22,23 @@ export const uploadDocument = async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?)
         `;
         
-        db.query(query, [userId, document_title, filename, filePath, mimetype, size], (err, result) => {
+        db.query(query, [userId, document_title, filename, filePath, mimetype, size], async (err, result) => {
             if (err) {
                 console.error("Database schema compilation error:", err);
                 return res.status(500).json({ message: "Failed tracking database persistence records." });
+            }
+            
+            try {
+                // 📝 AUDIT LOG: Document Submission Creation Trace
+                await logAction({
+                    req,
+                    action: 'DOCUMENT_RECORD_CREATED',
+                    resource: 'documents',
+                    resourceId: result.insertId,
+                    details: `Customer submitted tracking index payload for validation: "${document_title}" (File: ${filename})`
+                });
+            } catch (logErr) {
+                console.error("⚠️ Audit logger failure:", logErr);
             }
             
             return res.status(201).json({ 
@@ -33,7 +48,6 @@ export const uploadDocument = async (req, res) => {
         });
 
     } catch (error) {
-        // CRITICAL: This will print the actual error message in your terminal console!
         console.error("🔥 DETAILED UPLOAD CRASH ERROR:", error);
         return res.status(500).json({ 
             message: "Internal server operational exception.",
@@ -44,7 +58,7 @@ export const uploadDocument = async (req, res) => {
 
 // Retrieve history logs for a specific logged-in customer entity
 export const getCustomerDocuments = (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user?.id;
     const query = `SELECT id, document_title, file_name, status, created_at FROM documents WHERE user_id = ? ORDER BY created_at DESC`;
 
     db.query(query, [userId], (err, results) => {
@@ -58,7 +72,6 @@ export const getCustomerDocuments = (req, res) => {
 
 // Retrieve ALL documents across all users (Admin view)
 export const getAllDocumentsForAdmin = (req, res) => {
-    // Selects document fields plus user info from the linked users table
     const query = `
         SELECT 
             d.id,
@@ -98,7 +111,7 @@ export const updateDocumentStatus = (req, res) => {
 
     const query = `UPDATE documents SET status = ? WHERE id = ?`;
 
-    db.query(query, [status, id], (err, result) => {
+    db.query(query, [status, id], async (err, result) => {
         if (err) {
             console.error("Database update error:", err);
             return res.status(500).json({ message: "Failed to update document status." });
@@ -108,13 +121,27 @@ export const updateDocumentStatus = (req, res) => {
             return res.status(404).json({ message: "Document record not found." });
         }
 
+        try {
+            // 📝 AUDIT LOG: Admin Status Moderation Workflow Evaluation
+            await logAction({
+                req,
+                action: `DOCUMENT_STATUS_${status.toUpperCase()}`,
+                resource: 'documents',
+                resourceId: id,
+                details: `Admin changed parameters for item matching ID #${id}. Verification evaluation status altered to "${status}".`
+            });
+        } catch (logErr) {
+            console.error("⚠️ Audit logger failure:", logErr);
+        }
+
         return res.status(200).json({ message: "Document status updated successfully." });
     });
 };
 
+// Update document payload configurations securely (Customer Mutation Action)
 export const updateDocument = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user?.id;
         const { id } = req.params;
         const { document_title } = req.body;
 
@@ -132,7 +159,6 @@ export const updateDocument = async (req, res) => {
 
         const selectQuery = `SELECT id, user_id, status FROM documents WHERE id = ?`;
         
-        // Let's modify the check slightly to find out EXACTLY why it's failing
         db.query(selectQuery, [id], (checkErr, results) => {
             if (checkErr) {
                 console.error("Verification indexing crash:", checkErr);
@@ -145,10 +171,8 @@ export const updateDocument = async (req, res) => {
             }
 
             const activeDoc = results[0];
-            console.log(`-> Found Doc in DB. Owner User ID: ${activeDoc.user_id}, Current Status: ${activeDoc.status}`);
 
             if (Number(activeDoc.user_id) !== Number(userId)) {
-                console.log(`❌ FAIL: Ownership mismatch! Doc belongs to user ${activeDoc.user_id}, but request came from user ${userId}`);
                 return res.status(403).json({ message: "Action Denied: You do not own this document record." });
             }
 
@@ -156,7 +180,7 @@ export const updateDocument = async (req, res) => {
                 return res.status(403).json({ message: "Action Denied: Document processing under evaluation cycle." });
             }
 
-            // 3. Proceed with updating...
+            // Proceed with updates
             if (req.file) {
                 const { filename, path: filePath, mimetype, size } = req.file;
                 const updateWithFileQuery = `
@@ -164,14 +188,42 @@ export const updateDocument = async (req, res) => {
                     SET document_title = ?, file_name = ?, file_path = ?, mime_type = ?, file_size = ?
                     WHERE id = ?
                 `;
-                db.query(updateWithFileQuery, [document_title, filename, filePath, mimetype, size, id], (err) => {
+                db.query(updateWithFileQuery, [document_title, filename, filePath, mimetype, size, id], async (err) => {
                     if (err) return res.status(500).json({ message: "Failed updating database." });
+                    
+                    try {
+                        // 📝 AUDIT LOG: Full Content Overwrite Trace (Metadata + Media Binary)
+                        await logAction({
+                            req,
+                            action: 'DOCUMENT_RECORD_UPDATED',
+                            resource: 'documents',
+                            resourceId: id,
+                            details: `Customer altered fields matching ID #${id}. Overwrote asset binary with file: ${filename} and reclassified title attribute parameters: ${JSON.stringify(req.body)}`
+                        });
+                    } catch (logErr) {
+                        console.error("⚠️ Audit logger failure:", logErr);
+                    }
+
                     return res.status(200).json({ message: "Document updated cleanly with new file asset." });
                 });
             } else {
                 const updateTitleQuery = `UPDATE documents SET document_title = ? WHERE id = ?`;
-                db.query(updateTitleQuery, [document_title, id], (err) => {
+                db.query(updateTitleQuery, [document_title, id], async (err) => {
                     if (err) return res.status(500).json({ message: "Failed updating title attribute." });
+                    
+                    try {
+                        // 📝 AUDIT LOG: Metadata String Variation Mutation Log
+                        await logAction({
+                            req,
+                            action: 'DOCUMENT_RECORD_UPDATED',
+                            resource: 'documents',
+                            resourceId: id,
+                            details: `Customer updated metadata criteria definitions for item ID #${id}. Text alteration details payload: ${JSON.stringify(req.body)}`
+                        });
+                    } catch (logErr) {
+                        console.error("⚠️ Audit logger failure:", logErr);
+                    }
+
                     return res.status(200).json({ message: "Document metadata configurations systematically altered." });
                 });
             }
@@ -185,10 +237,9 @@ export const updateDocument = async (req, res) => {
 
 // Permanently delete a pending document entry from tracking ledger
 export const deleteDocument = (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user?.id;
     const { id } = req.params;
 
-    // Check ownership criteria and ensure evaluation hasn't finalized
     const checkQuery = `SELECT status, file_path FROM documents WHERE id = ? AND user_id = ?`;
 
     db.query(checkQuery, [id, userId], (checkErr, results) => {
@@ -207,13 +258,25 @@ export const deleteDocument = (req, res) => {
 
         // Execute deletion safely
         const deleteQuery = `DELETE FROM documents WHERE id = ? AND user_id = ?`;
-        db.query(deleteQuery, [id, userId], (deleteErr, deleteResult) => {
+        db.query(deleteQuery, [id, userId], async (deleteErr, deleteResult) => {
             if (deleteErr) {
                 console.error("Database deletion instruction runtime error:", deleteErr);
                 return res.status(500).json({ message: "Failed to cleanly remove tracking index allocations." });
             }
 
-            // Note: Safe structural practice includes cleaning up the uploads folder from file system using fs.unlink(document.file_path)
+            try {
+                // 📝 AUDIT LOG: Permanent Record Hard Deletion Purge
+                await logAction({
+                    req,
+                    action: 'DOCUMENT_RECORD_DELETED',
+                    resource: 'documents',
+                    resourceId: id,
+                    details: `Customer terminated tracking allocation instance matching entry identifier ID #${id}. Relational assets removed from storage logs.`
+                });
+            } catch (logErr) {
+                console.error("⚠️ Audit logger failure:", logErr);
+            }
+
             return res.status(200).json({ message: "Document tracking record purged." });
         });
     });
@@ -225,8 +288,8 @@ const documentController = {
     getCustomerDocuments,
     getAllDocumentsForAdmin,
     updateDocumentStatus,
-    updateDocument, // Added
-    deleteDocument  // Added
+    updateDocument,
+    deleteDocument  
 };
 
 export default documentController;
