@@ -31,13 +31,12 @@ export const ADMIN_MENU = [
   { id: 'products', label: 'Inventory', icon: Package, component: ManageProduct },
   { id: 'guest-orders', label: 'Outside Orders', icon: ShoppingBag, component: ManageGuestOrder },
   { id: 'receipts', label: 'Orders & Receipts', icon: Receipt, component: ManageReceipt },
+  { id: 'customers', label: 'User Directory', icon: Users, component: ManageUser },
+  { id: 'user-documents', label: 'User Documents', icon: Package, component: ManageUserDocument },
+  { id: 'audit-logs', label: 'Audit Logs', icon: LayoutDashboard, component: ManageAuditLogs },
+  { id: 'forgot-password', label: 'Account Recovery', icon: KeyRound, component: ManageForgotPassword },
   { id: 'events', label: 'Event Manager', icon: Calendar, component: AdminEvent },
   { id: 'announcements', label: 'Broadcast', icon: Megaphone, component: AdminAnnouncement },
-  { id: 'customers', label: 'User Directory', icon: Users, component: ManageUser },
-  { id: 'audit-logs', label: 'Audit Logs', icon: LayoutDashboard, component: ManageAuditLogs },
-  { id: 'user-documents', label: 'User Documents', icon: Package, component: ManageUserDocument },
-  
-  { id: 'forgot-password', label: 'Account Recovery', icon: KeyRound, component: ManageForgotPassword },
   { id: 'file-upload', label: 'Media Upload', icon: Package, component: FileUploadSample },
   { id: 'messages', label: 'Visitor Messages', icon: MessageSquare, component: ManageMessage }, // Add the new menu item for message management
 ];
