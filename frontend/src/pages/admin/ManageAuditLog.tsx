@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   Search, ShieldAlert, Terminal, RefreshCw, Layers, User, Settings, 
-  Info, Trash2, PlusCircle, Edit3, AlertTriangle, CheckSquare, Square, FileText 
+  Info, Trash2, PlusCircle, Edit3, AlertTriangle, CheckSquare, Square, 
+  FileText, CheckCircle2, XCircle
 } from 'lucide-react';
 
 interface AuditLog {
@@ -11,9 +12,9 @@ interface AuditLog {
   role: 'all' | 'admin' | 'customer' | 'system';
   action: string;
   resource: string;
-  resource_id: number | null; // Ensures matching with database schemas
-  ip_address: string | null;   // Ensures alignment with Express logger captures
-  user_agent: string | null;   // Ensures alignment with Express user-agent strings
+  resource_id: number | null; 
+  ip_address: string | null;   
+  user_agent: string | null;   
   details: string | null;
   created_at: string;
 }
@@ -25,8 +26,6 @@ const ManageAuditLog = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [purging, setPurging] = useState<boolean>(false);
-  
-  // State variables for individual and batch deletions
   const [selectedLogIds, setSelectedLogIds] = useState<number[]>([]);
 
   // Fetch security audit logs from the backend configuration
@@ -43,7 +42,7 @@ const ManageAuditLog = () => {
       const data = await response.json();
       if (response.ok) {
         setLogs(Array.isArray(data) ? data : []);
-        setSelectedLogIds([]); // Reset selection on fresh download feed
+        setSelectedLogIds([]); 
       } else {
         console.error(data.error || "Failed to load audit registry stream");
       }
@@ -164,10 +163,8 @@ const ManageAuditLog = () => {
     const allFilteredSelected = filteredIds.every(id => selectedLogIds.includes(id));
 
     if (allFilteredSelected) {
-      // Remove all currently filtered elements from global selections
       setSelectedLogIds(prev => prev.filter(id => !filteredIds.includes(id)));
     } else {
-      // Merge elements safely keeping matches immutable
       setSelectedLogIds(prev => Array.from(new Set([...prev, ...filteredIds])));
     }
   };
@@ -188,12 +185,24 @@ const ManageAuditLog = () => {
     return matchesTab && matchesSearch;
   });
 
-  // Helper method to resolve dynamic badge styles depending on database mutation contexts
+  // Dynamic badge style generator including verification actions
   const getActionBadgeStyle = (action: string) => {
     const act = action.toUpperCase();
+    if (act.includes('APPROVE') || act.includes('VALIDATE') || act.includes('VERIFY') || act.includes('ACCEPT')) {
+      return {
+        bg: 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold',
+        icon: <CheckCircle2 size={12} className="shrink-0 text-emerald-600" />
+      };
+    }
+    if (act.includes('REJECT') || act.includes('DECLINE') || act.includes('DENY')) {
+      return {
+        bg: 'bg-red-50 text-red-700 border-red-200 font-bold',
+        icon: <XCircle size={12} className="shrink-0 text-red-600" />
+      };
+    }
     if (act.includes('CREATE') || act.includes('ADD') || act.includes('INSERT')) {
       return {
-        bg: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+        bg: 'bg-teal-50 text-teal-700 border-teal-100',
         icon: <PlusCircle size={12} className="shrink-0" />
       };
     }
@@ -228,7 +237,7 @@ const ManageAuditLog = () => {
             </h1>
           </div>
           <p className="text-slate-500 text-sm mt-0.5">
-            Immutable tracking matrix capturing backend events, receipt processing checkpoints, and structural transaction streams.
+            Immutable tracking matrix capturing backend events, document approvals, receipt configurations, and administrative streams.
           </p>
         </div>
 
@@ -303,7 +312,7 @@ const ManageAuditLog = () => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search logs by operator, actions, receipts, or schemas..."
+          placeholder="Search logs by operator, action patterns, or resources..."
           className="w-full pl-11 pr-4 py-2.5 bg-slate-50 text-slate-800 text-sm font-medium rounded-2xl border border-slate-200 focus:outline-none focus:bg-white focus:border-[#003d3d] focus:ring-1 focus:ring-[#003d3d] transition-all placeholder:text-slate-400"
         />
         {searchQuery && (
@@ -316,7 +325,7 @@ const ManageAuditLog = () => {
         )}
       </div>
 
-      {/* RENDER DYNAMIC ACTIVITY BUFFER MATRIX */}
+      {/* DYNAMIC ACTIVITY TRAILS FEED */}
       {loading ? (
         <div className="flex justify-center items-center h-56 text-slate-400 font-medium text-sm animate-pulse">
           Syncing cryptographic environment activity stream...
@@ -414,7 +423,7 @@ const ManageAuditLog = () => {
                       <td className="px-6 py-4">
                         <div className="text-slate-600">
                           <span className={`font-semibold px-2 py-0.5 rounded border text-xs ${
-                            log.resource === 'receipts' || log.resource === 'orders'
+                            log.resource === 'receipts' || log.resource === 'orders' || log.resource === 'documents'
                               ? 'bg-teal-50 text-[#003d3d] border-teal-100 font-bold'
                               : 'bg-slate-50 text-slate-800 border-slate-100'
                           }`}>
@@ -424,84 +433,58 @@ const ManageAuditLog = () => {
                         </div>
                       </td>
 
-                      {/* MUTATION CONTEXT DETAILED STRING OVERVIEW */}
+                      {/* MUTATION DETAILS CELL */}
                       <td className="px-6 py-4 max-w-xs">
                         <p className="text-xs text-slate-600 leading-relaxed font-normal">
                           {(() => {
                             try {
-                              if (!log.details) return <span className="italic text-slate-300">No descriptive string context.</span>;
+                              if (!log.details) return <span className="italic text-slate-300">No description context attached.</span>;
                               
-                              // Handle specific updates to receipts / order logs natively
-                              if (log.resource === 'receipts' || log.resource === 'orders') {
-                                if (log.details.trim().startsWith('{') || log.details.trim().startsWith('[')) {
-                                  const parsedDetails = JSON.parse(log.details);
-                                  if (parsedDetails.order_id || parsedDetails.receipt_id) {
-                                    return `Order tracking pipeline mutation updated for reference tracking sequence #${parsedDetails.order_id || parsedDetails.receipt_id}`;
-                                  }
-                                  if (parsedDetails.message) return parsedDetails.message;
-                                  if (parsedDetails.status) return `Receipt transaction status shifted status to [${parsedDetails.status.toUpperCase()}]`;
-                                }
-                              }
-
-                              // Check if the payload is a stringified JSON object
                               if (log.details.trim().startsWith('{') || log.details.trim().startsWith('[')) {
                                 const parsedDetails = JSON.parse(log.details);
                                 
-                                // 1. Check if it's a nested custom telemetry action object wrapper
-                                if (parsedDetails.details && typeof parsedDetails.details === 'object' && parsedDetails.details.message) {
-                                  return parsedDetails.details.message;
-                                }
-
-                                // 2. Check if it's the direct broadcast/announcement custom structure root message
-                                if (parsedDetails.message) {
-                                  return parsedDetails.message;
-                                }
-                                
-                                // 3. Handle product updates / inventory edits dynamically
+                                if (parsedDetails.message) return parsedDetails.message;
+                                if (parsedDetails.status) return `Document status shifted to [${parsedDetails.status.toUpperCase()}]`;
+                                if (parsedDetails.approver) return `Verified and authorized by ${parsedDetails.approver}`;
                                 if (parsedDetails.updated_fields) {
-                                  const fields = Object.keys(parsedDetails.updated_fields)
-                                    .filter(key => key !== 'timestamp') // Ignore metadata timestamps if appended
-                                    .join(', ');
+                                  const fields = Object.keys(parsedDetails.updated_fields).filter(key => key !== 'timestamp').join(', ');
                                   return `Modified parameters: [${fields}]`;
                                 }
-
-                                // 4. General JSON key fallback
                                 return parsedDetails.details || log.details;
                               }
                               
                               return log.details;
                             } catch (e) {
-                              // Fallback direct rendering for plain text strings
                               return log.details || "No description provided";
                             }
                           })()}
                         </p>
                       </td>
 
-                      {/* NETWORK LOCATION ADDRESS */}
+                      {/* NETWORK SIGNATURE */}
                       <td className="px-6 py-4 text-slate-500 font-mono text-xs">
                         {log.ip_address || "0.0.0.0 (Internal)"}
                       </td>
 
-                      {/* CAPTURED TIMESTAMP */}
+                      {/* TIMESTAMP */}
                       <td className="px-6 py-4 text-slate-500 text-xs whitespace-nowrap">
                         {log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A'}
                       </td>
 
-                      {/* LOG INSPECTOR CONTROLLER & REMOVALS */}
+                      {/* INSPECT & ACTIONS */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => setSelectedLog(log)}
                             className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-[#003d3d] transition-all inline-flex items-center gap-1 text-xs font-bold"
-                            title="Inspect Log Packet JSON Payload"
+                            title="Inspect Log Packet Payload"
                           >
                             <Info size={15} /> Inspect
                           </button>
                           <button
                             onClick={() => handleDeleteSingleLog(log.id)}
                             className="p-2 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-600 transition-all inline-flex items-center gap-1"
-                            title="Delete This Record Entry Instance"
+                            title="Delete This Record Entry"
                           >
                             <Trash2 size={15} />
                           </button>
@@ -517,7 +500,7 @@ const ManageAuditLog = () => {
         </div>
       )}
 
-      {/* LOG DATA PAYLOAD MODAL OVERLAY (INSPECTOR HUD) */}
+      {/* INSPECTOR HUD OVERLAY MODAL */}
       {selectedLog && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white rounded-[2rem] border border-slate-100 shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
@@ -539,7 +522,7 @@ const ManageAuditLog = () => {
               </button>
             </div>
 
-            {/* Modal Inspector Body Content */}
+            {/* Modal Body */}
             <div className="p-6 space-y-5 overflow-y-auto text-sm text-slate-700">
               
               <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 font-mono text-xs">
@@ -553,14 +536,14 @@ const ManageAuditLog = () => {
                 </div>
               </div>
 
-              {/* SPECIAL ORDER RECEIPT CONTEXT BANNER */}
-              {(selectedLog.resource === 'receipts' || selectedLog.resource === 'orders') && (
+              {/* SPECIAL SYSTEM DOCUMENTS NOTIFICATION BANNER */}
+              {(selectedLog.resource === 'receipts' || selectedLog.resource === 'orders' || selectedLog.resource === 'documents') && (
                 <div className="bg-teal-50/50 border border-teal-100 p-4 rounded-2xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <FileText className="text-[#003d3d]" size={18} />
                     <div>
-                      <h5 className="text-xs font-bold text-slate-800">Linked to ManageReceipt Dashboard</h5>
-                      <p className="text-[11px] text-slate-500">This action altered validation elements belonging to operational orders.</p>
+                      <h5 className="text-xs font-bold text-slate-800">Operational Verification Stream</h5>
+                      <p className="text-[11px] text-slate-500">This event adjusted data elements belonging to digital receipts or documents.</p>
                     </div>
                   </div>
                   <span className="text-[11px] font-mono font-black text-[#003d3d] bg-white border border-teal-100 px-2 py-1 rounded-lg">
@@ -570,7 +553,7 @@ const ManageAuditLog = () => {
               )}
 
               <div>
-                <h4 className="text-xs uppercase font-black text-slate-400 tracking-wider mb-2">Operation Parameters Overview</h4>
+                <h4 className="text-xs uppercase font-black text-slate-400 tracking-wider mb-2">Operation Parameters</h4>
                 <div className="space-y-2 bg-white border border-slate-200/80 rounded-2xl p-4 text-xs font-semibold text-slate-600 shadow-inner">
                   <div className="flex justify-between items-center">
                     <span className="text-slate-400">Action Namespace:</span> 
