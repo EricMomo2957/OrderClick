@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Mail, User, Clock, CheckCircle, Archive, Trash2, RefreshCw, MessageSquare } from 'lucide-react';
+import { Mail, User, Calendar, CheckCircle, Archive, Trash2, RefreshCw, MessageSquare } from 'lucide-react';
 
 interface VisitorMessage {
   id: number;
@@ -76,126 +76,173 @@ const ManageMessage = () => {
   const filteredMessages = messages.filter(msg => filter === 'all' ? true : msg.status === filter);
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Upper Brand Headers */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h2 className="text-2xl font-black text-slate-800">Visitor Approaches</h2>
-          <p className="text-slate-500 text-sm">Review, track, and audit incoming feedback from the OrderClick landing page.</p>
-        </div>
+    <div className="relative text-slate-700 min-h-screen px-4 py-2 animate-in fade-in duration-300">
+      
+      {/* Header Path Tracker */}
+      <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase mb-1">
+        System / Feedback
+      </div>
 
-        <div className="flex items-center gap-2 self-stretch md:self-auto">
-          {/* Filter Bar Controls */}
-          <select 
-            value={filter} 
-            onChange={(e) => setFilter(e.target.value as any)}
-            className="text-xs font-bold text-slate-700 bg-white border border-slate-200 px-3 py-2.5 rounded-xl outline-none"
-          >
-            <option value="all">All Inquiries</option>
-            <option value="unread">Unread</option>
-            <option value="read">Read</option>
-            <option value="archived">Archived</option>
-          </select>
+      {/* Title Header Section Layout */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          Visitor Communications Matrix
+        </h1>
+        <p className="text-xs font-medium text-slate-500 mt-1">
+          Review, track, and audit incoming inquiries and user feedback payloads routed from the main landing page.
+        </p>
+      </div>
 
+      {/* Control Feed Filter Actions Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+        <div className="flex items-center gap-2.5">
           <button 
             onClick={fetchMessages}
             disabled={loading}
-            className="flex items-center gap-2 text-xs font-bold text-[#003d3d] bg-emerald-50 px-4 py-2.5 rounded-xl hover:bg-emerald-100 transition-all disabled:opacity-50 shrink-0"
+            className="flex items-center gap-2 text-[11px] font-bold text-emerald-600 bg-emerald-50/60 border border-emerald-100/70 px-4 py-2 rounded-full hover:bg-emerald-100/80 transition-all disabled:opacity-50"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Sync
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            Refresh Feed
           </button>
+        </div>
+
+        {/* Dynamic State Selection Filter Dropdown */}
+        <div className="relative">
+          <select 
+            value={filter} 
+            onChange={(e) => setFilter(e.target.value as any)}
+            className="appearance-none text-[11px] font-bold text-slate-600 bg-slate-50 border border-slate-200/70 pl-4 pr-10 py-2 rounded-full outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer"
+          >
+            <option value="all">All Inquiries</option>
+            <option value="unread">Unread Feed</option>
+            <option value="read">Read Content</option>
+            <option value="archived">Archived Log</option>
+          </select>
+          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+            <MessageSquare size={10} className="text-slate-400" />
+          </div>
         </div>
       </div>
 
-      {/* Main Content Ledger Stream */}
-      <div className="space-y-4">
-        {filteredMessages.length > 0 ? (
-          filteredMessages.map((msg) => (
-            <div 
-              key={msg.id} 
-              className={`p-6 rounded-[2rem] border transition-all duration-300 ${
-                msg.status === 'unread' 
-                  ? 'bg-slate-900 text-white border-slate-800 shadow-lg shadow-slate-900/10' 
-                  : 'bg-white border-slate-100 shadow-sm text-slate-800'
-              }`}
-            >
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                {/* Meta Customer Contexts */}
-                <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                    msg.status === 'unread' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    <User size={18} />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-base tracking-tight">{msg.fullname}</h4>
-                    <p className={`text-xs flex items-center gap-1 mt-0.5 ${msg.status === 'unread' ? 'text-slate-400' : 'text-slate-500'}`}>
-                      <Mail size={12} /> {msg.email}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right Side Status Indicators & System Dates */}
-                <div className="flex items-center gap-3 self-end sm:self-auto text-xs">
-                  <div className={`flex items-center gap-1 font-mono ${msg.status === 'unread' ? 'text-slate-400' : 'text-slate-500'}`}>
-                    <Clock size={12} />
-                    {new Date(msg.created_at).toLocaleDateString()}
-                  </div>
-                  <span className={`px-2.5 py-0.5 font-bold uppercase text-[10px] tracking-wider rounded-md ${
-                    msg.status === 'unread' ? 'bg-emerald-500/20 text-emerald-400' :
-                    msg.status === 'archived' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {msg.status}
-                  </span>
-                </div>
-              </div>
-
-              {/* Message Payload Body Block */}
-              <div className={`my-4 p-4 rounded-xl text-sm leading-relaxed ${
-                msg.status === 'unread' ? 'bg-slate-800/50 text-slate-200' : 'bg-slate-50 text-slate-600'
-              }`}>
-                <div className="flex gap-2">
-                  <MessageSquare size={16} className="mt-0.5 shrink-0 text-emerald-500" />
-                  <p className="whitespace-pre-wrap">{msg.message}</p>
-                </div>
-              </div>
-
-              {/* Interactive Tool Actions */}
-              <div className="flex justify-end gap-2 border-t pt-4 border-slate-100/10">
-                {msg.status === 'unread' && (
-                  <button
-                    onClick={() => handleUpdateStatus(msg.id, 'read')}
-                    className="flex items-center gap-1.5 text-xs font-bold bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition-colors"
-                  >
-                    <CheckCircle size={14} /> Mark Read
-                  </button>
-                )}
-                {msg.status !== 'archived' && (
-                  <button
-                    onClick={() => handleUpdateStatus(msg.id, 'archived')}
-                    className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl transition-colors ${
+      {/* Clean Flat Table Layout Board Area */}
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse table-auto">
+            <thead>
+              <tr className="bg-slate-50/70 border-b border-slate-100">
+                <th className="pl-6 pr-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-24">Inquiry Link</th>
+                <th className="px-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-56">Sender Identity</th>
+                <th className="px-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Message Context Payload</th>
+                <th className="px-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-44">Dispatched Time</th>
+                <th className="pl-4 pr-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right w-56">Diagnostic Matrix Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-24 text-center text-slate-400">
+                    <div className="flex items-center justify-center gap-2 text-xs font-medium">
+                      <RefreshCw size={14} className="animate-spin text-slate-400" />
+                      <span>Syncing global messages array data...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredMessages.length > 0 ? (
+                filteredMessages.map((msg) => (
+                  <tr 
+                    key={msg.id} 
+                    className={`transition-colors border-l-2 ${
                       msg.status === 'unread' 
-                        ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' 
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        ? 'bg-emerald-50/10 border-l-emerald-500 font-medium hover:bg-emerald-50/20' 
+                        : 'border-l-transparent hover:bg-slate-50/40'
                     }`}
                   >
-                    <Archive size={14} /> Archive
-                  </button>
-                )}
-                <button
-                  onClick={() => handleDeleteMessage(msg.id)}
-                  className="flex items-center gap-1.5 text-xs font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 px-4 py-2 rounded-xl transition-colors ml-auto sm:ml-0"
-                >
-                  <Trash2 size={14} /> Purge
-                </button>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm py-20 text-center text-slate-400 italic">
-            {loading ? 'Reading message database records...' : 'No current approaches found matching your filters.'}
-          </div>
-        )}
+                    {/* Identity Reference Tag Badge */}
+                    <td className="pl-6 pr-4 py-4">
+                      <span className="inline-block px-2 py-0.5 font-mono text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200/50 rounded">
+                        inq-{msg.id}
+                      </span>
+                    </td>
+
+                    {/* Sender Compound Column */}
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-5 h-5 rounded flex items-center justify-center text-slate-500 shrink-0 ${
+                            msg.status === 'unread' ? 'bg-emerald-100/70 text-emerald-700' : 'bg-slate-100'
+                          }`}>
+                            <User size={10} className="stroke-[2.5]" />
+                          </div>
+                          <span className={`text-xs tracking-tight ${msg.status === 'unread' ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'}`}>
+                            {msg.fullname}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[11px] text-slate-400 pl-7">
+                          <Mail size={10} />
+                          <span>{msg.email}</span>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Message Text Payload Block */}
+                    <td className="px-4 py-4 max-w-sm lg:max-w-md">
+                      <div className="text-xs text-slate-600 line-clamp-2 leading-relaxed whitespace-pre-wrap">
+                        {msg.message}
+                      </div>
+                    </td>
+
+                    {/* Generation Date Metric Column */}
+                    <td className="px-4 py-4 text-xs text-slate-400">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar size={12} className="text-slate-300" />
+                        <span>{new Date(msg.created_at).toLocaleString()}</span>
+                      </div>
+                    </td>
+
+                    {/* Operational Management Actions Flex Array */}
+                    <td className="pl-4 pr-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-3.5 text-xs">
+                        {msg.status === 'unread' && (
+                          <button
+                            onClick={() => handleUpdateStatus(msg.id, 'read')}
+                            className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-bold text-[11px]"
+                          >
+                            <CheckCircle size={12} />
+                            <span>Read</span>
+                          </button>
+                        )}
+                        
+                        {msg.status !== 'archived' && (
+                          <button
+                            onClick={() => handleUpdateStatus(msg.id, 'archived')}
+                            className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-700 transition-colors font-medium text-[11px]"
+                          >
+                            <Archive size={12} />
+                            <span>Archive</span>
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => handleDeleteMessage(msg.id)}
+                          className="text-slate-300 hover:text-rose-600 transition-colors p-0.5 ml-1"
+                          title="Purge Communication Data"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-20 text-center text-xs text-slate-400 font-medium italic">
+                    No matching visitor approaches found inside this storage filter partition.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
