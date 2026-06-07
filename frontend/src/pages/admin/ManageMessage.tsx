@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Mail, User, Calendar, CheckCircle, Archive, Trash2, RefreshCw, MessageSquare } from 'lucide-react';
+import { Mail, User, Calendar, CheckCircle, Archive, Trash2, RefreshCw, MessageSquare, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface VisitorMessage {
   id: number;
@@ -75,6 +77,53 @@ const ManageMessage = () => {
 
   const filteredMessages = messages.filter(msg => filter === 'all' ? true : msg.status === filter);
 
+  // Export Filtered Messages to PDF Action Method
+  const handleExportPDF = () => {
+    if (filteredMessages.length === 0) return;
+
+    const doc = new jsPDF('p', 'mm', 'a4');
+    
+    // Header styling
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Visitor Communications Statement", 14, 18);
+    
+    // Metadata block
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text(`Active Filter Focus: [${filter.toUpperCase()}]`, 14, 24);
+    doc.text(`Report Export Handshake: ${new Date().toLocaleString()} • Record Vol: ${filteredMessages.length} Items`, 14, 29);
+
+    const tableRows = filteredMessages.map((msg) => [
+      `inq-${msg.id}`,
+      `${msg.fullname}\n(${msg.email})`,
+      msg.message,
+      msg.status.toUpperCase(),
+      msg.created_at ? new Date(msg.created_at).toLocaleString() : 'N/A'
+    ]);
+
+    autoTable(doc, {
+      startY: 34,
+      head: [['Inquiry ID', 'Sender Identity', 'Message Context Payload', 'Status', 'Dispatched Time']],
+      body: tableRows,
+      theme: 'striped',
+      headStyles: { fillColor: [15, 23, 42], fontSize: 9, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 8.5, cellPadding: 4 },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 45 },
+        2: { cellWidth: 70 },
+        3: { cellWidth: 20, fontStyle: 'bold' },
+        4: { cellWidth: 30 }
+      },
+      alternateRowStyles: { fillColor: [250, 250, 250] }
+    });
+
+    doc.save(`Visitor_Messages_Statement_${Date.now()}.pdf`);
+  };
+
   return (
     <div className="relative text-slate-700 min-h-screen px-4 py-2 animate-in fade-in duration-300">
       
@@ -99,10 +148,19 @@ const ManageMessage = () => {
           <button 
             onClick={fetchMessages}
             disabled={loading}
-            className="flex items-center gap-2 text-[11px] font-bold text-emerald-600 bg-emerald-50/60 border border-emerald-100/70 px-4 py-2 rounded-full hover:bg-emerald-100/80 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 text-[11px] font-bold text-emerald-600 bg-emerald-50/60 border border-emerald-100/70 px-4 py-2 rounded-full hover:bg-emerald-100/80 transition-all disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
             Refresh Feed
+          </button>
+
+          <button
+            onClick={handleExportPDF}
+            disabled={filteredMessages.length === 0 || loading}
+            className="flex items-center gap-2 text-[11px] font-bold text-slate-700 bg-white border border-slate-200 px-4 py-2 rounded-full hover:bg-slate-50 transition-all disabled:opacity-40 cursor-pointer"
+          >
+            <Download size={12} />
+            Export Report (PDF)
           </button>
         </div>
 
@@ -204,8 +262,9 @@ const ManageMessage = () => {
                       <div className="flex items-center justify-end gap-3.5 text-xs">
                         {msg.status === 'unread' && (
                           <button
+                            type="button"
                             onClick={() => handleUpdateStatus(msg.id, 'read')}
-                            className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-bold text-[11px]"
+                            className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-bold text-[11px] cursor-pointer"
                           >
                             <CheckCircle size={12} />
                             <span>Read</span>
@@ -214,8 +273,9 @@ const ManageMessage = () => {
                         
                         {msg.status !== 'archived' && (
                           <button
+                            type="button"
                             onClick={() => handleUpdateStatus(msg.id, 'archived')}
-                            className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-700 transition-colors font-medium text-[11px]"
+                            className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-700 transition-colors font-medium text-[11px] cursor-pointer"
                           >
                             <Archive size={12} />
                             <span>Archive</span>
@@ -223,8 +283,9 @@ const ManageMessage = () => {
                         )}
 
                         <button
+                          type="button"
                           onClick={() => handleDeleteMessage(msg.id)}
-                          className="text-slate-300 hover:text-rose-600 transition-colors p-0.5 ml-1"
+                          className="text-slate-300 hover:text-rose-600 transition-colors p-0.5 ml-1 cursor-pointer"
                           title="Purge Communication Data"
                         >
                           <Trash2 size={12} />
