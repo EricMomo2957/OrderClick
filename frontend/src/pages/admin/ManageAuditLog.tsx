@@ -274,7 +274,7 @@ const ManageAuditLog = () => {
             </button>
           )}
 
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold uppercase tracking-wider overflow-x-auto max-w-full">
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold uppercase tracking-wider overflow-x-auto max-w-full scrollbar-none">
             <button
               onClick={() => setRoleFilter('all')}
               className={`px-4 py-2 rounded-lg transition-all whitespace-nowrap ${roleFilter === 'all' ? 'bg-white text-[#003d3d] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
@@ -344,11 +344,11 @@ const ManageAuditLog = () => {
         </div>
       ) : (
         <div className="bg-white rounded-3xl border border-slate-200/80 shadow-[0_4px_30px_rgba(0,61,61,0.02)] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto scrollbar-none">
+            <table className="w-full text-left table-fixed border-collapse min-w-[1100px]">
               <thead>
                 <tr className="bg-slate-50/70 border-b border-slate-200/80 text-[11px] font-black uppercase tracking-wider text-slate-500">
-                  <th className="px-6 py-4 w-10">
+                  <th className="px-5 py-4 w-[5%]">
                     <button 
                       type="button"
                       onClick={() => toggleSelectAllFiltered(filteredLogs)} 
@@ -361,13 +361,13 @@ const ManageAuditLog = () => {
                       )}
                     </button>
                   </th>
-                  <th className="px-6 py-4">Actor Entity</th>
-                  <th className="px-6 py-4">Action Signature</th>
-                  <th className="px-6 py-4">Target Resource</th>
-                  <th className="px-6 py-4">Mutation Description Snippet</th>
-                  <th className="px-6 py-4">IP Address</th>
-                  <th className="px-6 py-4">Execution Timestamp</th>
-                  <th className="px-6 py-4 text-right">Diagnostic Matrix Actions</th>
+                  <th className="px-5 py-4 w-[15%]">Actor Entity</th>
+                  <th className="px-5 py-4 w-[18%]">Action Signature</th>
+                  <th className="px-5 py-4 w-[12%]">Target Resource</th>
+                  <th className="px-5 py-4 w-[22%]">Mutation Description Snippet</th>
+                  <th className="px-5 py-4 w-[10%]">IP Address</th>
+                  <th className="px-5 py-4 w-[13%]">Execution Timestamp</th>
+                  <th className="px-5 py-4 w-[15%] text-right">Diagnostic Matrix Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm text-slate-700 font-medium">
@@ -378,7 +378,7 @@ const ManageAuditLog = () => {
                     <tr key={log.id} className={`hover:bg-slate-50/40 transition-colors ${isChecked ? 'bg-slate-50/70' : ''}`}>
                       
                       {/* CHECKBOX CELL */}
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-4 truncate">
                         <button 
                           type="button"
                           onClick={() => toggleSelectLog(log.id)}
@@ -393,8 +393,8 @@ const ManageAuditLog = () => {
                       </td>
 
                       {/* ACTOR CAPTURE */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2.5">
+                      <td className="px-5 py-4 truncate">
+                        <div className="flex items-center gap-2.5 overflow-hidden">
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                             log.role === 'admin' 
                               ? 'bg-orange-50 text-orange-600 border border-orange-100' 
@@ -404,38 +404,38 @@ const ManageAuditLog = () => {
                           }`}>
                             {log.role === 'admin' ? <Settings size={13} /> : log.role === 'customer' ? <User size={13} /> : <ShieldAlert size={13} />}
                           </div>
-                          <div>
-                            <p className="font-bold text-slate-800 line-clamp-1">{log.fullname || "System Runtime"}</p>
-                            <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">{log.role}</span>
+                          <div className="overflow-hidden truncate">
+                            <p className="font-bold text-slate-800 truncate">{log.fullname || "System Runtime"}</p>
+                            <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase block truncate">{log.role}</span>
                           </div>
                         </div>
                       </td>
 
                       {/* ACTION DESCRIPTION */}
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 font-mono text-xs border px-2.5 py-1 rounded-md tracking-tight ${badge.bg}`}>
+                      <td className="px-5 py-4 truncate">
+                        <span className={`inline-flex items-center gap-1.5 font-mono text-xs border px-2.5 py-1 rounded-md tracking-tight max-w-full truncate ${badge.bg}`}>
                           {badge.icon}
-                          {log.action}
+                          <span className="truncate">{log.action}</span>
                         </span>
                       </td>
 
                       {/* TARGET RESOURCE SCHEMA MATCH */}
-                      <td className="px-6 py-4">
-                        <div className="text-slate-600">
-                          <span className={`font-semibold px-2 py-0.5 rounded border text-xs ${
+                      <td className="px-5 py-4 truncate">
+                        <div className="text-slate-600 flex items-center gap-1.5 overflow-hidden">
+                          <span className={`font-semibold px-2 py-0.5 rounded border text-xs truncate ${
                             log.resource === 'receipts' || log.resource === 'orders' || log.resource === 'documents'
                               ? 'bg-teal-50 text-[#003d3d] border-teal-100 font-bold'
                               : 'bg-slate-50 text-slate-800 border-slate-100'
                           }`}>
                             {log.resource}
                           </span>
-                          {log.resource_id && <span className="text-xs text-slate-400 ml-1.5 font-mono font-bold">#{log.resource_id}</span>}
+                          {log.resource_id && <span className="text-xs text-slate-400 font-mono font-bold shrink-0">#{log.resource_id}</span>}
                         </div>
                       </td>
 
                       {/* MUTATION DETAILS CELL */}
-                      <td className="px-6 py-4 max-w-xs">
-                        <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                      <td className="px-5 py-4 truncate">
+                        <p className="text-xs text-slate-600 leading-relaxed font-normal truncate">
                           {(() => {
                             try {
                               if (!log.details) return <span className="italic text-slate-300">No description context attached.</span>;
@@ -462,28 +462,28 @@ const ManageAuditLog = () => {
                       </td>
 
                       {/* NETWORK SIGNATURE */}
-                      <td className="px-6 py-4 text-slate-500 font-mono text-xs">
+                      <td className="px-5 py-4 font-mono text-xs text-slate-500 truncate">
                         {log.ip_address || "0.0.0.0 (Internal)"}
                       </td>
 
                       {/* TIMESTAMP */}
-                      <td className="px-6 py-4 text-slate-500 text-xs whitespace-nowrap">
+                      <td className="px-5 py-4 text-xs text-slate-500 whitespace-nowrap truncate">
                         {log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A'}
                       </td>
 
                       {/* INSPECT & ACTIONS */}
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className="px-5 py-4 text-right truncate">
+                        <div className="flex items-center justify-end gap-1 overflow-hidden">
                           <button
                             onClick={() => setSelectedLog(log)}
-                            className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-[#003d3d] transition-all inline-flex items-center gap-1 text-xs font-bold"
+                            className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-[#003d3d] transition-all inline-flex items-center gap-1 text-xs font-bold shrink-0"
                             title="Inspect Log Packet Payload"
                           >
-                            <Info size={15} /> Inspect
+                            <Info size={15} /> <span className="hidden xl:inline">Inspect</span>
                           </button>
                           <button
                             onClick={() => handleDeleteSingleLog(log.id)}
-                            className="p-2 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-600 transition-all inline-flex items-center gap-1"
+                            className="p-2 hover:bg-rose-50 rounded-xl text-slate-400 hover:text-rose-600 transition-all inline-flex items-center gap-1 shrink-0"
                             title="Delete This Record Entry"
                           >
                             <Trash2 size={15} />
@@ -523,7 +523,7 @@ const ManageAuditLog = () => {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-5 overflow-y-auto text-sm text-slate-700">
+            <div className="p-6 space-y-5 overflow-y-auto text-sm text-slate-700 scrollbar-none">
               
               <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 font-mono text-xs">
                 <div>
@@ -568,7 +568,7 @@ const ManageAuditLog = () => {
 
               <div>
                 <h4 className="text-xs uppercase font-black text-slate-400 tracking-wider mb-2">Extended Action Details Payload</h4>
-                <div className="bg-slate-900 text-emerald-400 font-mono text-xs p-4 rounded-2xl overflow-x-auto max-h-40 shadow-inner leading-relaxed">
+                <div className="bg-slate-900 text-emerald-400 font-mono text-xs p-4 rounded-2xl overflow-x-auto max-h-40 shadow-inner leading-relaxed scrollbar-none">
                   {selectedLog.details ? (
                     selectedLog.details.trim().startsWith('{') || selectedLog.details.trim().startsWith('[') ? (
                       (() => {
@@ -589,9 +589,9 @@ const ManageAuditLog = () => {
 
               <div>
                 <h4 className="text-xs uppercase font-black text-slate-400 tracking-wider mb-2">Browser User-Agent Header Details</h4>
-                <p className="bg-slate-50 text-slate-600 border border-slate-200 rounded-2xl p-3 font-mono text-xs leading-relaxed">
+                <div className="bg-slate-50 text-slate-600 border border-slate-200 rounded-2xl p-3 font-mono text-xs leading-relaxed">
                   {selectedLog.user_agent || "No software headers present."}
-                </p>
+                </div>
               </div>
 
             </div>

@@ -10,7 +10,6 @@ interface Customer {
   created_at: string;
 }
 
-// Interface configuration schema for our custom inline status banners
 interface ToastState {
   show: boolean;
   message: string;
@@ -36,12 +35,10 @@ const ManageUser = () => {
     type: 'success'
   });
 
-  // Helper utility to trigger smooth modal notification toasts
   const triggerToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ show: true, message, type });
   };
 
-  // Automatically clear notification banners over time
   useEffect(() => {
     if (toast.show) {
       const timer = setTimeout(() => {
@@ -51,7 +48,6 @@ const ManageUser = () => {
     }
   }, [toast.show]);
 
-  // Helper helper to get cleaned admin token securely
   const getAuthToken = () => {
     let token = localStorage.getItem('token');
     if (token) {
@@ -60,7 +56,6 @@ const ManageUser = () => {
     return token;
   };
 
-  // Unified Fetch Function pointing to backend endpoints
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
     const token = getAuthToken();
@@ -91,12 +86,10 @@ const ManageUser = () => {
     }
   }, []);
 
-  // Triggers automatically when dashboard view mounts
   useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
 
-  // Open Edit Dialog Modal Framework
   const openEditModal = (customer: Customer) => {
     setSelectedCustomer(customer);
     setEditFullname(customer.fullname);
@@ -104,7 +97,6 @@ const ManageUser = () => {
     setIsEditModalOpen(true);
   };
 
-  // Close Edit Dialog Framework Reset
   const closeEditModal = () => {
     setSelectedCustomer(null);
     setEditFullname('');
@@ -112,7 +104,6 @@ const ManageUser = () => {
     setIsEditModalOpen(false);
   };
 
-  // PUT: Update Profile Records Submission Handler
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomer) return;
@@ -149,7 +140,6 @@ const ManageUser = () => {
     }
   };
 
-  // DELETE: Permanent database deletion routine
   const handleDeleteClick = async (id: number, name: string) => {
     const confirmDeletion = window.confirm(`Are you absolutely sure you want to permanently delete account signature context for "${name}" (#USR-${id})? This will generate a transaction log record.`);
     if (!confirmDeletion) return;
@@ -178,7 +168,6 @@ const ManageUser = () => {
     }
   };
 
-  // Comprehensive client-side lookup filtering core engine
   const filteredCustomers = customers.filter((user) => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
@@ -190,12 +179,11 @@ const ManageUser = () => {
     return matchesName || matchesEmail || matchesIdString;
   });
 
-  // PDF Generation for the filtered list
   const exportUserListPDF = () => {
     const doc = new jsPDF();
     
     doc.setFontSize(20);
-    doc.setTextColor(0, 61, 61); // Matches #003d3d theme
+    doc.setTextColor(0, 61, 61); 
     doc.text("ORDERCLICK: USER DIRECTORY", 105, 15, { align: 'center' });
     
     doc.setFontSize(10);
@@ -224,11 +212,9 @@ const ManageUser = () => {
   };
 
   return (
-    <div className="relative animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="relative text-slate-700 min-h-screen px-4 py-2 animate-in fade-in duration-300">
       
-      {/* ========================================== */}
-      {/* ---      CUSTOM TOAST NOTIFICATION     --- */}
-      {/* ========================================== */}
+      {/* Toast System Notification */}
       {toast.show && (
         <div className="fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 min-w-[320px] bg-white border border-slate-100 rounded-2xl shadow-xl animate-in slide-in-from-top-6 duration-300">
           <div className={`p-2 rounded-xl ${toast.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
@@ -247,196 +233,220 @@ const ManageUser = () => {
         </div>
       )}
 
-      {/* Upper Layout Controls Flex Grid Panel */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-8">
-        <div>
-          <h2 className="text-2xl font-black text-slate-800">User Directory</h2>
-          <p className="text-slate-500 text-sm">Manage and view all registered customer accounts.</p>
+      {/* Header Path Tracker */}
+      <div className="text-[11px] font-black tracking-widest text-slate-400 uppercase mb-1">
+        System / Customers
+      </div>
+
+      {/* Title Header Section Layout */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          Customer Directory Panel
+        </h1>
+        <p className="text-xs font-medium text-slate-500 mt-1">
+          Immutable matrix monitoring registered system identities, record profiles, and authentication logs.
+        </p>
+      </div>
+
+      {/* Control Feed Filter Actions Row */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+        <div className="flex items-center gap-2.5">
+          <button 
+            onClick={fetchCustomers}
+            disabled={loading}
+            className="flex items-center gap-2 text-[11px] font-bold text-emerald-600 bg-emerald-50/60 border border-emerald-100/70 px-4 py-2 rounded-full hover:bg-emerald-100/80 transition-all disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            Refresh Feed
+          </button>
+          
+          <button 
+            onClick={exportUserListPDF}
+            disabled={customers.length === 0 || loading}
+            className="flex items-center gap-2 text-[11px] font-bold text-slate-600 bg-slate-50 border border-slate-200/60 px-4 py-2 rounded-full hover:bg-slate-100 transition-all disabled:opacity-50"
+          >
+            <FileText size={12} />
+            Export Document
+          </button>
         </div>
-        
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Functional Search Engine Inline Input Box */}
-          <div className="relative min-w-[280px]">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              <Search size={16} />
-            </div>
-            <input 
-              type="text"
-              placeholder="Search customer name, email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-9 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-medium text-slate-700 placeholder-slate-400 focus:outline-none focus:border-[#003d3d]/20 focus:bg-white transition-all"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
 
-          <div className="flex gap-2 shrink-0">
-            {/* PDF Download Button */}
-            <button 
-              onClick={exportUserListPDF}
-              disabled={customers.length === 0 || loading}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-bold text-white bg-[#003d3d] px-5 py-2.5 rounded-xl hover:bg-[#002d2d] transition-all disabled:opacity-50"
-            >
-              <FileText size={14} /> Export PDF
-            </button>
-
-            {/* Refresh Button */}
-            <button 
-              onClick={fetchCustomers}
-              disabled={loading}
-              className="flex items-center justify-center gap-2 text-xs font-bold text-[#003d3d] bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 transition-all disabled:opacity-50"
-            >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh List
-            </button>
+        {/* Global Directory Lookups Search Input Framework */}
+        <div className="relative w-full md:w-80">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <Search size={14} className="text-slate-400" />
           </div>
+          <input 
+            type="text"
+            placeholder="Search directories by profile name, identity..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200/70 rounded-full text-[11px] font-medium text-slate-700 placeholder-slate-400/90 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X size={12} />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main Grid View Controller Interface Layout Panel */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">ID</th>
-              <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Name</th>
-              <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</th>
-              <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Joined Date</th>
-              <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Diagnostic Matrix Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="px-8 py-20 text-center text-slate-400 italic">
-                  <div className="flex items-center justify-center gap-2">
-                    <RefreshCw size={14} className="animate-spin text-[#003d3d]" />
-                    <span>Fetching users...</span>
-                  </div>
-                </td>
+      {/* Clean Flat Table Layout Board Area */}
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse table-auto">
+            <thead>
+              <tr className="bg-slate-50/70 border-b border-slate-100">
+                <th className="pl-6 pr-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-24">Actor Entity</th>
+                <th className="px-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Customer Name</th>
+                <th className="px-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Email Address</th>
+                <th className="px-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Execution Timestamp</th>
+                <th className="pl-4 pr-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right w-44">Diagnostic Matrix Actions</th>
               </tr>
-            ) : filteredCustomers.length > 0 ? (
-              filteredCustomers.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-8 py-5 font-mono text-xs text-slate-400">#USR-{user.id}</td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#003d3d]/10 flex items-center justify-center text-[#003d3d]">
-                        <User size={14} />
-                      </div>
-                      <span className="font-bold text-slate-800">{user.fullname}</span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Mail size={14} className="text-slate-400" />
-                      <span>{user.email}</span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-2 text-slate-500 text-sm">
-                      <Calendar size={14} />
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </div>
-                  </td>
-                  {/* Action Layout Buttons Panel */}
-                  <td className="px-8 py-5 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        onClick={() => openEditModal(user)}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#003d3d] bg-slate-100 hover:bg-[#003d3d]/10 px-3 py-1.5 rounded-xl transition-all"
-                      >
-                        <Edit3 size={12} />
-                        <span>Edit</span>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(user.id, user.fullname)}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 px-3 py-1.5 rounded-xl transition-all"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-24 text-center text-slate-400">
+                    <div className="flex items-center justify-center gap-2 text-xs font-medium">
+                      <RefreshCw size={14} className="animate-spin text-slate-400" />
+                      <span>Syncing customer cluster nodes...</span>
                     </div>
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} className="px-8 py-20 text-center text-slate-400 italic">
-                  {searchQuery ? `No customers found matching "${searchQuery}"` : 'No customers found.'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              ) : filteredCustomers.length > 0 ? (
+                filteredCustomers.map((user) => (
+                  <tr key={user.id} className="hover:bg-slate-50/40 transition-colors">
+                    {/* Mono Identity Block Badge */}
+                    <td className="pl-6 pr-4 py-4">
+                      <span className="inline-block px-2 py-0.5 font-mono text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200/50 rounded">
+                        usr-{user.id}
+                      </span>
+                    </td>
+                    
+                    {/* Customer Profile Column */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-6 h-6 rounded-md bg-amber-50 border border-amber-200/50 flex items-center justify-center text-amber-600 shrink-0">
+                          <User size={12} className="stroke-[2.5]" />
+                        </div>
+                        <span className="font-semibold text-slate-800 text-xs tracking-tight">{user.fullname}</span>
+                      </div>
+                    </td>
+
+                    {/* Email Track Path */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                        <Mail size={12} className="text-slate-400 shrink-0" />
+                        <span>{user.email}</span>
+                      </div>
+                    </td>
+
+                    {/* Execution Registry Date Column */}
+                    <td className="px-4 py-4 text-xs text-slate-400 font-normal">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar size={12} className="text-slate-300" />
+                        <span>{new Date(user.created_at).toLocaleString()}</span>
+                      </div>
+                    </td>
+
+                    {/* Management Actions Inline Grid System */}
+                    <td className="pl-4 pr-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-4 text-xs">
+                        <button
+                          onClick={() => openEditModal(user)}
+                          className="inline-flex items-center gap-1 text-slate-400 hover:text-slate-700 transition-colors font-medium text-[11px]"
+                        >
+                          <Edit3 size={12} className="text-slate-400" />
+                          <span>Inspect</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => handleDeleteClick(user.id, user.fullname)}
+                          className="text-slate-300 hover:text-rose-600 transition-colors p-0.5"
+                          title="Purge Record"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-20 text-center text-xs text-slate-400 font-medium italic">
+                    {searchQuery ? `No system identities match lookup sequence: "${searchQuery}"` : 'No registered records discovered inside partition storage.'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* ========================================== */}
       {/* ---       MODAL: EDIT MODIFIER FORM    --- */}
       {/* ========================================== */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] border border-slate-100 w-full max-w-md p-8 shadow-xl animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-start mb-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-[2px] animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl border border-slate-100 w-full max-w-md p-6 shadow-xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-start mb-5">
               <div>
-                <div className="flex items-center gap-2 text-xs font-bold text-[#003d3d] uppercase tracking-wider mb-1">
-                  <ShieldAlert size={14} />
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-0.5">
+                  <ShieldAlert size={12} />
                   <span>Administrative Mutation</span>
                 </div>
-                <h3 className="text-xl font-black text-slate-800">Modify Account Profile</h3>
+                <h3 className="text-base font-extrabold text-slate-900">Modify Account Profile</h3>
               </div>
               <button 
                 onClick={closeEditModal} 
-                className="text-slate-400 hover:text-slate-600 bg-slate-50 p-1.5 rounded-xl transition-colors"
+                className="text-slate-400 hover:text-slate-600 bg-slate-50 p-1 rounded-lg transition-colors"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Customer Full Name</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Customer Full Name</label>
                 <input 
                   type="text" 
                   required
                   value={editFullname}
                   onChange={(e) => setEditFullname(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:border-[#003d3d]/30 focus:bg-white transition-all"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Email Address Target</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Email Address Target</label>
                 <input 
                   type="email" 
                   required
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:border-[#003d3d]/30 focus:bg-white transition-all"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-300 focus:bg-white transition-all"
                 />
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-slate-100 mt-6">
+              <div className="flex gap-2.5 pt-3 border-t border-slate-100 mt-5">
                 <button
                   type="button"
                   onClick={closeEditModal}
                   disabled={actionLoading}
-                  className="flex-1 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200/70 py-3 rounded-xl transition-all"
+                  className="flex-1 text-xs font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 py-2 rounded-lg transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 text-xs font-bold text-white bg-[#003d3d] hover:bg-[#002d2d] py-3 rounded-xl transition-all shadow-md disabled:opacity-50"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 py-2 rounded-lg transition-all disabled:opacity-50"
                 >
                   {actionLoading ? (
-                    <RefreshCw size={14} className="animate-spin" />
+                    <RefreshCw size={12} className="animate-spin" />
                   ) : (
                     "Save Changes"
                   )}
