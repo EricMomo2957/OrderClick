@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { LogOut, Sparkles, ShieldCheck, Check, X, Bell, ShoppingBag } from 'lucide-react';
 import { CUSTOMER_MENU } from './constants'; // Import the menu data from your constants file
 
-// Interface to include essential props
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
@@ -19,27 +18,25 @@ interface SystemNotification {
 }
 
 const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) => {
-  // State tracking when the verification modal overlay layout is visible
   const [showConfirm, setShowConfirm] = useState(false);
-  
-  // State management tracking real-time streams
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    // 1. Fetch historical record entries from the database first
+    console.log("🚀 SSE Initialization Hook Triggered!");
+
+    // 1. Fetch old history on mount
     const fetchHistory = async () => {
       try {
+        console.log("🔄 Requesting history from backend...");
         const response = await fetch('http://localhost:5000/api/notifications/history', {
           credentials: 'include'
         });
+        console.log("Response status:", response.status);
         if (response.ok) {
           const historyData = await response.json();
-          // Ensure historyData is an array before setting state
-          if (Array.isArray(historyData)) {
-            setNotifications(historyData);
-          }
+          if (Array.isArray(historyData)) setNotifications(historyData);
         }
       } catch (err) {
         console.error("Could not load historical alerts context:", err);
@@ -48,7 +45,8 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
 
     fetchHistory();
 
-    // 2. Open the real-time pipeline for subsequent incoming updates
+    // 2. Open live stream pipe
+    console.log("📡 Attaching EventSource stream wrapper...");
     const eventSource = new EventSource('http://localhost:5000/api/notifications/stream', {
       withCredentials: true
     });
@@ -58,8 +56,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
         const parsedData = JSON.parse(event.data);
         if (parsedData.status === 'connected') return;
 
-        // Formats data payload fields to safely adhere to the SystemNotification interface structures
-        const normalizedNotification: SystemNotification = {
+        const normalized: SystemNotification = {
           id: parsedData.id || Date.now(),
           title: parsedData.title || 'System Notification',
           message: parsedData.message || '',
@@ -67,27 +64,26 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
           created_at: parsedData.created_at || new Date().toISOString()
         };
 
-        setNotifications((prev) => [normalizedNotification, ...prev]);
+        setNotifications((prev) => [normalized, ...prev]);
         setUnreadCount((count) => count + 1);
       } catch (err) {
-        console.error("Failed parsing live notification payload frame:", err);
+        console.error("Failed parsing live notification payload:", err);
       }
     };
 
-    eventSource.onerror = (err) => {
-      console.error("SSE Connection dropped. Reconnecting...", err);
+    eventSource.onerror = () => {
+      console.error("SSE connection dropped. Attempting automated reconnect...");
     };
 
     return () => {
+      console.log("🔌 Cleaning up SSE connection instance on unmount.");
       eventSource.close();
     };
   }, []);
 
   const handleToggleDropdown = () => {
     setShowDropdown(!showDropdown);
-    if (!showDropdown) {
-      setUnreadCount(0); // Clear badge counter on read approach
-    }
+    if (!showDropdown) setUnreadCount(0);
   };
 
   return (
@@ -103,10 +99,10 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
           </h1>
         </div>
 
-        {/* --- LIVE NOTIFICATION INTERACTION SYSTEM CONTROLS --- */}
+        {/* Live Alerts Bell Dropdown UI */}
         <div className="relative mb-6 px-1">
           <button 
-            onClick={handleToggleDropdown}
+            onClick={handleToggleDropdown} 
             className="w-full flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-3 rounded-2xl transition-all text-slate-200 cursor-pointer focus:outline-none"
           >
             <div className="flex items-center gap-2.5 text-xs font-bold">
@@ -120,7 +116,6 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
             )}
           </button>
 
-          {/* NOTIFICATION LAYER OVERLAY FLOATING BOX */}
           {showDropdown && (
             <div className="absolute left-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden text-slate-700 animate-in fade-in slide-in-from-top-2 duration-150">
               <div className="p-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
@@ -158,32 +153,28 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
           )}
         </div>
 
-        {/* Primary Navigation Container */}
+        {/* Rest of Navigation Elements */}
         <nav 
-          className="flex-1 space-y-2 overflow-y-auto pr-1"
-          style={{
-            scrollbarWidth: 'none',          /* Firefox */
-            msOverflowStyle: 'none',         /* IE and Edge */
-          }}
+          className="flex-1 space-y-2 overflow-y-auto pr-1" 
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {/* Style injection hook snippet targeting WebKit layout contexts */}
           <style>{`
             nav::-webkit-scrollbar {
-              display: none !important;      /* Chrome, Safari, and Opera */
+              display: none !important;
             }
           `}</style>
 
           <p className="text-[10px] font-black text-teal-400/50 uppercase tracking-[0.2em] px-4 mb-4">
             Main Menu
           </p>
-          
-          {/* Mapping through the imported CUSTOMER_MENU */}
+
           {CUSTOMER_MENU.map((item) => {
             const isActive = activeTab === item.id;
             return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
+              <button 
+                key={item.id} 
+                onClick={() => setActiveTab(item.id)} 
                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 font-bold text-sm cursor-pointer ${
                   isActive 
                     ? 'bg-white text-[#003d3d] shadow-xl translate-x-2 font-black' 
@@ -192,8 +183,8 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
               >
                 <item.icon 
                   size={20} 
-                  strokeWidth={isActive ? 2.5 : 2} 
-                  className={isActive ? 'text-[#003d3d]' : 'text-teal-50/40'}
+                  strokeWidth={isActive ? 2.5 : 2}
+                  className={isActive ? 'text-[#003d3d]' : 'text-teal-50/40'} 
                 />
                 {item.label}
               </button>
@@ -215,21 +206,21 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
         {/* Logout Footer Anchor Block */}
         <div className="pt-2 border-t border-white/10">
           <button 
-            onClick={() => setShowConfirm(true)}
+            onClick={() => setShowConfirm(true)} 
             className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-red-200 transition-all font-bold text-sm border border-transparent group hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 cursor-pointer"
           >
             <LogOut size={20} className="transition-transform duration-300 group-hover:-translate-x-1" />
             Sign Out
           </button>
         </div>
-        
+
         <div className="mt-4 px-4 flex items-center gap-2 text-teal-50/20">
           <ShieldCheck size={12} />
           <span className="text-[9px] font-bold tracking-tighter uppercase">Secure Portal v2.0</span>
         </div>
       </aside>
 
-      {/* 💡 OVERLAY VERIFICATION MODAL */}
+      {/* Confirmation Modal */}
       <div 
         className={`fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 transition-all duration-300 ${
           showConfirm ? 'opacity-100 visible' : 'opacity-0 invisible'
@@ -258,16 +249,15 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
 
           {/* Action Layout Buttons Container */}
           <div className="w-full flex flex-col gap-3">
-            <button
-              onClick={onLogout}
+            <button 
+              onClick={onLogout} 
               className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 px-6 rounded-2xl transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98] text-sm uppercase tracking-wider cursor-pointer"
             >
               <Check size={16} strokeWidth={3} />
               Yes, Logout
             </button>
-            
-            <button
-              onClick={() => setShowConfirm(false)}
+            <button 
+              onClick={() => setShowConfirm(false)} 
               className="w-full flex items-center justify-center gap-2 bg-[#1b2641] hover:bg-[#243257] text-slate-300 font-bold py-4 px-6 rounded-2xl transition-all border border-slate-700/50 active:scale-[0.98] text-sm uppercase tracking-wider cursor-pointer"
             >
               <X size={16} strokeWidth={2.5} />

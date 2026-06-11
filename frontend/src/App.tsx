@@ -1,3 +1,4 @@
+// frontend/src/App.tsx
 import { useState } from 'react';
 import Landing from './pages/Landing'; 
 import Login from './pages/Login';
@@ -30,7 +31,7 @@ function App() {
   };
 
   // 2. Authenticated Routing
-  // If user is logged in, show their respective dashboard
+  // If user is logged in, show their respective dashboard layout
   if (user) {
     return user.role === 'admin' 
       ? <AdminDashboard onLogout={handleLogout} /> 
