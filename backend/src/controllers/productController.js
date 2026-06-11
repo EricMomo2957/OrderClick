@@ -1,6 +1,7 @@
 // BACKEND/src/controllers/productController.js
 import db from '../config/db.js';
 import { logAction } from '../utils/logger.js';
+import { broadcastNotification } from './notificationController.js';
 
 // Define the categories to match your MySQL ENUM
 const VALID_CATEGORIES = [
@@ -9,7 +10,7 @@ const VALID_CATEGORIES = [
     'Face Care', 
     'Home Nutrition', 
     'Bath and Body', 
-    'Men\'s Store'
+    "Men's Store"
 ];
 
 /**
@@ -63,6 +64,18 @@ export const addProduct = (req, res) => {
         }
         // ────────────────────────────────────────────────────────────────────
 
+        // ─── 📡 LIVE STREAM BROADCAST TRIGGER ────────────────────────────────
+        try {
+            await broadcastNotification(
+                "New Item Added!",
+                `"${name}" has been newly listed under our ${category} section. Check out the store catalogs right now!`,
+                "product"
+            );
+        } catch (broadcastErr) {
+            console.error("Non-blocking SSE notification stream broadcast failure on addProduct:", broadcastErr);
+        }
+        // ────────────────────────────────────────────────────────────────────
+
         res.status(201).json({ message: 'Product added!', id: result.insertId });
     });
 };
@@ -93,7 +106,6 @@ export const updateProduct = async (req, res) => {
     params.push(productId);
 
     try {
-        // Convert to promise-compatible query call if your driver supports it, or use standard callback execution wrapper
         db.query(sqlQuery, params, async (err, result) => {
             if (err) {
                 console.error("DB Update Error:", err.message);
@@ -110,7 +122,7 @@ export const updateProduct = async (req, res) => {
                     userId: req.user?.id,
                     fullname: req.user?.fullname || req.user?.email || "Unknown Admin",
                     role: req.user?.role || 'admin',
-                    action: 'UPDATE_PRODUCT', // Matches your frontend badge mapping rules beautifully!
+                    action: 'UPDATE_PRODUCT', 
                     resource: 'products',
                     resourceId: productId,
                     details: JSON.stringify({
