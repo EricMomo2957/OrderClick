@@ -1,6 +1,7 @@
 // frontend/src/pages/customer/CustomerSidenav.tsx
 import React, { useEffect, useState } from 'react';
 import { LogOut, Sparkles, ShieldCheck, Check, X, Bell, ShoppingBag } from 'lucide-react';
+import { io } from 'socket.io-client';
 import { CUSTOMER_MENU } from './constants'; // Import the menu data from your constants file
 
 interface SidebarProps {
@@ -17,6 +18,11 @@ interface SystemNotification {
   created_at: string;
 }
 
+// Instantiate socket connection (Adjust URI port mapping matching your backend environment)
+const socket = io('http://localhost:5000', {
+  withCredentials: true
+});
+
 const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
@@ -24,7 +30,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    console.log("🚀 SSE Initialization Hook Triggered!");
+    console.log("🚀 Real-time Synchronization Pipeline Hook Initialized!");
 
     // 1. Fetch old history on mount
     const fetchHistory = async () => {
@@ -45,7 +51,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
 
     fetchHistory();
 
-    // 2. Open live stream pipe
+    // 2. Open Live Stream Pipe via SSE (For standard server-sent alerts)
     console.log("📡 Attaching EventSource stream wrapper...");
     const eventSource = new EventSource('http://localhost:5000/api/notifications/stream', {
       withCredentials: true
@@ -75,9 +81,29 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
       console.error("SSE connection dropped. Attempting automated reconnect...");
     };
 
+    // 3. Listen to Real-time WebSocket Channel (For instantaneous product additions)
+    const handleNewProductSocketEvent = (data: any) => {
+      console.log("🎁 Live WebSocket Catalog Broadcast Received:", data);
+      
+      const socketNotification: SystemNotification = {
+        id: data.product?.id || Date.now(),
+        title: "New Catalog Addition! 🎁",
+        message: data.message || "A fresh inventory item was added to the store.",
+        type: "product",
+        created_at: data.timestamp || new Date().toISOString()
+      };
+
+      setNotifications((prev) => [socketNotification, ...prev]);
+      setUnreadCount((count) => count + 1);
+    };
+
+    socket.on('new_product_notification', handleNewProductSocketEvent);
+
+    // Clean up handlers and instances on unmount to prevent duplicate stream listeners
     return () => {
-      console.log("🔌 Cleaning up SSE connection instance on unmount.");
+      console.log("🔌 Cleaning up communication pipeline instances on unmount.");
       eventSource.close();
+      socket.off('new_product_notification', handleNewProductSocketEvent);
     };
   }, []);
 
@@ -153,12 +179,11 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
           )}
         </div>
 
-        {/* Rest of Navigation Elements */}
+        {/* Navigation Menu */}
         <nav 
           className="flex-1 space-y-2 overflow-y-auto pr-1" 
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          {/* Style injection hook snippet targeting WebKit layout contexts */}
           <style>{`
             nav::-webkit-scrollbar {
               display: none !important;
@@ -192,7 +217,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
           })}
         </nav>
 
-        {/* Feature Badge/Card */}
+        {/* Feature Card */}
         <div className="mb-6 p-4 bg-white/5 rounded-[1.5rem] border border-white/10 mt-4">
           <div className="flex items-center gap-2 mb-2 text-teal-300">
             <Sparkles size={14} />
@@ -203,7 +228,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
           </p>
         </div>
 
-        {/* Logout Footer Anchor Block */}
+        {/* Sign Out Footer */}
         <div className="pt-2 border-t border-white/10">
           <button 
             onClick={() => setShowConfirm(true)} 
@@ -231,14 +256,12 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
             showConfirm ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
           }`}
         >
-          {/* Central Branded Graphic Circle */}
           <div className="h-16 w-16 bg-[#16223f] rounded-2xl border border-slate-700/50 flex items-center justify-center shadow-inner mb-6">
             <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg">
               <LogOut size={20} className="text-white" strokeWidth={2.5} />
             </div>
           </div>
 
-          {/* Heading Text Elements */}
           <h2 className="text-2xl font-black tracking-tight mb-2 italic">
             End Session?
           </h2>
@@ -247,7 +270,6 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
             <span className="text-teal-400 font-bold">OrderClick Portal</span>?
           </p>
 
-          {/* Action Layout Buttons Container */}
           <div className="w-full flex flex-col gap-3">
             <button 
               onClick={onLogout} 
