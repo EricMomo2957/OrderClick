@@ -77,6 +77,29 @@ export const addProduct = async (req, res) => {
         }
         // ────────────────────────────────────────────────────────────────────
 
+        // ─── 📢 WEBOSCKET REAL-TIME BROADCAST (OrderClick V2 Sync) ──────────
+        try {
+            if (req.io) {
+                const newProduct = {
+                    id: result.insertId,
+                    name,
+                    description,
+                    price: parsedPrice,
+                    category
+                };
+
+                // Broadcast raw channel event so clients like Yuki get live UI catalog popups instantly
+                req.io.emit('new_product_notification', {
+                    message: `New catalog update: ${name} has been added to the store!`,
+                    product: newProduct,
+                    timestamp: new Date()
+                });
+            }
+        } catch (socketErr) {
+            console.error("Non-blocking socket event dispatch failure on addProduct:", socketErr);
+        }
+        // ────────────────────────────────────────────────────────────────────
+
         return res.status(201).json({ success: true, message: 'Product added successfully!', id: result.insertId });
 
     } catch (err) {
