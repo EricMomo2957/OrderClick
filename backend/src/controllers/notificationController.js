@@ -1,9 +1,10 @@
+// backend/src/controllers/notificationController.js
 import db from '../config/db.js'; // Importing your MySQL configuration mapping
 
-// Keeps track of active live customer client connections
-let clients = [];
+// 1. Maintain a global Set of active response objects to prevent duplicate links or array iteration crashes
+export const clients = new Set();
 
-// 📡 SSE Stream Handler for Customers
+// 2. 📡 SSE Stream Handler for Customers
 export const streamNotifications = (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -11,20 +12,19 @@ export const streamNotifications = (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173'); // Your Vite Frontend Port
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
+  // Add this response handle to our broadcast pool
+  clients.add(res);
+
   // Send an initial handshake verification frame
   res.write(`data: ${JSON.stringify({ status: 'connected' })}\n\n`);
 
-  const clientId = Date.now();
-  const newClient = { id: clientId, res };
-  clients.push(newClient);
-
-  // Remove connection on close
+  // Remove the client pool link cleanly if they refresh or close the tab
   req.on('close', () => {
-    clients = clients.filter(client => client.id !== clientId);
+    clients.delete(res);
   });
 };
 
-// 🏛️ Fetch History Endpoint for Customers
+// 3. 🏛️ Fetch History Endpoint for Customers
 export const getNotificationHistory = async (req, res) => {
   try {
     const [rows] = await db.execute(
@@ -37,10 +37,10 @@ export const getNotificationHistory = async (req, res) => {
   }
 };
 
-// 🚀 Admin Trigger Helper (Call this inside productController.js when a product changes)
+// 4. 🚀 Admin Trigger Helper & Broadcast Method (Call this inside productController.js)
 export const broadcastNotification = async (title, message, type = 'info') => {
   try {
-    // 1. Commit to the database log file
+    // 1. Commit to the database log file asynchronously
     const [result] = await db.execute(
       'INSERT INTO system_notifications (title, message, type) VALUES (?, ?, ?)',
       [title, message, type]
@@ -54,10 +54,14 @@ export const broadcastNotification = async (title, message, type = 'info') => {
       created_at: new Date().toISOString()
     };
 
-    // 2. Push out to all open streaming customer interfaces live
-    clients.forEach(client => {
-      client.res.write(`data: ${JSON.stringify(payload)}\n\n`);
-    });
+    const formattedData = `data: ${JSON.stringify(payload)}\n\n`;
+    
+    // 2. Push out to all open streaming customer interfaces live using native Set iteration
+    for (const client of clients) {
+      client.write(formattedData);
+    }
+    
+    console.log(`📡 Successfully committed to DB and broadcasted alert to ${clients.size} active customers.`);
   } catch (err) {
     console.error("Failed to commit and broadcast notification:", err);
   }

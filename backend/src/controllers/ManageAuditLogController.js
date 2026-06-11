@@ -1,3 +1,4 @@
+// backend/src/controllers/ManageAuditLogController.js
 import db from '../config/db.js';
 
 /**
@@ -28,14 +29,15 @@ export const getAuditLogs = async (req, res) => {
             query += " WHERE " + conditions.join(" AND ");
         }
 
-        // Sort by newest log entries first
+        // Sort by newest log entries first (Falls back to created_at if timestamp isn't explicitly used)
         query += " ORDER BY created_at DESC LIMIT 500"; 
 
-        const [logs] = await db.promise().execute(query, queryParams);
-        res.json(logs);
+        // Direct async/await execution pool without .promise()
+        const [logs] = await db.execute(query, queryParams);
+        return res.json(logs);
     } catch (error) {
         console.error("Error fetching audit logs:", error);
-        res.status(500).json({ 
+        return res.status(500).json({ 
             message: "Internal Server Error", 
             error: error.message 
         });
@@ -47,11 +49,11 @@ export const getAuditLogs = async (req, res) => {
  */
 export const clearAuditLogs = async (req, res) => {
     try {
-        // Optional: truncate entirely or delete logs older than 30 days
-        await db.promise().execute("DELETE FROM audit_logs WHERE created_at < NOW() - INTERVAL 90 DAY");
-        res.json({ message: "Successfully archived/purged logs older than 90 days." });
+        // Optional: truncate entirely or delete logs older than 90 days
+        await db.execute("DELETE FROM audit_logs WHERE created_at < NOW() - INTERVAL 90 DAY");
+        return res.json({ message: "Successfully archived/purged logs older than 90 days." });
     } catch (error) {
         console.error("Error clearing logs:", error);
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
+        return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };

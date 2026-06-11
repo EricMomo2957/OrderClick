@@ -1,3 +1,4 @@
+// backend/src/controllers/orderController.js
 import db from '../config/db.js';
 import { logActivity } from '../utils/logger.js';
 
@@ -9,7 +10,7 @@ import { logActivity } from '../utils/logger.js';
  * REGISTERED USER ORDER
  * Handles orders for logged-in users, including payment reference tracking.
  */
-export const placeOrder = (req, res) => {
+export const placeOrder = async (req, res) => {
     const { 
         userId, 
         productId, 
@@ -29,21 +30,12 @@ export const placeOrder = (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, "pending")
     `;
     
-    db.query(
-        orderSql, 
-        [userId, productId, quantity, totalPrice, referenceNumber, paymentMethod], 
-        (err, result) => {
-            if (err) {
-                console.error("Order Insertion Error:", err);
-                return res.status(500).json({ 
-                    message: "Database error during order placement",
-                    error: err.message 
-                });
-            }
+    try {
+        const [result] = await db.execute(orderSql, [userId, productId, quantity, totalPrice, referenceNumber, paymentMethod]);
+        const orderId = result.insertId;
 
-            const orderId = result.insertId;
-
-            // Log entry tracking for registered customer account placement
+        // Log entry tracking for registered customer account placement
+        try {
             logActivity({
                 req,
                 action: 'CUSTOMER_ORDER_PLACE',
@@ -51,29 +43,38 @@ export const placeOrder = (req, res) => {
                 resourceId: orderId,
                 details: `Customer placed order #${orderId} via ${paymentMethod || 'Cash'}. Total: ₱${Number(totalPrice).toLocaleString()}`
             });
-
-            // Deduct stock from products table
-            const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
-            db.query(updateStockSql, [quantity, productId], (updateErr) => {
-                if (updateErr) {
-                    console.error("Stock Update Error:", updateErr);
-                }
-
-                res.status(200).json({ 
-                    message: 'Order placed successfully!', 
-                    orderId: orderId,
-                    reference: referenceNumber
-                });
-            });
+        } catch (logErr) {
+            console.error("Non-blocking activity logging error:", logErr);
         }
-    );
+
+        // Deduct stock from products table
+        try {
+            const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
+            await db.execute(updateStockSql, [quantity, productId]);
+        } catch (updateErr) {
+            console.error("Stock Update Error:", updateErr);
+        }
+
+        return res.status(200).json({ 
+            message: 'Order placed successfully!', 
+            orderId: orderId,
+            reference: referenceNumber
+        });
+
+    } catch (err) {
+        console.error("Order Insertion Error:", err);
+        return res.status(500).json({ 
+            message: "Database error during order placement",
+            error: err.message 
+        });
+    }
 };
 
 /**
  * GUEST / EXTERNAL ORDER
  * Handles rapid checkouts directly from landing components for unregistered users.
  */
-export const placeExternalOrder = (req, res) => {
+export const placeExternalOrder = async (req, res) => {
     const { 
         guest_name, 
         guest_email, 
@@ -88,23 +89,21 @@ export const placeExternalOrder = (req, res) => {
         return res.status(400).json({ message: "No items selected for the order." });
     }
 
-    let completed = 0;
-    let hasError = false;
     let savedOrderIds = [];
     let cumulativeTotal = 0;
 
-    items.forEach((item) => {
-        const orderSql = `
-            INSERT INTO receipts 
-            (user_id, product_id, quantity, total_price, reference_number, payment_method, status, guest_name, guest_email, guest_phone, guest_address) 
-            VALUES (NULL, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
-        `;
-        const totalPrice = item.price * item.qty;
-        cumulativeTotal += totalPrice;
+    try {
+        // Sequentially process items using sync-safe loops to avoid thread blocks
+        for (const item of items) {
+            const orderSql = `
+                INSERT INTO receipts 
+                (user_id, product_id, quantity, total_price, reference_number, payment_method, status, guest_name, guest_email, guest_phone, guest_address) 
+                VALUES (NULL, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
+            `;
+            const totalPrice = item.price * item.qty;
+            cumulativeTotal += totalPrice;
 
-        db.query(
-            orderSql, 
-            [
+            const [result] = await db.execute(orderSql, [
                 item.id, 
                 item.qty, 
                 totalPrice, 
@@ -114,55 +113,48 @@ export const placeExternalOrder = (req, res) => {
                 guest_email, 
                 guest_phone, 
                 guest_address
-            ], 
-            (err, result) => {
-                if (err) {
-                    console.error("Insert External Order Error:", err);
-                    hasError = true;
-                } else {
-                    savedOrderIds.push(result.insertId);
-                }
+            ]);
 
-                const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
-                db.query(updateStockSql, [item.qty, item.id], (updateErr) => {
-                    if (updateErr) {
-                        console.error("Stock Update Error:", updateErr);
-                        hasError = true;
-                    }
+            savedOrderIds.push(result.insertId);
 
-                    completed++;
-                    if (completed === items.length) {
-                        if (hasError) {
-                            return res.status(500).json({ message: "Order processed with some database errors." });
-                        }
-                        
-                        const trackingOrderId = savedOrderIds.length > 0 ? savedOrderIds[0] : null;
+            const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
+            await db.execute(updateStockSql, [item.qty, item.id]);
+        }
 
-                        // Public visitor submission logs to system audit registry stream
-                        logActivity({
-                            req,
-                            action: 'VISITOR_MESSAGE_SUBMIT', 
-                            resource: 'messages',
-                            resourceId: trackingOrderId,
-                            details: `Visitor "${guest_name}" (${guest_email}) submitted a landing check-out order. Total: ₱${cumulativeTotal.toLocaleString()}`
-                        });
+        const trackingOrderId = savedOrderIds.length > 0 ? savedOrderIds[0] : null;
 
-                        return res.status(200).json({ 
-                            message: "Order placed and stock updated successfully!",
-                            orderId: savedOrderIds.length > 0 ? `ORD-${savedOrderIds[0]}` : null
-                        });
-                    }
-                });
-            }
-        );
-    });
+        // Public visitor submission logs to system audit registry stream
+        try {
+            logActivity({
+                req,
+                action: 'VISITOR_MESSAGE_SUBMIT', 
+                resource: 'messages',
+                resourceId: trackingOrderId,
+                details: `Visitor "${guest_name}" (${guest_email}) submitted a landing check-out order. Total: ₱${cumulativeTotal.toLocaleString()}`
+            });
+        } catch (logErr) {
+            console.error("Non-blocking external activity logging error:", logErr);
+        }
+
+        return res.status(200).json({ 
+            message: "Order placed and stock updated successfully!",
+            orderId: savedOrderIds.length > 0 ? `ORD-${savedOrderIds[0]}` : null
+        });
+
+    } catch (error) {
+        console.error("External Checkout Error:", error);
+        return res.status(500).json({ 
+            message: "Order processed with some database errors.",
+            error: error.message 
+        });
+    }
 };
 
 /**
  * UNIFIED CHECKOUT ORDER
  * Seamlessly handles references, payment tracking, and returns structured payload for confirmation modals.
  */
-export const placeCheckoutOrder = (req, res) => {
+export const placeCheckoutOrder = async (req, res) => {
     const { 
         userId, 
         productId, 
@@ -195,49 +187,52 @@ export const placeCheckoutOrder = (req, res) => {
         guestAddress || null
     ];
 
-    db.query(orderSql, values, (err, result) => {
-        if (err) {
-            console.error("Checkout Insertion Error:", err);
-            return res.status(500).json({ 
-                success: false,
-                message: "Database error during checkout placement",
-                error: err.message 
-            });
-        }
-
+    try {
+        const [result] = await db.execute(orderSql, values);
         const orderId = result.insertId;
         const orderIdString = `ORD-${orderId}`;
 
         // Polymorphic Logger Evaluation
-        logActivity({
-            req,
-            action: userId ? 'CUSTOMER_ORDER_PLACE' : 'VISITOR_MESSAGE_SUBMIT',
-            resource: userId ? 'receipts' : 'messages',
-            resourceId: orderId,
-            details: `${userId ? 'Registered Customer' : `Guest Form "${guestName || 'Anonymous'}"`} processed transaction ${orderIdString}. Total Amount: ₱${Number(totalPrice).toLocaleString()}`
-        });
-
-        const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
-        db.query(updateStockSql, [quantity, productId], (updateErr) => {
-            if (updateErr) {
-                console.error("Stock Update Error:", updateErr);
-            }
-
-            return res.status(201).json({
-                success: true,
-                message: "Order placed successfully!",
-                orderData: {
-                    orderId: orderIdString,
-                    receiptId: orderId,
-                    paymentMethod: paymentMethod,
-                    referenceNumber: referenceNumber,
-                    totalPaid: totalPrice
-                }
+        try {
+            logActivity({
+                req,
+                action: userId ? 'CUSTOMER_ORDER_PLACE' : 'VISITOR_MESSAGE_SUBMIT',
+                resource: userId ? 'receipts' : 'messages',
+                resourceId: orderId,
+                details: `${userId ? 'Registered Customer' : `Guest Form "${guestName || 'Anonymous'}"`} processed transaction ${orderIdString}. Total Amount: ₱${Number(totalPrice).toLocaleString()}`
             });
-        });
-    });
-};
+        } catch (logErr) {
+            console.error("Non-blocking checkout activity logging error:", logErr);
+        }
 
+        try {
+            const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
+            await db.execute(updateStockSql, [quantity, productId]);
+        } catch (updateErr) {
+            console.error("Stock Update Error:", updateErr);
+        }
+
+        return res.status(201).json({
+            success: true,
+            message: "Order placed successfully!",
+            orderData: {
+                orderId: orderIdString,
+                receiptId: orderId,
+                paymentMethod: paymentMethod,
+                referenceNumber: referenceNumber,
+                totalPaid: totalPrice
+            }
+        });
+
+    } catch (err) {
+        console.error("Checkout Insertion Error:", err);
+        return res.status(500).json({ 
+            success: false,
+            message: "Database error during checkout placement",
+            error: err.message 
+        });
+    }
+};
 
 // ==========================================
 // ---          DATA FETCHING             ---
@@ -246,7 +241,7 @@ export const placeCheckoutOrder = (req, res) => {
 /**
  * GET USER PURCHASE HISTORY
  */
-export const getUserOrders = (req, res) => {
+export const getUserOrders = async (req, res) => {
     const { userId } = req.params;
     const sql = `
         SELECT r.*, p.name as product_name 
@@ -256,19 +251,19 @@ export const getUserOrders = (req, res) => {
         ORDER BY r.created_at DESC
     `;
 
-    db.query(sql, [userId], (err, results) => {
-        if (err) {
-            console.error("Fetch Orders Error:", err);
-            return res.status(500).json({ error: "Failed to fetch purchase history" });
-        }
-        res.json(results);
-    });
+    try {
+        const [results] = await db.execute(sql, [userId]);
+        return res.json(results);
+    } catch (err) {
+        console.error("Fetch Orders Error:", err);
+        return res.status(500).json({ error: "Failed to fetch purchase history" });
+    }
 };
 
 /**
  * GET ALL RECEIPTS (Admin Panel View)
  */
-export const getAllReceipts = (req, res) => {
+export const getAllReceipts = async (req, res) => {
     const sql = `
         SELECT 
             r.*, 
@@ -281,15 +276,14 @@ export const getAllReceipts = (req, res) => {
         ORDER BY r.created_at DESC
     `;
     
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error("Fetch All Receipts Error:", err);
-            return res.status(500).json(err);
-        }
-        res.json(results);
-    });
+    try {
+        const [results] = await db.execute(sql);
+        return res.json(results);
+    } catch (err) {
+        console.error("Fetch All Receipts Error:", err);
+        return res.status(500).json({ error: "Failed to fetch all orders." });
+    }
 };
-
 
 // ==========================================
 // ---         UPDATE & DELETE            ---
@@ -298,45 +292,55 @@ export const getAllReceipts = (req, res) => {
 /**
  * UPDATE RECEIPT STATUS
  */
-export const updateReceiptStatus = (req, res) => {
+export const updateReceiptStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body; 
     
     const sql = 'UPDATE receipts SET status = ? WHERE id = ?';
-    db.query(sql, [status, id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        await db.execute(sql, [status, id]);
 
-        // Reuse your existing logActivity utility here
-        logActivity({
-            req,
-            action: status === 'verified' ? 'VERIFY_RECEIPT' : 'REJECT_RECEIPT',
-            resource: 'receipts',
-            resourceId: id,
-            details: `Admin processed receipt for order #${id} as ${status}.`
-        });
+        try {
+            logActivity({
+                req,
+                action: status === 'verified' ? 'VERIFY_RECEIPT' : 'REJECT_RECEIPT',
+                resource: 'receipts',
+                resourceId: id,
+                details: `Admin processed receipt for order #${id} as ${status}.`
+            });
+        } catch (logErr) {
+            console.error("Non-blocking status update activity logging error:", logErr);
+        }
 
-        res.json({ message: `Order ${status} successfully` });
-    });
+        return res.json({ message: `Order ${status} successfully` });
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
 };
 
 /**
  * DELETE RECEIPT
  */
-export const deleteReceipt = (req, res) => {
+export const deleteReceipt = async (req, res) => {
     const { id } = req.params;
     
-    db.query('DELETE FROM receipts WHERE id = ?', [id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        await db.execute('DELETE FROM receipts WHERE id = ?', [id]);
 
-        // Admin permanent removal trace log
-        logActivity({
-            req,
-            action: 'DELETE_MESSAGE',
-            resource: 'receipts',
-            resourceId: id,
-            details: `Permanently removed order transaction record reference matrix ID #${id} from the database.`
-        });
+        try {
+            logActivity({
+                req,
+                action: 'DELETE_MESSAGE',
+                resource: 'receipts',
+                resourceId: id,
+                details: `Permanently removed order transaction record reference matrix ID #${id} from the database.`
+            });
+        } catch (logErr) {
+            console.error("Non-blocking delete activity logging error:", logErr);
+        }
 
-        res.json({ message: "Record deleted" });
-    });
+        return res.json({ message: "Record deleted" });
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
 };

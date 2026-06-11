@@ -1,4 +1,4 @@
-// BACKEND/src/controllers/productController.js
+// backend/src/controllers/productController.js
 import db from '../config/db.js';
 import { logAction } from '../utils/logger.js';
 import { broadcastNotification } from './notificationController.js';
@@ -16,17 +16,19 @@ const VALID_CATEGORIES = [
 /**
  * Get all products
  */
-export const getAllProducts = (req, res) => {
-    db.query('SELECT * FROM products ORDER BY created_at DESC', (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(results);
-    });
+export const getAllProducts = async (req, res) => {
+    try {
+        const [results] = await db.query('SELECT * FROM products ORDER BY created_at DESC');
+        return res.json(results);
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
 };
 
 /**
  * Add a new product
  */
-export const addProduct = (req, res) => {
+export const addProduct = async (req, res) => {
     const { name, description = null, price, stock, category } = req.body;
     
     if (category && !VALID_CATEGORIES.includes(category)) {
@@ -38,11 +40,9 @@ export const addProduct = (req, res) => {
     const parsedStock = parseInt(stock);
 
     const query = 'INSERT INTO products (name, description, price, stock, category, image_url) VALUES (?, ?, ?, ?, ?, ?)';
-    db.query(query, [name, description, parsedPrice, parsedStock, category, image_url], async (err, result) => {
-        if (err) {
-            console.error("DB Error:", err.message); 
-            return res.status(500).json({ error: err.message });
-        }
+    
+    try {
+        const [result] = await db.query(query, [name, description, parsedPrice, parsedStock, category, image_url]);
 
         // ─── 🚀 AUDIT TRACKING TRIGGER: PRODUCT CREATION ─────────────────────
         try {
@@ -66,9 +66,10 @@ export const addProduct = (req, res) => {
 
         // ─── 📡 LIVE STREAM BROADCAST TRIGGER ────────────────────────────────
         try {
+            // Updated parameters to match your new notificationController signature (title, message, type)
             await broadcastNotification(
-                "New Item Added!",
-                `"${name}" has been newly listed under our ${category} section. Check out the store catalogs right now!`,
+                "New Catalog Addition! 🎁",
+                `A fresh product "${name}" was added to ${category}!`,
                 "product"
             );
         } catch (broadcastErr) {
@@ -76,12 +77,16 @@ export const addProduct = (req, res) => {
         }
         // ────────────────────────────────────────────────────────────────────
 
-        res.status(201).json({ message: 'Product added!', id: result.insertId });
-    });
+        return res.status(201).json({ success: true, message: 'Product added successfully!', id: result.insertId });
+
+    } catch (err) {
+        console.error("DB Error:", err.message); 
+        return res.status(500).json({ error: err.message });
+    }
 };
 
 /**
- * Update an existing product (Using clean async/await & telemetry extraction)
+ * Update an existing product
  */
 export const updateProduct = async (req, res) => {
     const productId = req.params.id;
@@ -106,38 +111,33 @@ export const updateProduct = async (req, res) => {
     params.push(productId);
 
     try {
-        db.query(sqlQuery, params, async (err, result) => {
-            if (err) {
-                console.error("DB Update Error:", err.message);
-                return res.status(500).json({ error: err.message });
-            }
+        const [result] = await db.query(sqlQuery, params);
 
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ error: "Target product row not found." });
-            }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Target product row not found." });
+        }
 
-            // ─── 🚀 AUDIT TRACKING TRIGGER: PRODUCT MODIFICATION ─────────────────
-            try {
-                await logAction({
-                    userId: req.user?.id,
-                    fullname: req.user?.fullname || req.user?.email || "Unknown Admin",
-                    role: req.user?.role || 'admin',
-                    action: 'UPDATE_PRODUCT', 
-                    resource: 'products',
-                    resourceId: productId,
-                    details: JSON.stringify({
-                        updated_fields: { name, price: parsedPrice, stock: parsedStock, category },
-                        timestamp: new Date().toISOString()
-                    }),
-                    req: req
-                });
-            } catch (logErr) {
-                console.error("Non-blocking audit log capture failure on updateProduct:", logErr);
-            }
-            // ────────────────────────────────────────────────────────────────────
+        // ─── 🚀 AUDIT TRACKING TRIGGER: PRODUCT MODIFICATION ─────────────────
+        try {
+            await logAction({
+                userId: req.user?.id,
+                fullname: req.user?.fullname || req.user?.email || "Unknown Admin",
+                role: req.user?.role || 'admin',
+                action: 'UPDATE_PRODUCT', 
+                resource: 'products',
+                resourceId: productId,
+                details: JSON.stringify({
+                    updated_fields: { name, price: parsedPrice, stock: parsedStock, category },
+                    timestamp: new Date().toISOString()
+                }),
+                req: req
+            });
+        } catch (logErr) {
+            console.error("Non-blocking audit log capture failure on updateProduct:", logErr);
+        }
+        // ────────────────────────────────────────────────────────────────────
 
-            return res.status(200).json({ message: 'Product updated!' });
-        });
+        return res.status(200).json({ message: 'Product updated!' });
 
     } catch (error) {
         console.error("Backend controller operation failure:", error);
@@ -148,13 +148,11 @@ export const updateProduct = async (req, res) => {
 /**
  * Delete a product
  */
-export const deleteProduct = (req, res) => {
+export const deleteProduct = async (req, res) => {
     const { id } = req.params;
-    db.query('DELETE FROM products WHERE id = ?', [id], async (err, result) => {
-        if (err) {
-            console.error("DB Delete Error:", err.message);
-            return res.status(500).json({ error: err.message });
-        }
+    
+    try {
+        const [result] = await db.query('DELETE FROM products WHERE id = ?', [id]);
 
         // ─── 🚀 AUDIT TRACKING TRIGGER: PRODUCT PURGE ────────────────────────
         try {
@@ -173,14 +171,18 @@ export const deleteProduct = (req, res) => {
         }
         // ────────────────────────────────────────────────────────────────────
 
-        res.json({ message: 'Product deleted!' });
-    });
+        return res.json({ message: 'Product deleted!' });
+        
+    } catch (err) {
+        console.error("DB Delete Error:", err.message);
+        return res.status(500).json({ error: err.message });
+    }
 };
 
 /**
  * Get all admin receipts
  */
-export const getAllAdminReceipts = (req, res) => {
+export const getAllAdminReceipts = async (req, res) => {
     const query = `
         SELECT 
             r.*, 
@@ -190,8 +192,10 @@ export const getAllAdminReceipts = (req, res) => {
         ORDER BY r.created_at DESC
     `;
 
-    db.query(query, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(results);
-    });
+    try {
+        const [results] = await db.query(query);
+        return res.json(results);
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
 };

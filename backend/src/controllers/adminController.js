@@ -30,8 +30,8 @@ export const getGuestOrders = async (req, res) => {
             ORDER BY created_at DESC
         `;
 
-        // Using db.promise().query ensures it safely evaluates as an async iterable array
-        const [orders] = await db.promise().query(query);
+        // Direct call via native async await promise pool structure
+        const [orders] = await db.execute(query);
         return res.status(200).json(orders);
     } catch (error) {
         console.error("Error fetching guest orders:", error);
@@ -59,7 +59,7 @@ export const updateGuestOrderStatus = async (req, res) => {
               AND (user_id IS NULL OR user_id = 0 OR user_id = '' OR guest_name IS NOT NULL)
         `;
         
-        const [result] = await db.promise().query(query, [status, orderId]);
+        const [result] = await db.execute(query, [status, orderId]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: "Guest order not found." });
@@ -84,7 +84,9 @@ export const updateGuestOrderStatus = async (req, res) => {
     }
 };
 
-// Update password reset ticket status (Admin Action)
+/**
+ * 3. Update password reset ticket status (Admin Action)
+ */
 export const resolveForgotPasswordRequest = async (req, res) => {
     try {
         const { id } = req.params;
@@ -94,18 +96,13 @@ export const resolveForgotPasswordRequest = async (req, res) => {
             return res.status(400).json({ error: "Invalid status state transition assignment." });
         }
 
-        // ⚠️ FIXED: Ensuring table matches your working GET registry query exactly
-        // Change 'password_resets' below if your GET query targets a different exact name
         const query = `
             UPDATE password_resets 
             SET status = 'resolved' 
             WHERE id = ?
         `;
 
-        // Handle both standard pools and explicitly promised pool configurations cleanly
-        const queryExecutionBuffer = db.promise ? db.promise() : db;
-
-        const [result] = await queryExecutionBuffer.execute(query, [id]);
+        const [result] = await db.execute(query, [id]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: "Password reset record entry not found." });
@@ -149,7 +146,7 @@ export const updateCustomerProfile = async (req, res) => {
 
     try {
         const query = `UPDATE users SET fullname = ?, email = ? WHERE id = ?`;
-        const [result] = await db.promise().query(query, [fullname, email, parseInt(id, 10)]);
+        const [result] = await db.execute(query, [fullname, email, parseInt(id, 10)]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: "Customer account target record not found." });
@@ -178,17 +175,13 @@ export const updateCustomerProfile = async (req, res) => {
  * 5. Permanently drop a registered customer entry context
  * Evaluates row footprints and clears them down via structural execution queries
  */
-/**
- * 5. Permanently drop a registered customer entry context
- * Evaluates row footprints and clears them down via structural execution queries
- */
 export const deleteCustomerProfile = async (req, res) => {
     const { id } = req.params;
     const numericId = parseInt(id, 10);
 
     try {
         // 1. Run a check to extract identity values before row clearance for meaningful logs
-        const [userCheck] = await db.promise().query("SELECT fullname, email FROM users WHERE id = ?", [numericId]);
+        const [userCheck] = await db.execute("SELECT fullname, email FROM users WHERE id = ?", [numericId]);
         if (userCheck.length === 0) {
             return res.status(404).json({ message: "Target customer trace entry not found." });
         }
@@ -197,11 +190,11 @@ export const deleteCustomerProfile = async (req, res) => {
         // 🚀 2. FIX: Safely decouple active dependencies instead of cascading erasure.
         // Converts associated orders into anonymous "Guest Checkout Orders" so revenue graphs don't break!
         const decoupleQuery = `UPDATE receipts SET user_id = NULL WHERE user_id = ?`;
-        await db.promise().query(decoupleQuery, [numericId]);
+        await db.execute(decoupleQuery, [numericId]);
 
         // 3. Delete the target customer account sequence record safely now
         const query = `DELETE FROM users WHERE id = ?`;
-        const [result] = await db.promise().query(query, [numericId]);
+        const [result] = await db.execute(query, [numericId]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: "Failed execution. Record footprint absent." });

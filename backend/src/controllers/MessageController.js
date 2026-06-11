@@ -15,7 +15,7 @@ export const submitMessage = async (req, res) => {
             INSERT INTO messages (fullname, email, message, status) 
             VALUES (?, ?, ?, 'unread')
         `;
-        const [result] = await db.promise().query(query, [fullname, email, message]);
+        const [result] = await db.execute(query, [fullname, email, message]);
         const insertedId = result.insertId;
 
         // 📡 REAL-TIME EMIT: Instantly alert the admin dashboard of a new visitor message
@@ -59,7 +59,7 @@ export const submitMessage = async (req, res) => {
 export const getAllMessages = async (req, res) => {
     try {
         const query = `SELECT * FROM messages ORDER BY created_at DESC`;
-        const [messages] = await db.promise().query(query);
+        const [messages] = await db.execute(query);
         return res.status(200).json(messages);
     } catch (error) {
         console.error("❌ Error retrieving dashboard messages:", error);
@@ -78,7 +78,7 @@ export const updateMessageStatus = async (req, res) => {
 
     try {
         // Fetch sender metadata before mutation to build a precise description for the log matrix
-        const [rows] = await db.promise().query('SELECT fullname FROM messages WHERE id = ?', [messageId]);
+        const [rows] = await db.execute('SELECT fullname FROM messages WHERE id = ?', [messageId]);
         if (rows.length === 0) {
             return res.status(404).json({ message: "Target message not found." });
         }
@@ -86,7 +86,7 @@ export const updateMessageStatus = async (req, res) => {
 
         // Execute status update mutation
         const query = `UPDATE messages SET status = ? WHERE id = ?`;
-        await db.promise().query(query, [status, messageId]);
+        await db.execute(query, [status, messageId]);
 
         // 📡 REAL-TIME EMIT: Inform listening dashboard sessions to sync up status highlights
         const io = req.app.get('socketio');
@@ -123,7 +123,7 @@ export const deleteMessage = async (req, res) => {
 
     try {
         // Capture context metadata parameters before full row erasure sequence executes
-        const [rows] = await db.promise().query('SELECT fullname, email FROM messages WHERE id = ?', [messageId]);
+        const [rows] = await db.execute('SELECT fullname, email FROM messages WHERE id = ?', [messageId]);
         if (rows.length === 0) {
             return res.status(404).json({ message: "Target message record does not exist." });
         }
@@ -131,7 +131,7 @@ export const deleteMessage = async (req, res) => {
 
         // Perform target row erasure sequence
         const query = `DELETE FROM messages WHERE id = ?`;
-        await db.promise().query(query, [messageId]);
+        await db.execute(query, [messageId]);
 
         // 📡 REAL-TIME EMIT: Instantly remove the card item from front-end state management
         const io = req.app.get('socketio');

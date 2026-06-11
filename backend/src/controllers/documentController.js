@@ -22,29 +22,24 @@ export const uploadDocument = async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?)
         `;
         
-        db.query(query, [userId, document_title, filename, filePath, mimetype, size], async (err, result) => {
-            if (err) {
-                console.error("Database schema compilation error:", err);
-                return res.status(500).json({ message: "Failed tracking database persistence records." });
-            }
-            
-            try {
-                // 📝 AUDIT LOG: Document Submission Creation Trace
-                await logAction({
-                    req,
-                    action: 'DOCUMENT_RECORD_CREATED',
-                    resource: 'documents',
-                    resourceId: result.insertId,
-                    details: `Customer submitted tracking index payload for validation: "${document_title}" (File: ${filename})`
-                });
-            } catch (logErr) {
-                console.error("⚠️ Audit logger failure:", logErr);
-            }
-            
-            return res.status(201).json({ 
-                message: "Document entity successfully assigned to verification queue.",
-                documentId: result.insertId 
+        const [result] = await db.execute(query, [userId, document_title, filename, filePath, mimetype, size]);
+        
+        try {
+            // 📝 AUDIT LOG: Document Submission Creation Trace
+            await logAction({
+                req,
+                action: 'DOCUMENT_RECORD_CREATED',
+                resource: 'documents',
+                resourceId: result.insertId,
+                details: `Customer submitted tracking index payload for validation: "${document_title}" (File: ${filename})`
             });
+        } catch (logErr) {
+            console.error("⚠️ Audit logger failure:", logErr);
+        }
+        
+        return res.status(201).json({ 
+            message: "Document entity successfully assigned to verification queue.",
+            documentId: result.insertId 
         });
 
     } catch (error) {
@@ -57,50 +52,50 @@ export const uploadDocument = async (req, res) => {
 };
 
 // Retrieve history logs for a specific logged-in customer entity
-export const getCustomerDocuments = (req, res) => {
-    const userId = req.user?.id;
-    const query = `SELECT id, document_title, file_name, status, created_at FROM documents WHERE user_id = ? ORDER BY created_at DESC`;
+export const getCustomerDocuments = async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        const query = `SELECT id, document_title, file_name, status, created_at FROM documents WHERE user_id = ? ORDER BY created_at DESC`;
 
-    db.query(query, [userId], (err, results) => {
-        if (err) {
-            console.error("Database extraction failure:", err);
-            return res.status(500).json({ message: "Failed extracting structural document registries." });
-        }
+        const [results] = await db.execute(query, [userId]);
         return res.status(200).json(results);
-    });
+    } catch (err) {
+        console.error("Database extraction failure:", err);
+        return res.status(500).json({ message: "Failed extracting structural document registries." });
+    }
 };
 
 // Retrieve ALL documents across all users (Admin view)
-export const getAllDocumentsForAdmin = (req, res) => {
-    const query = `
-        SELECT 
-            d.id,
-            d.user_id,
-            d.document_title,
-            d.file_name,
-            d.file_path,
-            d.mime_type,
-            d.file_size,
-            d.status,
-            d.created_at,
-            u.fullname,
-            u.email
-        FROM documents d
-        INNER JOIN users u ON d.user_id = u.id
-        ORDER BY d.created_at DESC
-    `;
+export const getAllDocumentsForAdmin = async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                d.id,
+                d.user_id,
+                d.document_title,
+                d.file_name,
+                d.file_path,
+                d.mime_type,
+                d.file_size,
+                d.status,
+                d.created_at,
+                u.fullname,
+                u.email
+            FROM documents d
+            INNER JOIN users u ON d.user_id = u.id
+            ORDER BY d.created_at DESC
+        `;
 
-    db.query(query, (err, results) => {
-        if (err) {
-            console.error("Database retrieval failure for admin:", err);
-            return res.status(500).json({ message: "Failed extracting structural document registries." });
-        }
-        return res.status(200).json(results);
-    });
+        const [rows] = await db.execute(query);
+        return res.status(200).json(rows);
+    } catch (error) {
+        console.error("Error inside getAllDocumentsForAdmin:", error);
+        return res.status(500).json({ error: "Failed to fetch documents." });
+    }
 };
 
 // Update the validation status of a document (Admin action)
-export const updateDocumentStatus = (req, res) => {
+export const updateDocumentStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
@@ -111,11 +106,8 @@ export const updateDocumentStatus = (req, res) => {
 
     const query = `UPDATE documents SET status = ? WHERE id = ?`;
 
-    db.query(query, [status, id], async (err, result) => {
-        if (err) {
-            console.error("Database update error:", err);
-            return res.status(500).json({ message: "Failed to update document status." });
-        }
+    try {
+        const [result] = await db.execute(query, [status, id]);
         
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: "Document record not found." });
@@ -135,7 +127,10 @@ export const updateDocumentStatus = (req, res) => {
         }
 
         return res.status(200).json({ message: "Document status updated successfully." });
-    });
+    } catch (err) {
+        console.error("Database update error:", err);
+        return res.status(500).json({ message: "Failed to update document status." });
+    }
 };
 
 // Update document payload configurations securely (Customer Mutation Action)
@@ -158,76 +153,66 @@ export const updateDocument = async (req, res) => {
         }
 
         const selectQuery = `SELECT id, user_id, status FROM documents WHERE id = ?`;
-        
-        db.query(selectQuery, [id], (checkErr, results) => {
-            if (checkErr) {
-                console.error("Verification indexing crash:", checkErr);
-                return res.status(500).json({ message: "Internal record verification query failure." });
-            }
+        const [results] = await db.execute(selectQuery, [id]);
             
-            if (results.length === 0) {
-                console.log(`❌ FAIL: Document ID ${id} does not exist at all in the database.`);
-                return res.status(404).json({ message: "Document record does not exist." });
-            }
+        if (results.length === 0) {
+            console.log(`❌ FAIL: Document ID ${id} does not exist at all in the database.`);
+            return res.status(404).json({ message: "Document record does not exist." });
+        }
 
-            const activeDoc = results[0];
+        const activeDoc = results[0];
 
-            if (Number(activeDoc.user_id) !== Number(userId)) {
-                return res.status(403).json({ message: "Action Denied: You do not own this document record." });
-            }
+        if (Number(activeDoc.user_id) !== Number(userId)) {
+            return res.status(403).json({ message: "Action Denied: You do not own this document record." });
+        }
 
-            if (activeDoc.status !== 'pending') {
-                return res.status(403).json({ message: "Action Denied: Document processing under evaluation cycle." });
-            }
+        if (activeDoc.status !== 'pending') {
+            return res.status(403).json({ message: "Action Denied: Document processing under evaluation cycle." });
+        }
 
-            // Proceed with updates
-            if (req.file) {
-                const { filename, path: filePath, mimetype, size } = req.file;
-                const updateWithFileQuery = `
-                    UPDATE documents 
-                    SET document_title = ?, file_name = ?, file_path = ?, mime_type = ?, file_size = ?
-                    WHERE id = ?
-                `;
-                db.query(updateWithFileQuery, [document_title, filename, filePath, mimetype, size, id], async (err) => {
-                    if (err) return res.status(500).json({ message: "Failed updating database." });
-                    
-                    try {
-                        // 📝 AUDIT LOG: Full Content Overwrite Trace (Metadata + Media Binary)
-                        await logAction({
-                            req,
-                            action: 'DOCUMENT_RECORD_UPDATED',
-                            resource: 'documents',
-                            resourceId: id,
-                            details: `Customer altered fields matching ID #${id}. Overwrote asset binary with file: ${filename} and reclassified title attribute parameters: ${JSON.stringify(req.body)}`
-                        });
-                    } catch (logErr) {
-                        console.error("⚠️ Audit logger failure:", logErr);
-                    }
-
-                    return res.status(200).json({ message: "Document updated cleanly with new file asset." });
+        // Proceed with updates
+        if (req.file) {
+            const { filename, path: filePath, mimetype, size } = req.file;
+            const updateWithFileQuery = `
+                UPDATE documents 
+                SET document_title = ?, file_name = ?, file_path = ?, mime_type = ?, file_size = ?
+                WHERE id = ?
+            `;
+            await db.execute(updateWithFileQuery, [document_title, filename, filePath, mimetype, size, id]);
+            
+            try {
+                // 📝 AUDIT LOG: Full Content Overwrite Trace (Metadata + Media Binary)
+                await logAction({
+                    req,
+                    action: 'DOCUMENT_RECORD_UPDATED',
+                    resource: 'documents',
+                    resourceId: id,
+                    details: `Customer altered fields matching ID #${id}. Overwrote asset binary with file: ${filename} and reclassified title attribute parameters: ${JSON.stringify(req.body)}`
                 });
-            } else {
-                const updateTitleQuery = `UPDATE documents SET document_title = ? WHERE id = ?`;
-                db.query(updateTitleQuery, [document_title, id], async (err) => {
-                    if (err) return res.status(500).json({ message: "Failed updating title attribute." });
-                    
-                    try {
-                        // 📝 AUDIT LOG: Metadata String Variation Mutation Log
-                        await logAction({
-                            req,
-                            action: 'DOCUMENT_RECORD_UPDATED',
-                            resource: 'documents',
-                            resourceId: id,
-                            details: `Customer updated metadata criteria definitions for item ID #${id}. Text alteration details payload: ${JSON.stringify(req.body)}`
-                        });
-                    } catch (logErr) {
-                        console.error("⚠️ Audit logger failure:", logErr);
-                    }
-
-                    return res.status(200).json({ message: "Document metadata configurations systematically altered." });
-                });
+            } catch (logErr) {
+                console.error("⚠️ Audit logger failure:", logErr);
             }
-        });
+
+            return res.status(200).json({ message: "Document updated cleanly with new file asset." });
+        } else {
+            const updateTitleQuery = `UPDATE documents SET document_title = ? WHERE id = ?`;
+            await db.execute(updateTitleQuery, [document_title, id]);
+            
+            try {
+                // 📝 AUDIT LOG: Metadata String Variation Mutation Log
+                await logAction({
+                    req,
+                    action: 'DOCUMENT_RECORD_UPDATED',
+                    resource: 'documents',
+                    resourceId: id,
+                    details: `Customer updated metadata criteria definitions for item ID #${id}. Text alteration details payload: ${JSON.stringify(req.body)}`
+                });
+            } catch (logErr) {
+                console.error("⚠️ Audit logger failure:", logErr);
+            }
+
+            return res.status(200).json({ message: "Document metadata configurations systematically altered." });
+        }
 
     } catch (error) {
         console.error("🔥 DETAILED UPDATE LOG EXCEPTION:", error);
@@ -236,17 +221,15 @@ export const updateDocument = async (req, res) => {
 };
 
 // Permanently delete a pending document entry from tracking ledger
-export const deleteDocument = (req, res) => {
+export const deleteDocument = async (req, res) => {
     const userId = req.user?.id;
     const { id } = req.params;
 
     const checkQuery = `SELECT status, file_path FROM documents WHERE id = ? AND user_id = ?`;
 
-    db.query(checkQuery, [id, userId], (checkErr, results) => {
-        if (checkErr) {
-            console.error("Target identification log fetch error:", checkErr);
-            return res.status(500).json({ message: "Failed validating record status keys." });
-        }
+    try {
+        const [results] = await db.execute(checkQuery, [id, userId]);
+        
         if (results.length === 0) {
             return res.status(404).json({ message: "Target document log pointer missing or instance mismatch." });
         }
@@ -258,28 +241,26 @@ export const deleteDocument = (req, res) => {
 
         // Execute deletion safely
         const deleteQuery = `DELETE FROM documents WHERE id = ? AND user_id = ?`;
-        db.query(deleteQuery, [id, userId], async (deleteErr, deleteResult) => {
-            if (deleteErr) {
-                console.error("Database deletion instruction runtime error:", deleteErr);
-                return res.status(500).json({ message: "Failed to cleanly remove tracking index allocations." });
-            }
+        await db.execute(deleteQuery, [id, userId]);
 
-            try {
-                // 📝 AUDIT LOG: Permanent Record Hard Deletion Purge
-                await logAction({
-                    req,
-                    action: 'DOCUMENT_RECORD_DELETED',
-                    resource: 'documents',
-                    resourceId: id,
-                    details: `Customer terminated tracking allocation instance matching entry identifier ID #${id}. Relational assets removed from storage logs.`
-                });
-            } catch (logErr) {
-                console.error("⚠️ Audit logger failure:", logErr);
-            }
+        try {
+            // 📝 AUDIT LOG: Permanent Record Hard Deletion Purge
+            await logAction({
+                req,
+                action: 'DOCUMENT_RECORD_DELETED',
+                resource: 'documents',
+                resourceId: id,
+                details: `Customer terminated tracking allocation instance matching entry identifier ID #${id}. Relational assets removed from storage logs.`
+            });
+        } catch (logErr) {
+            console.error("⚠️ Audit logger failure:", logErr);
+        }
 
-            return res.status(200).json({ message: "Document tracking record purged." });
-        });
-    });
+        return res.status(200).json({ message: "Document tracking record purged." });
+    } catch (checkErr) {
+        console.error("Target identification log query or runtime error:", checkErr);
+        return res.status(500).json({ message: "Failed processing document deletion request keys." });
+    }
 };
 
 // Group everything into a default object export to satisfy documentRoutes.js
