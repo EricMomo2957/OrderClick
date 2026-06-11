@@ -5,22 +5,24 @@ import { logAction } from '../utils/logger.js'; // Import the unified audit util
 // 1. Get Latest Announcement
 export const getLatest = async (req, res) => {
     try {
-        const [rows] = await db.promise().execute(
+        const [rows] = await db.execute(
             'SELECT * FROM announcements WHERE is_active = TRUE ORDER BY created_at DESC LIMIT 1'
         );
-        res.json(rows[0] || null);
+        return res.json(rows[0] || null);
     } catch (error) {
-        res.status(500).json({ message: "Error fetching latest", error: error.message });
+        console.error("❌ Error fetching latest announcement:", error);
+        return res.status(500).json({ message: "Error fetching latest", error: error.message });
     }
 };
 
 // 2. Get All Announcements
 export const getAllAnnouncements = async (req, res) => {
     try {
-        const [rows] = await db.promise().execute('SELECT * FROM announcements ORDER BY created_at DESC');
-        res.json(rows);
+        const [rows] = await db.execute('SELECT * FROM announcements ORDER BY created_at DESC');
+        return res.json(rows);
     } catch (error) {
-        res.status(500).json({ message: "Error fetching announcements", error: error.message });
+        console.error("❌ Error fetching announcements:", error);
+        return res.status(500).json({ message: "Error fetching announcements", error: error.message });
     }
 };
 
@@ -36,7 +38,7 @@ export const createAnnouncement = async (req, res) => {
 
     try {
         // ✅ FIXED DATABASE INSERT: Removed non-existent column 'created_by' to perfectly match table schema
-        const [result] = await db.promise().execute(
+        const [result] = await db.execute(
             'INSERT INTO announcements (title, message, image_url, priority, is_active) VALUES (?, ?, ?, ?, ?)',
             [title, finalMessage, imageUrl, priority || 'normal', true]
         );
@@ -85,7 +87,7 @@ export const updateAnnouncement = async (req, res) => {
 
     try {
         // 1. Fetch current data to preserve existing text values if form payloads are clean fragments
-        const [rows] = await db.promise().execute('SELECT title, message, image_url, is_active FROM announcements WHERE id = ?', [id]);
+        const [rows] = await db.execute('SELECT title, message, image_url, is_active FROM announcements WHERE id = ?', [id]);
         
         if (rows.length === 0) return res.status(404).json({ message: "Target announcement index framework not found" });
 
@@ -96,7 +98,7 @@ export const updateAnnouncement = async (req, res) => {
         const imageUrl = req.file ? `/uploads/${req.file.filename}` : rows[0].image_url;
 
         // 3. Update the Database safely
-        await db.promise().execute(
+        await db.execute(
             'UPDATE announcements SET title = ?, message = ?, image_url = ?, is_active = ? WHERE id = ?',
             [validatedTitle, validatedMessage, imageUrl, validatedActive, id]
         );
@@ -114,23 +116,27 @@ export const updateAnnouncement = async (req, res) => {
         }
 
         // 5. 📝 SECURE AUDIT MATRIX WRITER
-        await logAction({
-            req: req,
-            action: 'UPDATE_ANNOUNCEMENT',
-            resource: 'announcements',
-            resourceId: id,
-            details: {
-                message: `Admin modified parameters for broadcast channel matching ID #${id}.`,
-                title: validatedTitle,
-                updated_at: new Date(),
-                updated_fields: { title: validatedTitle, message: validatedMessage, is_active: validatedActive, image_url: imageUrl }
-            }
-        });
+        try {
+            await logAction({
+                req: req,
+                action: 'UPDATE_ANNOUNCEMENT',
+                resource: 'announcements',
+                resourceId: id,
+                details: {
+                    message: `Admin modified parameters for broadcast channel matching ID #${id}.`,
+                    title: validatedTitle,
+                    updated_at: new Date(),
+                    updated_fields: { title: validatedTitle, message: validatedMessage, is_active: validatedActive, image_url: imageUrl }
+                }
+            });
+        } catch (auditError) {
+            console.error("⚠️ Audit Log Writer caught an internal error:", auditError.message);
+        }
 
-        res.json({ message: "Announcement updated successfully" });
+        return res.json({ message: "Announcement updated successfully" });
     } catch (error) {
         console.error("SQL/Audit Error:", error); 
-        res.status(500).json({ message: "Update transaction sequence error", error: error.message });
+        return res.status(500).json({ message: "Update transaction sequence error", error: error.message });
     }
 };
 
@@ -139,29 +145,34 @@ export const deleteAnnouncement = async (req, res) => {
     const { id } = req.params;
     try {
         // 1. Grab announcement title parameters before full deletion for descriptive metadata logging context
-        const [rows] = await db.promise().execute('SELECT title FROM announcements WHERE id = ?', [id]);
+        const [rows] = await db.execute('SELECT title FROM announcements WHERE id = ?', [id]);
         
         if (rows.length === 0) return res.status(404).json({ message: "Target announcement row structure does not exist" });
         
         const announcementTitle = rows[0].title || 'Unknown Broadcast';
 
         // 2. Perform target row erasure sequence
-        await db.promise().execute('DELETE FROM announcements WHERE id = ?', [id]);
+        await db.execute('DELETE FROM announcements WHERE id = ?', [id]);
 
         // 3. 📝 AUDIT MATRIX: Write permanent records into storage tracking logs
-        await logAction({
-            req: req,
-            action: 'DELETE_ANNOUNCEMENT',
-            resource: 'announcements',
-            resourceId: id,
-            details: {
-                message: `Permanently removed announcement: "${announcementTitle}"`,
-                deleted_resource_title: announcementTitle
-            }
-        });
+        try {
+            await logAction({
+                req: req,
+                action: 'DELETE_ANNOUNCEMENT',
+                resource: 'announcements',
+                resourceId: id,
+                details: {
+                    message: `Permanently removed announcement: "${announcementTitle}"`,
+                    deleted_resource_title: announcementTitle
+                }
+            });
+        } catch (auditError) {
+            console.error("⚠️ Audit Log Writer caught an internal error:", auditError.message);
+        }
 
-        res.json({ message: "Deleted successfully" });
+        return res.json({ message: "Deleted successfully" });
     } catch (error) {
-        res.status(500).json({ message: "Delete sequence pipeline error", error: error.message });
+        console.error("❌ Error deleting announcement:", error);
+        return res.status(500).json({ message: "Delete sequence pipeline error", error: error.message });
     }
 };
