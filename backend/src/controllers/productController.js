@@ -66,18 +66,19 @@ export const addProduct = async (req, res) => {
 
         // ─── 📡 LIVE STREAM BROADCAST TRIGGER ────────────────────────────────
         try {
-            // Updated parameters to match your new notificationController signature (title, message, type)
+            // Pass req.io into the 4th parameter position so the notifier can dual-cast over SSE & WebSockets!
             await broadcastNotification(
                 "New Catalog Addition! 🎁",
                 `A fresh product "${name}" was added to ${category}!`,
-                "product"
+                "product",
+                req.io
             );
         } catch (broadcastErr) {
-            console.error("Non-blocking SSE notification stream broadcast failure on addProduct:", broadcastErr);
+            console.error("Notification stream broadcast failure on addProduct:", broadcastErr);
         }
         // ────────────────────────────────────────────────────────────────────
 
-        // ─── 📢 WEBOSCKET REAL-TIME BROADCAST (OrderClick V2 Sync) ──────────
+        // ─── 📢 WEBSOCKET REAL-TIME BROADCAST (OrderClick V2 Sync) ──────────
         try {
             if (req.io) {
                 const newProduct = {
