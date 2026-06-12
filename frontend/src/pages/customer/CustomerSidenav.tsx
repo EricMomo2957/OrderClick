@@ -18,7 +18,7 @@ interface SystemNotification {
   created_at: string;
 }
 
-// Instantiate socket connection (Adjust URI port mapping matching your backend environment)
+// Instantiate socket connection (Adjust port mapping matching your backend environment)
 const socket = io('http://localhost:5000', {
   withCredentials: true
 });
@@ -32,17 +32,21 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
   useEffect(() => {
     console.log("🚀 Real-time Synchronization Pipeline Hook Initialized!");
 
-    // 1. Fetch old history on mount
+    // 1. Fetch historical data from DB log on mount
     const fetchHistory = async () => {
       try {
         console.log("🔄 Requesting history from backend...");
         const response = await fetch('http://localhost:5000/api/notifications/history', {
           credentials: 'include'
         });
-        console.log("Response status:", response.status);
+        
         if (response.ok) {
           const historyData = await response.json();
-          if (Array.isArray(historyData)) setNotifications(historyData);
+          if (Array.isArray(historyData)) {
+            setNotifications(historyData);
+            // Set unread count to the number of loaded historical items so the badge lights up!
+            setUnreadCount(historyData.length);
+          }
         }
       } catch (err) {
         console.error("Could not load historical alerts context:", err);
@@ -51,7 +55,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
 
     fetchHistory();
 
-    // 2. Open Live Stream Pipe via SSE (For standard server-sent alerts)
+    // 2. Open Live Stream Pipe via SSE
     console.log("📡 Attaching EventSource stream wrapper...");
     const eventSource = new EventSource('http://localhost:5000/api/notifications/stream', {
       withCredentials: true
@@ -81,7 +85,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
       console.error("SSE connection dropped. Attempting automated reconnect...");
     };
 
-    // 3. Listen to Real-time WebSocket Channel (For instantaneous product additions)
+    // 3. Listen to Real-time WebSocket Channel (For active live triggers)
     const handleNewProductSocketEvent = (data: any) => {
       console.log("🎁 Live WebSocket Catalog Broadcast Received:", data);
       
@@ -99,7 +103,6 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
 
     socket.on('new_product_notification', handleNewProductSocketEvent);
 
-    // Clean up handlers and instances on unmount to prevent duplicate stream listeners
     return () => {
       console.log("🔌 Cleaning up communication pipeline instances on unmount.");
       eventSource.close();
@@ -109,7 +112,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
 
   const handleToggleDropdown = () => {
     setShowDropdown(!showDropdown);
-    if (!showDropdown) setUnreadCount(0);
+    if (!showDropdown) setUnreadCount(0); // Clear counter badge when opened
   };
 
   return (
@@ -179,7 +182,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
           )}
         </div>
 
-        {/* Navigation Menu */}
+        {/* Rest of Navigation Elements */}
         <nav 
           className="flex-1 space-y-2 overflow-y-auto pr-1" 
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -217,7 +220,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
           })}
         </nav>
 
-        {/* Feature Card */}
+        {/* Premium Badge Card */}
         <div className="mb-6 p-4 bg-white/5 rounded-[1.5rem] border border-white/10 mt-4">
           <div className="flex items-center gap-2 mb-2 text-teal-300">
             <Sparkles size={14} />
@@ -228,7 +231,7 @@ const CustomerSidenav = ({ activeTab, setActiveTab, onLogout }: SidebarProps) =>
           </p>
         </div>
 
-        {/* Sign Out Footer */}
+        {/* Sign Out Footer Block */}
         <div className="pt-2 border-t border-white/10">
           <button 
             onClick={() => setShowConfirm(true)} 
