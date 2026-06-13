@@ -1,6 +1,7 @@
 // BACKEND/src/controllers/announcementController.js
 import db from '../config/db.js';
 import { logAction } from '../utils/logger.js'; // Import the unified audit utility
+import { broadcastNotification } from './notificationController.js'; // 👈 IMPORT THE NOTIFICATION HELPER
 
 // 1. Get Latest Announcement
 export const getLatest = async (req, res) => {
@@ -45,8 +46,17 @@ export const createAnnouncement = async (req, res) => {
 
         const announcementId = result.insertId;
 
-        // Live Broadcast Delivery
-        const io = req.app.get('socketio');
+        // 👈 DUAL-CAST PIPELINE VIA BROADCAST UTILITY
+        // This logs it to `system_notifications` and fires it via active SSE and WebSockets instantly!
+        const io = req.app.get('socketio') || req.io;
+        await broadcastNotification(
+            `New Announcement: ${title} 📢`,
+            finalMessage,
+            'announcement',
+            io
+        );
+
+        // Standard WebSocket Emit Channel Update specifically for your separate legacy announcement hooks
         if (io) {
             io.emit('new_announcement', {
                 id: announcementId,
@@ -104,7 +114,7 @@ export const updateAnnouncement = async (req, res) => {
         );
 
         // 4. WebSocket Emit Channel Update
-        const io = req.app.get('socketio');
+        const io = req.app.get('socketio') || req.io;
         if (io) {
             io.emit('new_announcement', {
                 id: id,
