@@ -2,8 +2,12 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Calendar as CalendarIcon, MapPin, X, Loader2, AlertCircle, LayoutGrid, CalendarDays } from 'lucide-react';
 import Calendar from 'react-calendar';
+import { io } from 'socket.io-client';
 import 'react-calendar/dist/Calendar.css';
 import './calendar-custom.css';
+
+// Initialize socket outside component to prevent multiple connections on re-render
+const socket = io('http://localhost:5000');
 
 interface Event {
   id: number;
@@ -28,6 +32,7 @@ const AdminEvent = () => {
     location: ''
   });
 
+  // 1. Initial REST API Data Pull Engine
   const fetchEvents = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -54,7 +59,45 @@ const AdminEvent = () => {
     }
   };
 
-  useEffect(() => { fetchEvents(); }, []);
+  // Run initial state load once on mount
+  useEffect(() => { 
+    fetchEvents(); 
+  }, []);
+
+  // 2. Real-Time Socket Stream Synced to State with Ghost Protection
+  useEffect(() => {
+    const handleNewEvent = (newEvent: Event) => {
+      setEvents((prevEvents) => {
+        // Strict guard clause: Check if event already exists inside current UI array matrix
+        if (prevEvents.some(event => event.id === newEvent.id)) {
+          return prevEvents; 
+        }
+        return [newEvent, ...prevEvents];
+      });
+    };
+
+    const handleUpdatedEvent = (updatedEvent: Event) => {
+      setEvents((prevEvents) =>
+        prevEvents.map(event => event.id === updatedEvent.id ? updatedEvent : event)
+      );
+    };
+
+    const handleDeletedEvent = ({ id }: { id: number }) => {
+      setEvents((prevEvents) => prevEvents.filter(event => event.id !== id));
+    };
+
+    // WebSocket Stream Bindings
+    socket.on('new_event', handleNewEvent);
+    socket.on('update_event', handleUpdatedEvent);
+    socket.on('delete_event', handleDeletedEvent);
+
+    // 💡 CRITICAL: Clean up and unbind listeners on unmount to completely kill duplicated ghosts
+    return () => {
+      socket.off('new_event', handleNewEvent);
+      socket.off('update_event', handleUpdatedEvent);
+      socket.off('delete_event', handleDeletedEvent);
+    };
+  }, []);
 
   const getTileClassName = ({ date, view }: { date: Date, view: string }) => {
     if (view === 'month') {
@@ -83,6 +126,7 @@ const AdminEvent = () => {
       });
 
       if (response.ok) {
+        // Fallback catch-up sync if websockets take milliseconds to arrive
         fetchEvents();
         closeModal();
       } else {
@@ -254,6 +298,7 @@ const AdminEvent = () => {
             <tbody className="divide-y divide-slate-50 text-xs font-medium text-slate-700">
               {events.length > 0 ? (
                 events.map((event) => (
+                  // ✅ Fixed Key mapping assignment binds completely onto structural primary database IDs
                   <tr key={event.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="p-5 px-8 max-w-sm">
                       <p className="font-bold text-slate-800 uppercase tracking-wide truncate">{event.title}</p>
