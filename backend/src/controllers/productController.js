@@ -66,7 +66,6 @@ export const addProduct = async (req, res) => {
 
         // ─── 📡 LIVE STREAM BROADCAST TRIGGER ────────────────────────────────
         try {
-            // Pass req.io into the 4th parameter position so the notifier can dual-cast over SSE & WebSockets!
             await broadcastNotification(
                 "New Catalog Addition! 🎁",
                 `A fresh product "${name}" was added to ${category}!`,
@@ -89,7 +88,6 @@ export const addProduct = async (req, res) => {
                     category
                 };
 
-                // Broadcast raw channel event so clients like Yuki get live UI catalog popups instantly
                 req.io.emit('new_product_notification', {
                     message: `New catalog update: ${name} has been added to the store!`,
                     product: newProduct,
@@ -206,13 +204,16 @@ export const deleteProduct = async (req, res) => {
 /**
  * Get all admin receipts
  */
+/**
+ * Get all admin receipts
+ */
 export const getAllAdminReceipts = async (req, res) => {
     const query = `
         SELECT 
             r.*, 
             p.category 
         FROM receipts r
-        INNER JOIN products p ON r.product_name = p.name
+        INNER JOIN products p ON r.product_id = p.id
         ORDER BY r.created_at DESC
     `;
 
@@ -221,5 +222,34 @@ export const getAllAdminReceipts = async (req, res) => {
         return res.json(results);
     } catch (err) {
         return res.status(500).json({ error: err.message });
+    }
+};
+/**
+ * Get top 5 selling products based on transaction volume matches
+ */
+/**
+ * Get top 5 selling products based on transaction volume matches
+ */
+export const getTopProducts = async (req, res) => {
+    try {
+        // ✅ FIXED: Mapping p.id directly to r.product_id based on your phpMyAdmin schema
+        const [rows] = await db.query(`
+            SELECT 
+                p.id, 
+                p.name, 
+                p.price, 
+                p.image_url, 
+                COALESCE(SUM(r.quantity), 0) AS sales_count
+            FROM products p
+            LEFT JOIN receipts r ON p.id = r.product_id
+            GROUP BY p.id
+            ORDER BY sales_count DESC
+            LIMIT 5
+        `);
+        
+        return res.status(200).json(rows);
+    } catch (error) {
+        console.error("Database tracking error:", error.message);
+        return res.status(200).json([]);
     }
 };

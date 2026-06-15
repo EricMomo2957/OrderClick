@@ -31,6 +31,10 @@ const upload = multer({
 // Public route for viewing products (Customers & Admins can access)
 router.get('/', productController.getAllProducts);
 
+// 📊 REAL-TIME METRICS: Publicly accessible endpoint for calculating sales ranks on the dashboard
+// This creates the final endpoint matching: /api/products/top-products
+router.get('/top-products', productController.getTopProducts);
+
 // Protected administrative actions for mutating inventory records
 router.post('/add', verifyToken, isAdmin, upload.single('image'), productController.addProduct);
 

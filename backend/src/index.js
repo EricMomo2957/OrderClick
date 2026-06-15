@@ -17,7 +17,7 @@ import eventRoutes from './routes/eventRoutes.js';
 import announcementRoutes from './routes/announcementRoutes.js'; 
 import adminRoutes from './routes/adminRoutes.js'; // Unified Administrative & Audit Tracking Routes
 import documentRoutes from './routes/documentRoutes.js'; // Document Upload & Management Routes (ES Module Import)
-import notificationRoutes from './routes/notificationRoutes.js'; // 👈 1. INTEGRATED ROUTE IMPORT
+import notificationRoutes from './routes/notificationRoutes.js'; // INTEGRATED ROUTE IMPORT
 
 dotenv.config();
 
@@ -85,7 +85,7 @@ const io = new Server(httpServer, {
   }
 });
 
-// 👈 2. CRITICAL MIDDLEWARE: Attach Socket.io instance to every request context
+// CRITICAL MIDDLEWARE: Attach Socket.io instance to every request context
 app.use((req, res, next) => {
   req.io = io; 
   next();
@@ -106,10 +106,15 @@ io.on('connection', (socket) => {
 // --- 5. ROUTES SETUP ---
 app.use('/api/auth', authRoutes); 
 app.use('/api/products', productRoutes);
+
+// 🛠️ FALLBACK ROUTE INTERCEPTOR FOR DASHBOARD TOP PRODUCTS
+// Redirects /api/products/admin/top-products directly into the admin router pipeline to resolve the 404 error
+app.use('/api/products/admin', adminRoutes);
+
 app.use('/api/orders', orderRoutes);
 app.use('/api/events', eventRoutes); 
 app.use('/api/announcements', announcementRoutes); 
-app.use('/api/notifications', notificationRoutes); // 👈 3. MOUNTED NOTIFICATION SYSTEM ROUTES
+app.use('/api/notifications', notificationRoutes); // MOUNTED NOTIFICATION SYSTEM ROUTES
 
 // Document Management Base Route Pipeline Setup
 app.use('/api/documents', documentRoutes); 
