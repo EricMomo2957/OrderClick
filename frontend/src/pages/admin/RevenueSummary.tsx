@@ -40,7 +40,7 @@ const RevenueSummary = () => {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-3 md:grid-cols-10 gap-6 mb-8">
       {cards.map((card, idx) => (
         <div key={idx} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-all">
           <div className="flex justify-between items-start mb-4">
