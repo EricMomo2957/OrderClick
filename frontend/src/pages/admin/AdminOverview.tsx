@@ -6,7 +6,6 @@ import {
 import { AlertTriangle, ArrowRight, PackageX } from 'lucide-react';
 import RevenueSummary from './RevenueSummary';
 import RecentOrders from './RecentOrders';
-import TopProducts from './TopProducts';
 
 interface AdminOverviewProps {
     setActiveTab: Dispatch<SetStateAction<string>>;
@@ -22,54 +21,56 @@ const AdminOverview = ({ setActiveTab }: AdminOverviewProps) => {
         revenue: 0,
         receipts: 0,
         products: 0,
-        lowStock: 0 // True low stock count (1 to 5) directly from backend
+        lowStock: 0 
     });
-    const [outOfStockCount, setOutOfStockCount] = useState(0); // True out of stock count (exactly 0)
+    const [outOfStockCount, setOutOfStockCount] = useState(0); 
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            const token = localStorage.getItem('token');
-            try {
-                // 1. Fetch Summary Stats (which now includes the proper database query for true low stock)
-                const statsRes = await fetch('http://localhost:5000/api/admin/stats', {
-                    headers: { 
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                // 2. Fetch raw products to isolate exact 0 stock counts
-                const productsRes = await fetch('http://localhost:5000/api/products');
-                
-                if (statsRes.ok && productsRes.ok) {
-                    const statsData = await statsRes.json();
-                    const productsData: Product[] = await productsRes.json();
-                    
-                    // Count products whose stock is exactly 0
-                    const emptyStock = productsData.filter(p => p.stock === 0).length;
-                    
-                    setStats({
-                        revenue: statsData.revenue,
-                        receipts: statsData.receipts,
-                        products: statsData.products,
-                        lowStock: statsData.lowStock // Mapping directly to the updated backend value
-                    });
-                    setOutOfStockCount(emptyStock);
+    const fetchDashboardData = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const statsRes = await fetch('http://localhost:5000/api/admin/stats', {
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
-            } catch (error) {
-                console.error("Fetch error:", error);
-            } finally {
-                setLoading(false);
+            });
+            
+            const productsRes = await fetch('http://localhost:5000/api/products');
+            
+            if (statsRes.ok && productsRes.ok) {
+                const statsData = await statsRes.json();
+                const productsData: Product[] = await productsRes.json();
+                
+                const emptyStock = productsData.filter(p => p.stock === 0).length;
+                
+                setStats({
+                    revenue: statsData.revenue,
+                    receipts: statsData.receipts,
+                    products: statsData.products,
+                    lowStock: statsData.lowStock
+                });
+                setOutOfStockCount(emptyStock);
             }
-        };
+        } catch (error) {
+            console.error("Fetch error:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchDashboardData();
+
+        const syncInterval = setInterval(() => {
+            fetchDashboardData();
+        }, 10000);
+
+        return () => clearInterval(syncInterval);
     }, []);
 
-    // Total items requiring attention (either empty or low)
     const totalAlertsCount = stats.lowStock + outOfStockCount;
 
-    // Data for Bar Chart: Volume Comparison
     const volumeData = [
         { name: 'Total Receipts', value: stats.receipts, fill: '#fb923c' },
         { name: 'Total Products', value: stats.products, fill: '#2563eb' },
@@ -77,7 +78,6 @@ const AdminOverview = ({ setActiveTab }: AdminOverviewProps) => {
         { name: 'Out of Stock (0)', value: outOfStockCount, fill: '#ef4444' },
     ];
 
-    // Data for Pie Chart: Inventory Health Breakdown
     const inventoryData = [
         { name: 'Healthy Stock', value: Math.max(0, stats.products - (stats.lowStock + outOfStockCount)) },
         { name: 'Low Stock (1-5)', value: stats.lowStock },
@@ -151,12 +151,11 @@ const AdminOverview = ({ setActiveTab }: AdminOverviewProps) => {
                     <p className="text-2xl font-black text-blue-600">{stats.products}</p>
                 </div>
 
-                {/* COMBINED LOW/EMPTY INVENTORY STAT CARD */}
                 <div 
                     onClick={() => setActiveTab('products')} 
                     className={`p-6 rounded-[1.5rem] shadow-sm border cursor-pointer transition-all flex flex-col justify-between min-h-[110px] ${
                         outOfStockCount > 0 
-                        ? 'bg-rose-50/60 border-rose-200 hover:border-rose-500 animate-pulse' 
+                        ? 'bg-rose-50/60 border-rose-200 hover:border-rose-500' 
                         : stats.lowStock > 0 
                         ? 'bg-amber-50/50 border-amber-200 hover:border-amber-500'
                         : 'bg-white border-gray-100 hover:border-red-500'
@@ -222,7 +221,12 @@ const AdminOverview = ({ setActiveTab }: AdminOverviewProps) => {
                                     ))}
                                 </Pie>
                                 <Tooltip />
-                                <Legend verticalAlign="bottom" height={36}/>
+                                <Legend 
+                                    verticalAlign="bottom" 
+                                    iconType="circle" 
+                                    iconSize={8} 
+                                    wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} 
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -232,14 +236,9 @@ const AdminOverview = ({ setActiveTab }: AdminOverviewProps) => {
             {/* Full-Width Revenue Totals Sub-Row */}
             <RevenueSummary />
 
-            {/* Side-by-Side Data Table & Item Conversion Rankings Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                <div className="lg:col-span-2">
-                    <RecentOrders />
-                </div>
-                <div className="h-full">
-                    <TopProducts />
-                </div>
+            {/* Recent Orders Bottom Layout Wrapper */}
+            <div className="w-full">
+                <RecentOrders />
             </div>
         </div>
     );
