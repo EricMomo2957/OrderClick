@@ -6,6 +6,7 @@ import {
 import { AlertTriangle, ArrowRight, PackageX } from 'lucide-react';
 import RevenueSummary from './RevenueSummary';
 import RecentOrders from './RecentOrders';
+import TopProducts from './TopProducts';
 
 interface AdminOverviewProps {
     setActiveTab: Dispatch<SetStateAction<string>>;
@@ -60,8 +61,10 @@ const AdminOverview = ({ setActiveTab }: AdminOverviewProps) => {
     };
 
     useEffect(() => {
+        // Initial Fetch
         fetchDashboardData();
 
+        // Synchronize general dashboard figures every 10 seconds alongside sub-components
         const syncInterval = setInterval(() => {
             fetchDashboardData();
         }, 10000);
@@ -225,7 +228,7 @@ const AdminOverview = ({ setActiveTab }: AdminOverviewProps) => {
                                     verticalAlign="bottom" 
                                     iconType="circle" 
                                     iconSize={8} 
-                                    wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} 
+                                    wrapperStyle={{ fontSize: '12px', marginTop: '10px' }} 
                                 />
                             </PieChart>
                         </ResponsiveContainer>
@@ -236,9 +239,16 @@ const AdminOverview = ({ setActiveTab }: AdminOverviewProps) => {
             {/* Full-Width Revenue Totals Sub-Row */}
             <RevenueSummary />
 
-            {/* Recent Orders Bottom Layout Wrapper */}
-            <div className="w-full">
-                <RecentOrders />
+            {/* FIXED SIDE-BY-SIDE GRID ARCHITECTURE */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                {/* Takes up 2/3 width on wide viewports */}
+                <div className="lg:col-span-2 w-full">
+                    <RecentOrders />
+                </div>
+                {/* Takes up 1/3 width on wide viewports to display real-time leaderboard ranks */}
+                <div className="lg:col-span-1 w-full">
+                    <TopProducts />
+                </div>
             </div>
         </div>
     );
