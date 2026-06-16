@@ -18,6 +18,7 @@ import announcementRoutes from './routes/announcementRoutes.js';
 import adminRoutes from './routes/adminRoutes.js'; // Unified Administrative & Audit Tracking Routes
 import documentRoutes from './routes/documentRoutes.js'; // Document Upload & Management Routes (ES Module Import)
 import notificationRoutes from './routes/notificationRoutes.js'; // INTEGRATED ROUTE IMPORT
+import salesRoutes from './routes/salesRoutes.js'; // Sales transaction management routes
 
 dotenv.config();
 
@@ -124,6 +125,9 @@ app.use('/api/admin', adminRoutes);
 
 // Separated cleanly to keep directory routes modular
 app.use('/api/admin/customers-directory', manageCustomerRoutes); 
+  
+// Sales transaction management routes
+app.use('/api/sales', salesRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: "OrderClick API is running with MySQL and Socket.io WebSockets!" });
