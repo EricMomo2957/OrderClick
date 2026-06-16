@@ -93,7 +93,7 @@ const ManageSale: React.FC = () => {
                             <th className="p-4">Total Value</th>
                             <th className="p-4">Method</th>
                             <th className="p-4">Status</th>
-                            <th className="p-4">Date</th>
+                            <th className="p-4">Date & Time</th>
                             <th className="p-4 text-center">Actions</th>
                         </tr>
                     </thead>
@@ -121,7 +121,25 @@ const ManageSale: React.FC = () => {
                                             {sale.status}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-slate-500">{new Date(sale.created_at).toLocaleDateString()}</td>
+                                    
+                                    {/* ✅ NEW VERSION: Stacked Date & Time */}
+                                    <td className="p-4">
+                                        <div className="font-medium text-slate-800">
+                                            {new Date(sale.created_at).toLocaleDateString(undefined, { 
+                                                month: 'short', 
+                                                day: 'numeric', 
+                                                year: 'numeric' 
+                                            })}
+                                        </div>
+                                        <div className="text-xs text-slate-400 font-mono">
+                                            {new Date(sale.created_at).toLocaleTimeString(undefined, { 
+                                                hour: '2-digit', 
+                                                minute: '2-digit',
+                                                hour12: true 
+                                            })}
+                                        </div>
+                                    </td>
+
                                     <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
                                         {sale.status === 'pending' ? (
                                             <div className="flex items-center justify-center gap-2">
