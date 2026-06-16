@@ -8,7 +8,8 @@ import {
   ShoppingBag,
   Megaphone,
   KeyRound, 
-  MessageSquare
+  MessageSquare,
+  TrendingUp
 } from 'lucide-react';
 
 import AdminOverview from './AdminOverview';
@@ -21,14 +22,16 @@ import FileUploadSample from './FileUploadSample';
 import ManageForgotPassword from './ManageForgotPassword';
 import ManageAuditLogs from './ManageAuditLog';
 import ManageUserDocument from './ManageUserDocument';
-
-// 🚀 NEW: Import your Guest Order management interface
 import ManageGuestOrder from './ManageGuestOrder';
-import ManageMessage from './ManageMessage'; // Import the new message management component
+import ManageMessage from './ManageMessage'; 
+
+// 🚀 NEW: Import your relational Sales Management engine interface
+import ManageSale from './ManageSale'; 
 
 export const ADMIN_MENU = [
   { id: 'dashboard', label: 'Overview', icon: LayoutDashboard, component: AdminOverview },
   { id: 'products', label: 'Inventory', icon: Package, component: ManageProduct },
+  { id: 'sales', label: 'Sales Registry', icon: TrendingUp, component: ManageSale }, // 💸 Added Relational Sales Management
   { id: 'guest-orders', label: 'Outside Orders', icon: ShoppingBag, component: ManageGuestOrder },
   { id: 'receipts', label: 'Orders & Receipts', icon: Receipt, component: ManageReceipt },
   { id: 'customers', label: 'User Directory', icon: Users, component: ManageUser },
