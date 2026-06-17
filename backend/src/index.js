@@ -19,7 +19,6 @@ import adminRoutes from './routes/adminRoutes.js'; // Unified Administrative & A
 import documentRoutes from './routes/documentRoutes.js'; // Document Upload & Management Routes (ES Module Import)
 import notificationRoutes from './routes/notificationRoutes.js'; // INTEGRATED ROUTE IMPORT
 import salesRoutes from './routes/salesRoutes.js'; // Sales transaction management routes
-
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);

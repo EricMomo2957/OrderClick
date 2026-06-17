@@ -3,7 +3,7 @@ import db from '../config/db.js';
 import { logActivity } from '../utils/logger.js';
 
 // ==========================================
-// ---          ORDER PLACEMENT           ---
+// ---        ORDER PLACEMENT             ---
 // ==========================================
 
 /**
@@ -235,7 +235,7 @@ export const placeCheckoutOrder = async (req, res) => {
 };
 
 // ==========================================
-// ---          DATA FETCHING             ---
+// ---            DATA FETCHING           ---
 // ==========================================
 
 /**
@@ -290,30 +290,61 @@ export const getAllReceipts = async (req, res) => {
 // ==========================================
 
 /**
- * UPDATE RECEIPT STATUS
+ * UPDATE RECEIPT STATUS (Polymorphic Cross-Table Sync Edition)
+ */
+/**
+ * UPDATE RECEIPT STATUS (Polymorphic Cross-Table Sync Edition)
  */
 export const updateReceiptStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body; 
     
-    const sql = 'UPDATE receipts SET status = ? WHERE id = ?';
-    try {
-        await db.execute(sql, [status, id]);
+    // 🛡️ Validation guard check matching salesController
+    const validStatuses = ['pending', 'verified', 'rejected'];
+    if (!validStatuses.includes(status)) {
+        return res.status(400).json({ 
+            error: `Invalid status option. Allowed parameters are: ${validStatuses.join(', ')}` 
+        });
+    }
 
+    try {
+        // 1. Update status in the original receipts table
+        const [receiptResult] = await db.execute('UPDATE receipts SET status = ? WHERE id = ?', [status, id]);
+
+        // 2. Cross-Table Update: Sync status to your sales table.
+        // If your sales table uses a string ID layout like "ORD-145", fallback to matching both styles!
+        try {
+            await db.execute(
+                'UPDATE sales SET status = ? WHERE id = ? OR id = ?', 
+                [status, id, `ORD-${id}`]
+            );
+        } catch (salesDbErr) {
+            console.error("Non-blocking cross-table sync failure to sales layout:", salesDbErr.message);
+        }
+
+        // 3. System Activity Audits
         try {
             logActivity({
                 req,
                 action: status === 'verified' ? 'VERIFY_RECEIPT' : 'REJECT_RECEIPT',
                 resource: 'receipts',
                 resourceId: id,
-                details: `Admin processed receipt for order #${id} as ${status}.`
+                details: `Admin processed transaction invoice #${id} as ${status}.`
             });
         } catch (logErr) {
             console.error("Non-blocking status update activity logging error:", logErr);
         }
 
-        return res.json({ message: `Order ${status} successfully` });
+        // 4. Real-Time WS Socket Push (Synchronizes both frontend pages dynamically without manual reload)
+        if (req.io) {
+            req.io.emit('sales_status_updated', { id: Number(id), status });
+            // Also emit a secondary event in case the client matches string-based IDs
+            req.io.emit('sales_status_updated', { id: `ORD-${id}`, status });
+        }
+
+        return res.json({ success: true, message: `Order and Sales registry status synced to ${status} successfully.` });
     } catch (err) {
+        console.error("Critical failure during transaction validation routine:", err.message);
         return res.status(500).json({ error: err.message });
     }
 };
