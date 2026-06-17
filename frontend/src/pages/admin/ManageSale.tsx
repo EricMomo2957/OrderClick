@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 // 🔌 Import your existing socket client instance here. 
-// Adjust the import path below according to your project's directory tree setup:
 import { io } from 'socket.io-client';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // If you already have a global socket setup, replace this with your shared instance import
 const socket = io('http://localhost:5000'); 
@@ -22,7 +23,6 @@ interface Sale {
     reference_number: string | null;
     status: 'pending' | 'verified' | 'rejected';
     created_at: string;
-    // Updated properties matching the dynamic backend formatting fields
     customer_name: string | null;
     customer_email: string | null;
     items: SaleItem[];
@@ -32,24 +32,28 @@ const ManageSale: React.FC = () => {
     const [sales, setSales] = useState<Sale[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [expandedSaleId, setExpandedSaleId] = useState<number | null>(null);
+    
+    // 🔍 Search and Filtering States
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [isExporting, setIsExporting] = useState<boolean>(false);
 
     // Fetch transactions from the sales base endpoint on component mount
     const fetchSales = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/sales', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            if (response.ok) {
-                setSales(data);
-            }
-        } catch (error) {
-            console.error("Error communicating with sales API:", error);
-        } finally {
-            setLoading(false);
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:5000/api/sales', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (response.ok) {
+            setSales(data);
         }
-    };
+    } catch (error) {
+        console.error("Error communicating with sales API:", error);
+    } finally {
+        setLoading(false); // 💡 Fixed: accurately invoking the state modifier function
+    }
+};
 
     // 1. Initial Data Load Fetching Hook
     useEffect(() => {
@@ -58,7 +62,6 @@ const ManageSale: React.FC = () => {
 
     // 2. Real-Time Socket Connection WS Listener Pipeline Hook
     useEffect(() => {
-        // Listen for real-time status updates from the backend
         socket.on('sales_status_updated', (data: { id: number; status: 'pending' | 'verified' | 'rejected' }) => {
             setSales((prevSales) =>
                 prevSales.map((sale) =>
@@ -67,7 +70,6 @@ const ManageSale: React.FC = () => {
             );
         });
 
-        // Cleanup listener stream mappings when unmounting allocation context structures
         return () => {
             socket.off('sales_status_updated');
         };
@@ -94,9 +96,131 @@ const ManageSale: React.FC = () => {
         }
     };
 
+    // 1. INDIVIDUAL INVOICE GENERATION LOGIC (jsPDF Engine Upgrade)
+    const generateInvoicePDF = (sale: Sale) => {
+        const doc = new jsPDF();
+        const date = sale.created_at ? new Date(sale.created_at).toLocaleString() : new Date().toLocaleString();
+        
+        // Brand Header
+        doc.setFontSize(22);
+        doc.setTextColor(0, 74, 128); // Theme palette matching your UI
+        doc.text("ORDERCLICK INVOICE LEGER", 105, 20, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`System Generated Invoice Extract: ${new Date().toLocaleString()}`, 105, 27, { align: 'center' });
+
+        // Transaction Metadata Summary Card
+        doc.setFontSize(11);
+        doc.setTextColor(50);
+        doc.text(`Invoice Reference ID:`, 20, 42);
+        doc.setFont("Helvetica", "bold");
+        doc.text(`#INV-${sale.id}`, 75, 42);
+
+        doc.setFont("Helvetica", "normal");
+        doc.text(`Customer Assignment:`, 20, 50);
+        doc.setFont("Helvetica", "bold");
+        doc.text(`${sale.customer_name || 'Anonymous Buyer'} (${sale.customer_email || 'No Email Registered'})`, 75, 50);
+        
+        doc.setFont("Helvetica", "normal");
+        doc.text(`Timestamp of Purchase:`, 20, 58);
+        doc.text(`${date}`, 75, 58);
+
+        doc.text(`Payment Method Gateway:`, 20, 66);
+        doc.text(`${(sale.payment_method || 'N/A').toUpperCase()}`, 75, 66);
+        
+        doc.text(`Verification Pipeline Status:`, 20, 74);
+        doc.setFont("Helvetica", "bold");
+        doc.text(`${(sale.status || 'PENDING').toUpperCase()}`, 75, 74);
+
+        // Line Items Table Framework Mapping
+        const tableBody = sale.items && sale.items.length > 0 
+            ? sale.items.map((item) => [
+                item.product_name, 
+                `x${item.quantity}`, 
+                `PHP ${Number(item.unit_price * item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+              ])
+            : [
+                ['Checkout Total Consolidated Value Summary', '1 Batch', `PHP ${Number(sale.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`]
+              ];
+
+        autoTable(doc, {
+            startY: 84,
+            head: [['Purchased Product Allocation / Desc', 'Quantity Base', 'Line Total']],
+            body: tableBody,
+            headStyles: { fillColor: [0, 74, 128], fontSize: 10, fontStyle: 'bold' }, 
+            alternateRowStyles: { fillColor: [245, 248, 250] },
+            theme: 'striped',
+            margin: { left: 20, right: 20 }
+        });
+
+        // Trigger safe file download downstream
+        doc.save(`Invoice_INV-${sale.id}.pdf`);
+    };
+
+    // 2. MASTER REGISTRY LEDGER SUMMARY EXPORT
+    const exportSalesSummaryPDF = () => {
+        if (!filteredSales || filteredSales.length === 0) return;
+
+        const doc = new jsPDF();
+        
+        doc.setFontSize(20);
+        doc.setTextColor(0, 74, 128); 
+        doc.text("ORDERCLICK: SALES REGISTRY REPORT", 105, 15, { align: 'center' });
+        
+        doc.setFontSize(9);
+        doc.setTextColor(120);
+        doc.text(`Exported Registry Records: ${filteredSales.length} Entries | Generated on: ${new Date().toLocaleString()}`, 105, 22, { align: 'center' });
+
+        // Build grid structure maps
+        const tableRows = filteredSales.map((sale) => {
+            const saleDate = sale.created_at ? new Date(sale.created_at).toLocaleString() : 'N/A';
+            return [
+                `#INV-${sale.id}`,
+                `${sale.customer_name || 'Anonymous Buyer'}`,
+                `${sale.customer_email || 'N/A'}`,
+                `${(sale.payment_method || 'N/A').toUpperCase()}`,
+                `PHP ${Number(sale.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+                saleDate,
+                `${(sale.status || 'PENDING').toUpperCase()}`
+            ];
+        });
+
+        autoTable(doc, {
+            startY: 30,
+            head: [['Invoice ID', 'Customer Entity', 'Email Address', 'Method', 'Total Value', 'Date & Time', 'Status']],
+            body: tableRows,
+            headStyles: { fillColor: [0, 74, 128], textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+            theme: 'striped',
+            styles: { fontSize: 8.5, cellPadding: 3 },
+            columnStyles: {
+                0: { fontStyle: 'bold' },
+                4: { fontStyle: 'bold', halign: 'right' },
+                6: { fontStyle: 'bold' }
+            },
+            margin: { top: 30 },
+        });
+
+        doc.save("OrderClick_Sales_Master_Ledger.pdf");
+    };
+
     const toggleExpand = (id: number) => {
         setExpandedSaleId(expandedSaleId === id ? null : id);
     };
+
+    // 🔬 Evaluated Reactive Derived Filter Chain
+    const filteredSales = sales.filter(sale => {
+        const matchQuery = searchQuery.toLowerCase().trim();
+        if (!matchQuery) return true;
+
+        const invoiceMatch = `#inv-${sale.id}`.includes(matchQuery) || sale.id.toString().includes(matchQuery);
+        const nameMatch = sale.customer_name?.toLowerCase().includes(matchQuery) || false;
+        const emailMatch = sale.customer_email?.toLowerCase().includes(matchQuery) || false;
+        const methodMatch = sale.payment_method?.toLowerCase().includes(matchQuery) || false;
+
+        return invoiceMatch || nameMatch || emailMatch || methodMatch;
+    });
 
     if (loading) {
         return <div className="p-6 text-center text-slate-500 animate-pulse">Loading Transaction Records...</div>;
@@ -104,11 +228,45 @@ const ManageSale: React.FC = () => {
 
     return (
         <div className="p-6 max-w-7xl mx-auto bg-slate-50 min-h-screen">
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Sales Management</h1>
-                <p className="text-sm text-slate-500">Monitor multi-item checkout invoices and manage verification states.</p>
+            {/* Top Branding Section */}
+            <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Sales Management</h1>
+                    <p className="text-sm text-slate-500">Monitor multi-item checkout invoices and manage verification states.</p>
+                </div>
+                
+                {/* 🔍 Search Input and Export Options */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+                    {/* Master Report Export Hook Button */}
+                    <button
+                        onClick={exportSalesSummaryPDF}
+                        disabled={filteredSales.length === 0}
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z" />
+                        </svg>
+                        Export Summary PDF
+                    </button>
+
+                    <div className="relative w-full sm:w-80">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </span>
+                        <input
+                            type="text"
+                            placeholder="Search Invoice ID, name, email..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm text-slate-700"
+                        />
+                    </div>
+                </div>
             </div>
 
+            {/* Core Table Container */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <table className="w-full text-left border-collapse">
                     <thead>
@@ -119,127 +277,153 @@ const ManageSale: React.FC = () => {
                             <th className="p-4">Method</th>
                             <th className="p-4">Status</th>
                             <th className="p-4">Date & Time</th>
-                            <th className="p-4 text-center">Actions</th>
+                            <th className="p-4 text-right pr-6">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 text-sm text-slate-700">
-                        {sales.map((sale) => (
-                            <React.Fragment key={sale.id}>
-                                <tr className="hover:bg-slate-50/70 transition-colors cursor-pointer" onClick={() => toggleExpand(sale.id)}>
-                                    <td className="p-4 font-mono font-medium text-indigo-600">#INV-{sale.id}</td>
-                                    <td className="p-4">
-                                        {/* Render the dynamically resolved customer metadata fields */}
-                                        <div className="font-medium text-slate-900">{sale.customer_name || 'Anonymous Buyer'}</div>
-                                        <div className="text-xs text-slate-400">{sale.customer_email || 'No Email Registered'}</div>
-                                    </td>
-                                    <td className="p-4 font-semibold text-slate-900">₱{Number(sale.total_amount).toFixed(2)}</td>
-                                    <td className="p-4">
-                                        <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium uppercase">
-                                            {sale.payment_method || 'N/A'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium tracking-wide border uppercase ${
-                                            sale.status === 'verified' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                            sale.status === 'rejected' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                                            'bg-amber-50 text-amber-700 border-amber-200'
-                                        }`}>
-                                            {sale.status}
-                                        </span>
-                                    </td>
-                                    
-                                    <td className="p-4">
-                                        <div className="font-medium text-slate-800">
-                                            {new Date(sale.created_at).toLocaleDateString(undefined, { 
-                                                month: 'short', 
-                                                day: 'numeric', 
-                                                year: 'numeric' 
-                                            })}
-                                        </div>
-                                        <div className="text-xs text-slate-400 font-mono">
-                                            {new Date(sale.created_at).toLocaleTimeString(undefined, { 
-                                                hour: '2-digit', 
-                                                minute: '2-digit',
-                                                hour12: true 
-                                            })}
-                                        </div>
-                                    </td>
-
-                                    <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                                        {sale.status === 'pending' ? (
-                                            <div className="flex items-center justify-center gap-2">
-                                                <button 
-                                                    onClick={() => handleStatusUpdate(sale.id, 'verified')}
-                                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
-                                                >
-                                                    Approve
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleStatusUpdate(sale.id, 'rejected')}
-                                                    className="px-3 py-1.5 bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold rounded-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
-                                                >
-                                                    Reject
-                                                </button>
+                        {filteredSales.length > 0 ? (
+                            filteredSales.map((sale) => (
+                                <React.Fragment key={sale.id}>
+                                    <tr 
+                                        className="hover:bg-slate-50/70 transition-colors cursor-pointer" 
+                                        onClick={() => toggleExpand(sale.id)}
+                                    >
+                                        <td className="p-4 font-mono font-medium text-indigo-600">#INV-{sale.id}</td>
+                                        <td className="p-4">
+                                            <div className="font-medium text-slate-900">{sale.customer_name || 'Anonymous Buyer'}</div>
+                                            <div className="text-xs text-slate-400">{sale.customer_email || 'No Email Registered'}</div>
+                                        </td>
+                                        <td className="p-4 font-semibold text-slate-900">₱{Number(sale.total_amount).toFixed(2)}</td>
+                                        <td className="p-4">
+                                            <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium uppercase">
+                                                {sale.payment_method || 'N/A'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4">
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium tracking-wide border uppercase ${
+                                                sale.status === 'verified' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                sale.status === 'rejected' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                                'bg-amber-50 text-amber-700 border-amber-200'
+                                            }`}>
+                                                {sale.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="font-medium text-slate-800">
+                                                {new Date(sale.created_at).toLocaleDateString(undefined, { 
+                                                    month: 'short', 
+                                                    day: 'numeric', 
+                                                    year: 'numeric' 
+                                                })}
                                             </div>
-                                        ) : (
-                                            <div className="flex items-center justify-center gap-3">
-                                                <span className={`text-xs font-medium italic ${
-                                                    sale.status === 'verified' ? 'text-slate-400' : 'text-rose-400'
-                                                }`}>
-                                                    {sale.status === 'verified' ? 'Settled & Verified' : 'Order Rejected'}
-                                                </span>
+                                            <div className="text-xs text-slate-400 font-mono">
+                                                {new Date(sale.created_at).toLocaleTimeString(undefined, { 
+                                                    hour: '2-digit', 
+                                                    minute: '2-digit',
+                                                    hour12: true 
+                                                })}
+                                            </div>
+                                        </td>
+
+                                        {/* 🛑 STOP PROPAGATION HERE TO KEEP BUTTON CLICKS SEPARATE FROM EXPANDING THE ROW */}
+                                        <td className="p-4 pr-6" onClick={(e) => e.stopPropagation()}>
+                                            <div className="flex items-center justify-end gap-2">
+                                                {/* 📄 Export Individual PDF Invoice Button */}
                                                 <button
-                                                    onClick={() => {
-                                                        if(confirm(`Unlock Invoice #INV-${sale.id} and revert back to pending state?`)) {
-                                                            handleStatusUpdate(sale.id, 'pending');
-                                                        }
-                                                    }}
-                                                    className="text-[11px] text-indigo-500 hover:text-indigo-700 font-medium hover:underline cursor-pointer transition"
+                                                    onClick={() => generateInvoicePDF(sale)}
+                                                    title="Export Invoice to PDF Document"
+                                                    className="p-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 rounded-lg transition-all border border-transparent hover:border-indigo-100"
                                                 >
-                                                    Change
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                                    </svg>
                                                 </button>
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
 
-                                {/* Expandable Line-Items Breakdown Section */}
-                                {expandedSaleId === sale.id && (
-                                    <tr className="bg-slate-50/50">
-                                        <td colSpan={7} className="p-4 bg-slate-50 border-t border-b border-slate-200">
-                                            <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                                                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                                                    Manifest Breakdown for Invoice #INV-{sale.id}
-                                                </h3>
-                                                <div className="divide-y divide-slate-100">
-                                                    {sale.items && sale.items.length > 0 ? (
-                                                        sale.items.map((item) => (
-                                                            <div key={item.id} className="py-2.5 flex justify-between items-center text-xs">
-                                                                <div>
-                                                                    <span className="font-semibold text-slate-800 text-sm">{item.product_name}</span>
-                                                                    <span className="ml-2 px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[10px] font-medium">{item.category}</span>
-                                                                </div>
-                                                                <div className="text-slate-600 font-mono">
-                                                                    {item.quantity} x ₱{Number(item.unit_price || 0).toFixed(2)} = 
-                                                                    <span className="ml-2 font-bold text-slate-900">₱{(item.quantity * (item.unit_price || 0)).toFixed(2)}</span>
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <div className="py-2 text-slate-400 italic text-xs">No product items linked to this transaction record.</div>
-                                                    )}
-                                                </div>
-                                                {sale.reference_number && (
-                                                    <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                                                        <span className="font-bold text-slate-700">Reference Number/MOP Tracers:</span> {sale.reference_number}
+                                                {sale.status === 'pending' ? (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleStatusUpdate(sale.id, 'verified')}
+                                                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all"
+                                                        >
+                                                            Approve
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleStatusUpdate(sale.id, 'rejected')}
+                                                            className="px-3 py-1.5 bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold rounded-lg transition-all"
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-xs font-medium px-2 py-1 rounded bg-slate-100 ${
+                                                            sale.status === 'verified' ? 'text-slate-500' : 'text-rose-500'
+                                                        }`}>
+                                                            {sale.status === 'verified' ? 'Locked' : 'Archived'}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => {
+                                                                if(confirm(`Unlock Invoice #INV-${sale.id} and revert back to pending state?`)) {
+                                                                    handleStatusUpdate(sale.id, 'pending');
+                                                                }
+                                                            }}
+                                                            className="p-1.5 bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 rounded-lg shadow-sm hover:bg-indigo-50/30 transition-all"
+                                                            title="Revert to Pending"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                                            </svg>
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
                                         </td>
                                     </tr>
-                                )}
-                            </React.Fragment>
-                        ))}
+
+                                    {/* Expandable Line-Items Breakdown Section */}
+                                    {expandedSaleId === sale.id && (
+                                        <tr className="bg-slate-50/50">
+                                            <td colSpan={7} className="p-4 bg-slate-50 border-t border-b border-slate-200">
+                                                <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                                                        Manifest Breakdown for Invoice #INV-{sale.id}
+                                                    </h3>
+                                                    <div className="divide-y divide-slate-100">
+                                                        {sale.items && sale.items.length > 0 ? (
+                                                            sale.items.map((item) => (
+                                                                <div key={item.id} className="py-2.5 flex justify-between items-center text-xs">
+                                                                    <div>
+                                                                        <span className="font-semibold text-slate-800 text-sm">{item.product_name}</span>
+                                                                        <span className="ml-2 px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[10px] font-medium">{item.category}</span>
+                                                                    </div>
+                                                                    <div className="text-slate-600 font-mono">
+                                                                        {item.quantity} x ₱{Number(item.unit_price || 0).toFixed(2)} = 
+                                                                        <span className="ml-2 font-bold text-slate-900">₱{(item.quantity * (item.unit_price || 0)).toFixed(2)}</span>
+                                                                    </div>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div className="py-2 text-slate-400 italic text-xs">No product items linked to this transaction record.</div>
+                                                        )}
+                                                    </div>
+                                                    {sale.reference_number && (
+                                                        <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                                                            <span className="font-bold text-slate-700">Reference Number/MOP Tracers:</span> {sale.reference_number}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={7} className="p-8 text-center text-slate-400 italic">
+                                    No records found matching "{searchQuery}"
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
