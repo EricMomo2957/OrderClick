@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-// 🔌 Import your existing socket client instance here. 
+// 🔌 Shared socket client instance connection
 import { io } from 'socket.io-client';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// If you already have a global socket setup, replace this with your shared instance import
 const socket = io('http://localhost:5000'); 
 
 interface SaleItem {
@@ -61,8 +60,9 @@ const ManageSale: React.FC = () => {
         fetchSales();
     }, []);
 
-    // 2. Real-Time Socket Connection WS Listener Pipeline Hook
+    // 2. Real-Time Socket Connection Pipeline Hook
     useEffect(() => {
+        // A. Listen for order updates status updates
         socket.on('sales_status_updated', (data: { id: number; status: 'pending' | 'verified' | 'rejected' }) => {
             setSales((prevSales) =>
                 prevSales.map((sale) =>
@@ -71,8 +71,19 @@ const ManageSale: React.FC = () => {
             );
         });
 
+        // B. FIX: Listen for brand new orders created externally/outside
+        socket.on('new_sale_created', (newSale: Sale) => {
+            setSales((prevSales) => {
+                // Prevent duplicate processing if it accidentally fires twice
+                const exists = prevSales.some(sale => sale.id === newSale.id);
+                if (exists) return prevSales;
+                return [newSale, ...prevSales];
+            });
+        });
+
         return () => {
             socket.off('sales_status_updated');
+            socket.off('new_sale_created');
         };
     }, []);
 
@@ -96,39 +107,6 @@ const ManageSale: React.FC = () => {
             console.error("Fulfillment operational patch update failed:", error);
         }
     };
-
-    // 🔬 Evaluated Reactive Derived Filter Chain (Includes Date Filters)
-    const filteredSales = sales.filter(sale => {
-        // 1. Text Search query filter
-        const matchQuery = searchQuery.toLowerCase().trim();
-        if (matchQuery) {
-            const invoiceMatch = `#inv-${sale.id}`.includes(matchQuery) || sale.id.toString().includes(matchQuery);
-            const nameMatch = sale.customer_name?.toLowerCase().includes(matchQuery) || false;
-            const emailMatch = sale.customer_email?.toLowerCase().includes(matchQuery) || false;
-            const methodMatch = sale.payment_method?.toLowerCase().includes(matchQuery) || false;
-            
-            if (!(invoiceMatch || nameMatch || emailMatch || methodMatch)) return false;
-        }
-
-        // 2. Date Ranges filter tracking
-        if (sale.created_at) {
-            const saleTimestamp = new Date(sale.created_at).getTime();
-            
-            if (startDate) {
-                const start = new Date(startDate);
-                start.setHours(0, 0, 0, 0); // Include start date full day boundary
-                if (saleTimestamp < start.getTime()) return false;
-            }
-            
-            if (endDate) {
-                const end = new Date(endDate);
-                end.setHours(23, 59, 59, 999); // Include end date up to midnight
-                if (saleTimestamp > end.getTime()) return false;
-            }
-        }
-
-        return true;
-    });
 
     // 1. INDIVIDUAL INVOICE GENERATION LOGIC
     const generateInvoicePDF = (sale: Sale) => {
@@ -238,6 +216,39 @@ const ManageSale: React.FC = () => {
         setExpandedSaleId(expandedSaleId === id ? null : id);
     };
 
+    // 🔬 Evaluated Reactive Derived Filter Chain (Includes Date Filters)
+    const filteredSales = sales.filter(sale => {
+        // 1. Text Search query filter
+        const matchQuery = searchQuery.toLowerCase().trim();
+        if (matchQuery) {
+            const invoiceMatch = `#inv-${sale.id}`.includes(matchQuery) || sale.id.toString().includes(matchQuery);
+            const nameMatch = sale.customer_name?.toLowerCase().includes(matchQuery) || false;
+            const emailMatch = sale.customer_email?.toLowerCase().includes(matchQuery) || false;
+            const methodMatch = sale.payment_method?.toLowerCase().includes(matchQuery) || false;
+            
+            if (! (invoiceMatch || nameMatch || emailMatch || methodMatch) ) return false;
+        }
+
+        // 2. Date Ranges filter tracking
+        if (sale.created_at) {
+            const saleTimestamp = new Date(sale.created_at).getTime();
+            
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0); // Include start date full day boundary
+                if (saleTimestamp < start.getTime()) return false;
+            }
+            
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999); // Include end date up to midnight
+                if (saleTimestamp > end.getTime()) return false;
+            }
+        }
+
+        return true;
+    });
+
     // 📊 Operational Metrics Computations based on reactive filtering variables
     const totalSalesRevenue = filteredSales.reduce((acc, sale) => acc + Number(sale.total_amount), 0);
     const totalOrdersCount = filteredSales.length;
@@ -267,7 +278,7 @@ const ManageSale: React.FC = () => {
                     <button
                         onClick={exportSalesSummaryPDF}
                         disabled={filteredSales.length === 0}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50 whitespace-nowrap cursor-pointer"
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50 whitespace-nowrap"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z" />
@@ -314,7 +325,7 @@ const ManageSale: React.FC = () => {
                         />
                     </div>
                 </div>
-                {(startDate || endDate) && (
+                {window && (startDate || endDate) && (
                     <button 
                         onClick={clearDateFilters}
                         className="text-xs font-medium text-rose-600 hover:text-rose-700 underline underline-offset-4 transition-colors cursor-pointer h-9 flex items-center"
@@ -326,17 +337,6 @@ const ManageSale: React.FC = () => {
 
             {/* 📊 Metrics Dashboard Grid Box Layout */}
             <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-800 relative overflow-hidden group">
-                    <div className="absolute right-3 bottom-1 text-slate-100 group-hover:scale-110 transition-transform duration-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-24 h-24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125H3M16.5 9h.008v.008H16.5V9Zm.008 3h.008v.008H16.516V12Zm0 3h.008v.008H16.516V15Z" />
-                        </svg>
-                    </div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-indigo-100">Total Sales Revenue</p>
-                    <h3 className="text-3xl font-bold mt-1 tracking-tight">₱{totalSalesRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-                    <p className="text-[11px] text-indigo-100/80 mt-2">Aggregated metrics matching criteria</p>
-                </div>
-
                 <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-800 relative overflow-hidden group">
                     <div className="absolute right-3 bottom-1 text-slate-100 group-hover:scale-110 transition-transform duration-300">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-24 h-24">
@@ -425,7 +425,7 @@ const ManageSale: React.FC = () => {
                                                 <button
                                                     onClick={() => generateInvoicePDF(sale)}
                                                     title="Export Invoice to PDF Document"
-                                                    className="p-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 rounded-lg transition-all border border-transparent hover:border-indigo-100 cursor-pointer"
+                                                    className="p-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 rounded-lg transition-all border border-transparent hover:border-indigo-100"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -436,13 +436,13 @@ const ManageSale: React.FC = () => {
                                                     <>
                                                         <button 
                                                             onClick={() => handleStatusUpdate(sale.id, 'verified')}
-                                                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all cursor-pointer"
+                                                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all"
                                                         >
                                                             Approve
                                                         </button>
                                                         <button 
                                                             onClick={() => handleStatusUpdate(sale.id, 'rejected')}
-                                                            className="px-3 py-1.5 bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold rounded-lg transition-all cursor-pointer"
+                                                            className="px-3 py-1.5 bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold rounded-lg transition-all"
                                                         >
                                                             Reject
                                                         </button>
@@ -456,11 +456,11 @@ const ManageSale: React.FC = () => {
                                                         </span>
                                                         <button
                                                             onClick={() => {
-                                                                if(window.confirm(`Unlock Invoice #INV-${sale.id} and revert back to pending state?`)) {
+                                                                if(confirm(`Unlock Invoice #INV-${sale.id} and revert back to pending state?`)) {
                                                                     handleStatusUpdate(sale.id, 'pending');
                                                                 }
                                                             }}
-                                                            className="p-1.5 bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 rounded-lg shadow-sm hover:bg-indigo-50/30 transition-all cursor-pointer"
+                                                            className="p-1.5 bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 rounded-lg shadow-sm hover:bg-indigo-50/30 transition-all"
                                                             title="Revert to Pending"
                                                         >
                                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
@@ -513,7 +513,7 @@ const ManageSale: React.FC = () => {
                         ) : (
                             <tr>
                                 <td colSpan={7} className="p-8 text-center text-slate-400 italic">
-                                    No records found matching your filtering parameters.
+                                    No records match the active registry criteria.
                                 </td>
                             </tr>
                         )}
