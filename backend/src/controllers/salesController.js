@@ -4,15 +4,15 @@ import db from '../config/db.js';
 const createSale = async (req, res) => {
     const {
         invoice_number,
-        user_id,         // pass null if guest
-        guest_name,      // pass null if registered user
+        user_id,
+        guest_name,
         guest_email,
         guest_phone,
-        guest_address,   // Aligned perfectly with order schema parameters
+        guest_address, // This comes from the request body
         payment_method,
         status,
         reference_number,
-        items            // Array of items: [{ product_id: 1, quantity: 2 }]
+        items
     } = req.body;
 
     if (!invoice_number || !payment_method || !items || items.length === 0) {
@@ -53,10 +53,10 @@ const createSale = async (req, res) => {
             });
         }
 
-        // FIXED SQL: Changed field column pointer 'location' to 'guest_address'
+        // ✅ FIXED: INSERT now correctly targets the 'location' column
         const [saleResult] = await connection.query(
             `INSERT INTO sales 
-            (invoice_number, user_id, guest_name, guest_email, guest_phone, guest_address, total_amount, payment_method, status, reference_number) 
+            (invoice_number, user_id, guest_name, guest_email, guest_phone, location, total_amount, payment_method, status, reference_number) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [invoice_number, user_id || null, guest_name || null, guest_email || null, guest_phone || null, guest_address || null, totalAmount, payment_method, status || 'PENDING', reference_number || null]
         );
@@ -80,6 +80,7 @@ const createSale = async (req, res) => {
 
     } catch (error) {
         await connection.rollback();
+        console.error("🔴 Checkout Transaction Failure Error Log:", error);
         res.status(500).json({ message: "Transaction failed, database rolled back.", error: error.message });
     } finally {
         connection.release();
@@ -89,8 +90,7 @@ const createSale = async (req, res) => {
 // 2. GET UNIFIED REGISTRY DATA FOR FRONTEND PANELS
 const getAllSales = async (req, res) => {
     try {
-        // FIXED SQL: Selects 'guest_address' as 'location' dynamically 
-        // so that your frontend ManageSale.tsx interface gets exactly what it expects!
+        // ✅ FIXED: Query now uses 'location' column directly
         const query = `
             SELECT 
                 s.id,
@@ -98,7 +98,7 @@ const getAllSales = async (req, res) => {
                 COALESCE(u.fullname, s.guest_name) AS customer_name,
                 COALESCE(u.email, s.guest_email) AS customer_email,
                 s.guest_phone,
-                s.guest_address AS location, 
+                s.location, 
                 s.total_amount,
                 s.payment_method,
                 s.status,
@@ -112,6 +112,7 @@ const getAllSales = async (req, res) => {
         const [sales] = await db.query(query);
         res.status(200).json(sales);
     } catch (error) {
+        console.error("🔴 DATABASE FETCH FAILURE LOG:", error.message);
         res.status(500).json({ message: "Failed to retrieve records.", error: error.message });
     }
 };
