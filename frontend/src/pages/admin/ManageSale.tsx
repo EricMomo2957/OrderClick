@@ -20,6 +20,8 @@ interface SaleTransaction {
 export default function ManageSale() {
   const [sales, setSales] = useState<SaleTransaction[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,20 +29,29 @@ export default function ManageSale() {
   const [expandedSaleId, setExpandedSaleId] = useState<number | string | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<SaleTransaction | null>(null);
 
-  // 1. SEARCH FILTERING LOGIC
-  const filteredSales = sales.filter((sale) => 
-    sale.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sale.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 1. UPDATED FILTERING LOGIC (Text + Date)
+  const filteredSales = sales.filter((sale) => {
+    const matchesSearch = 
+      sale.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sale.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const saleDate = new Date(sale.created_at).setHours(0, 0, 0, 0);
+    const start = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
+    const end = endDate ? new Date(endDate).setHours(0, 0, 0, 0) : null;
+    
+    const matchesDate = 
+      (!start || saleDate >= start) && 
+      (!end || saleDate <= end);
+      
+    return matchesSearch && matchesDate;
+  });
 
   // 2. FETCH DATA
   const fetchSalesRecords = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('http://localhost:5000/api/sales/all', {
-        withCredentials: true
-      });
+      const response = await axios.get('http://localhost:5000/api/sales/all', { withCredentials: true });
       setSales(response.data);
     } catch (err: any) {
       console.error("Error retrieving sales data:", err);
@@ -73,10 +84,7 @@ export default function ManageSale() {
   };
 
   const formatCurrency = (amount: number | string) => {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP'
-    }).format(Number(amount));
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(amount));
   };
 
   const formatDateTime = (isoString: string) => {
@@ -92,32 +100,42 @@ export default function ManageSale() {
 
   return (
     <div className="p-6 bg-slate-50 min-h-screen">
-      
-      {/* Metrics Header */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-800">
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Average Order Size</p>
           <h3 className="text-3xl font-bold text-slate-800 mt-1">
-            {formatCurrency(sales.reduce((acc, curr) => acc + Number(curr.total_amount), 0) / (sales.length || 1))}
+            {formatCurrency(filteredSales.reduce((acc, curr) => acc + Number(curr.total_amount), 0) / (filteredSales.length || 1))}
           </h3>
         </div>
       </div>
 
-      {/* Search and Export */}
-      <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
-        <input 
-          type="text"
-          placeholder="Search by Invoice or Customer..."
-          className="p-3 border border-slate-200 rounded-xl w-full md:w-1/3 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <button 
-          onClick={exportToPDF}
-          className="px-6 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition-colors font-medium shadow-sm"
-        >
-          📄 Export PDF
-        </button>
+      {/* SEARCH, DATE FILTERS, AND EXPORT */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          <input 
+            type="text"
+            placeholder="Search by Invoice or Customer..."
+            className="p-3 border border-slate-200 rounded-xl w-full md:w-1/3 shadow-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <input 
+            type="date"
+            className="p-3 border border-slate-200 rounded-xl w-full md:w-40"
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <input 
+            type="date"
+            className="p-3 border border-slate-200 rounded-xl w-full md:w-40"
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+          <button 
+            onClick={exportToPDF}
+            className="px-6 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition-colors font-medium ml-auto"
+          >
+            📄 Export PDF
+          </button>
+        </div>
       </div>
 
       {selectedTransaction && (
