@@ -291,15 +291,12 @@ export const getAllReceipts = async (req, res) => {
 
 /**
  * UPDATE RECEIPT STATUS (Polymorphic Cross-Table Sync Edition)
- */
-/**
- * UPDATE RECEIPT STATUS (Polymorphic Cross-Table Sync Edition)
+ * Fixed to align perfectly with auto-incrementing IDs and explicit invoice matching.
  */
 export const updateReceiptStatus = async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.params; // The receipt ID from client request
     const { status } = req.body; 
     
-    // 🛡️ Validation guard check matching salesController
     const validStatuses = ['pending', 'verified', 'rejected'];
     if (!validStatuses.includes(status)) {
         return res.status(400).json({ 
@@ -308,21 +305,69 @@ export const updateReceiptStatus = async (req, res) => {
     }
 
     try {
-        // 1. Update status in the original receipts table
-        const [receiptResult] = await db.execute('UPDATE receipts SET status = ? WHERE id = ?', [status, id]);
+        // 1. Update status in the baseline receipts table
+        await db.execute('UPDATE receipts SET status = ? WHERE id = ?', [status, id]);
 
-        // 2. Cross-Table Update: Sync status to your sales table.
-        // If your sales table uses a string ID layout like "ORD-145", fallback to matching both styles!
+        // 2. FETCH THE UPDATED RECEIPT ROW DATA
+        const [receiptRows] = await db.execute('SELECT * FROM receipts WHERE id = ?', [id]);
+        if (receiptRows.length > 0 && status === 'verified') {
+            const receipt = receiptRows[0];
+            
+            // Build a clean invoice number layout matching your string design
+            const generatedInvoiceNumber = `INV-${id}`;
+
+            // Check if this sale already exists in the sales table via invoice sequence to prevent duplication
+            const [existingSale] = await db.execute('SELECT * FROM sales WHERE invoice_number = ?', [generatedInvoiceNumber]);
+            
+            if (existingSale.length === 0) {
+                // FIXED SQL: We let 'id' auto-increment naturally and explicitly include 'invoice_number'
+                const insertSaleSql = `
+                    INSERT INTO sales 
+                    (invoice_number, user_id, total_amount, payment_method, reference_number, status, guest_name, guest_phone, guest_email, guest_address)
+                    VALUES (?, ?, ?, ?, ?, 'verified', ?, ?, ?, ?)
+                `;
+                
+                const [saleResult] = await db.execute(insertSaleSql, [
+                    generatedInvoiceNumber,
+                    receipt.user_id, // Stays null perfectly if guest
+                    receipt.total_price,
+                    receipt.payment_method,
+                    receipt.reference_number,
+                    receipt.guest_name,
+                    receipt.guest_phone,
+                    receipt.guest_email,
+                    receipt.guest_address
+                ]);
+
+                const newSaleId = saleResult.insertId;
+
+                // Insert breakdown row matching structural types
+                const insertItemSql = `
+                    INSERT INTO sale_items (sale_id, product_id, quantity, unit_price)
+                    VALUES (?, ?, ?, ?)
+                `;
+                const unitPrice = receipt.quantity > 0 ? (receipt.total_price / receipt.quantity) : receipt.total_price;
+                
+                await db.execute(insertItemSql, [
+                    newSaleId,
+                    receipt.product_id,
+                    receipt.quantity,
+                    unitPrice
+                ]);
+            }
+        }
+
+        // 3. Keep backwards status updates stable using structural safe matching checks
         try {
             await db.execute(
-                'UPDATE sales SET status = ? WHERE id = ? OR id = ?', 
-                [status, id, `ORD-${id}`]
+                'UPDATE sales SET status = ? WHERE invoice_number = ?', 
+                [status, `INV-${id}`]
             );
         } catch (salesDbErr) {
             console.error("Non-blocking cross-table sync failure to sales layout:", salesDbErr.message);
         }
 
-        // 3. System Activity Audits
+        // 4. System Activity Audits log
         try {
             logActivity({
                 req,
@@ -335,11 +380,10 @@ export const updateReceiptStatus = async (req, res) => {
             console.error("Non-blocking status update activity logging error:", logErr);
         }
 
-        // 4. Real-Time WS Socket Push (Synchronizes both frontend pages dynamically without manual reload)
+        // 5. Real-Time WS Socket Push notification broadcasts
         if (req.io) {
             req.io.emit('sales_status_updated', { id: Number(id), status });
-            // Also emit a secondary event in case the client matches string-based IDs
-            req.io.emit('sales_status_updated', { id: `ORD-${id}`, status });
+            req.io.emit('sales_status_updated', { invoice_number: `INV-${id}`, status });
         }
 
         return res.json({ success: true, message: `Order and Sales registry status synced to ${status} successfully.` });
