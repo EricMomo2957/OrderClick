@@ -1,9 +1,9 @@
 import express from 'express';
-import { createSale, getAllSales } from '../controllers/salesController.js'; // Mapped with the 's'
+import { createSale, getAllSales } from '../controllers/salesController.js';
 
 const router = express.Router();
 
-router.post('/create', createSale);
 router.get('/all', getAllSales);
+router.post('/create', createSale);
 
 export default router;

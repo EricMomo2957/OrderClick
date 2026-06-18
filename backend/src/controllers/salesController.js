@@ -8,7 +8,7 @@ const createSale = async (req, res) => {
         guest_name,
         guest_email,
         guest_phone,
-        guest_address, // This comes from the request body
+        guest_address, 
         payment_method,
         status,
         reference_number,
@@ -53,7 +53,6 @@ const createSale = async (req, res) => {
             });
         }
 
-        // ✅ FIXED: INSERT now correctly targets the 'location' column
         const [saleResult] = await connection.query(
             `INSERT INTO sales 
             (invoice_number, user_id, guest_name, guest_email, guest_phone, location, total_amount, payment_method, status, reference_number) 
@@ -88,25 +87,28 @@ const createSale = async (req, res) => {
 };
 
 // 2. GET UNIFIED REGISTRY DATA FOR FRONTEND PANELS
+// ... (Your code remains the same)
+
+// 2. GET UNIFIED REGISTRY DATA FOR FRONTEND PANELS
+// In salesController.js
 const getAllSales = async (req, res) => {
     try {
-        // ✅ FIXED: Query now uses 'location' column directly
         const query = `
             SELECT 
-                s.id,
-                s.invoice_number,
-                COALESCE(u.fullname, s.guest_name) AS customer_name,
-                COALESCE(u.email, s.guest_email) AS customer_email,
-                s.guest_phone,
-                s.location, 
-                s.total_amount,
-                s.payment_method,
-                s.status,
-                s.reference_number,
-                s.created_at
-            FROM sales s
-            LEFT JOIN users u ON s.user_id = u.id
-            ORDER BY s.created_at DESC;
+                r.id,
+                CONCAT('INV-', r.id) AS invoice_number,
+                COALESCE(u.fullname, r.guest_name) AS customer_name,
+                COALESCE(u.email, r.guest_email) AS customer_email,
+                r.guest_phone,
+                r.guest_address AS location, 
+                r.total_price AS total_amount,
+                r.payment_method,
+                r.status,
+                r.reference_number,
+                r.created_at
+            FROM receipts r
+            LEFT JOIN users u ON r.user_id = u.id
+            ORDER BY r.created_at DESC;
         `;
         
         const [sales] = await db.query(query);
@@ -116,6 +118,8 @@ const getAllSales = async (req, res) => {
         res.status(500).json({ message: "Failed to retrieve records.", error: error.message });
     }
 };
+
+// ... (all your function code above)
 
 export {
     createSale,

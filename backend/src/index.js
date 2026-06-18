@@ -19,7 +19,7 @@ import adminRoutes from './routes/adminRoutes.js'; // Unified Administrative & A
 import documentRoutes from './routes/documentRoutes.js'; // Document Upload & Management Routes (ES Module Import)
 import notificationRoutes from './routes/notificationRoutes.js'; // INTEGRATED ROUTE IMPORT
 import saleRoutes from './routes/salesRoutes.js'; //  Added the 's' to match your directory!
-
+import salesRoutes from './routes/salesRoutes.js';
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -127,7 +127,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin/customers-directory', manageCustomerRoutes); 
   
 // Ensure this exact base path matches your axios call!
-app.use('/api/sales', saleRoutes);
+app.use('/api/sales', salesRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: "OrderClick API is running with MySQL and Socket.io WebSockets!" });
