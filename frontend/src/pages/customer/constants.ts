@@ -4,20 +4,28 @@ import {
   CalendarDays, 
   ShoppingCart, 
   User,
-  Megaphone // Import the new icon
+  Megaphone,
+  LayoutDashboard // Added this icon
 } from 'lucide-react';
 
-// Import the components so the array can reference them
+// Import the components
+import DashboardHome from './DashboardHome'; // Added import
 import CustomerShop from './CustomerShop';
 import CustomerOrders from './CustomerOrders';
 import CustomerEvent from './CustomerEvent';
 import CustomerCart from './CustomerCart';
 import CustomerProfile from './CustomerProfile';
-import CustomerAnnouncement from './CustomerAnnouncement'; // Import the announcement component
-import UserDocument from './UserDocument'; // Import the user document component
+import CustomerAnnouncement from './CustomerAnnouncement'; 
+import UserDocument from './UserDocument'; 
 
 export const CUSTOMER_MENU = [
-  // I recommend putting Announcements at the top so it's the first thing customers see
+  // Dashboard is now the primary entry point
+  { 
+    id: 'dashboard', 
+    label: 'Dashboard', 
+    icon: LayoutDashboard, 
+    component: DashboardHome 
+  },
   { 
     id: 'shop', 
     label: 'Marketplace', 

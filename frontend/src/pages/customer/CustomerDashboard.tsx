@@ -7,18 +7,16 @@ import { CUSTOMER_MENU } from './constants';
 const socket = io('http://localhost:5000');
 
 const CustomerDashboard = ({ onLogout }: { onLogout: () => void }) => {
-  const [activeTab, setActiveTab] = useState('shop');
+  const [activeTab, setActiveTab] = useState('dashboard'); // Updated default to 'dashboard'
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
-    // Define the shape of the data we expect from the server
     interface AnnouncementData {
         title: string;
         message: string;
     }
 
     socket.on('new_announcement', (data: AnnouncementData) => {
-      // Fix for the error in image_85d9b7.png: added types to 't'
       toast.custom((t: { visible: boolean; id: string }) => (
         <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white shadow-lg rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
           <div className="flex-1 w-0 p-4">
@@ -58,7 +56,7 @@ const CustomerDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
   const menuConfig = CUSTOMER_MENU.find(item => item.id === activeTab);
   const ActiveComponent = menuConfig?.component || CUSTOMER_MENU[0].component;
-  const activeLabel = menuConfig?.label || 'Marketplace';
+  const activeLabel = menuConfig?.label || 'Dashboard';
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] flex font-['Inter']">
@@ -87,7 +85,12 @@ const CustomerDashboard = ({ onLogout }: { onLogout: () => void }) => {
         </header>
         
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <ActiveComponent user={currentUser} onLogout={onLogout} />
+            {/* Pass userId explicitly to satisfy DashboardHome requirements */}
+            <ActiveComponent 
+              userId={currentUser?.id} 
+              user={currentUser} 
+              onLogout={onLogout} 
+            />
         </div>
       </main>
     </div>
