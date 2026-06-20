@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Clock, Package, AlertCircle } from 'lucide-react';
 
 // Data Structures
 interface Announcement {
   id: number;
   title: string;
   message: string;
+  image_url?: string;
 }
 
 interface Product {
@@ -32,10 +34,8 @@ export default function DashboardHome({ userId }: DashboardProps) {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      // Ensure the ID is present and converted to a number
       const numericUserId = Number(userId);
       if (!numericUserId) {
-        console.warn("DashboardHome: userId is missing or invalid", userId);
         setLoading(false);
         return;
       }
@@ -45,15 +45,12 @@ export default function DashboardHome({ userId }: DashboardProps) {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        // Fetch all data in parallel
         const [annRes, topRes, histRes] = await Promise.all([
           axios.get('http://localhost:5000/api/announcements/all'),
           axios.get('http://localhost:5000/api/orders/products/top-selling', config),
           axios.get(`http://localhost:5000/api/orders/user/${numericUserId}`, config)
         ]);
 
-        console.log("History data received:", histRes.data);
-        
         setAnnouncements(annRes.data || []);
         setTopProducts(topRes.data || []);
         setHistory(histRes.data || []);
@@ -67,20 +64,31 @@ export default function DashboardHome({ userId }: DashboardProps) {
     fetchDashboardData();
   }, [userId]);
 
-  if (loading) return <div className="p-10 text-center text-slate-500">Loading your portal...</div>;
+  if (loading) return (
+    <div className="flex items-center gap-2 text-slate-400 animate-pulse p-8 font-mono text-xs font-black uppercase tracking-widest justify-center">
+        <Clock size={16} className="animate-spin text-[#003d3d]" /> <span>Syncing portal...</span>
+    </div>
+  );
 
   return (
-    <div className="p-6 bg-slate-50 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-slate-800">Welcome to your Dashboard</h1>
+    <div className="p-6 bg-slate-50 min-h-screen w-full">
+      <h1 className="text-2xl font-black mb-6 text-slate-800 uppercase tracking-tight">Your Dashboard</h1>
       
       {/* Announcements Section */}
       <section className="mb-8">
-        <h2 className="text-lg font-bold mb-4 text-slate-700 uppercase tracking-wider">Latest Announcements</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <h2 className="text-sm font-black mb-4 text-slate-400 uppercase tracking-widest font-mono">Latest Broadcasts</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {announcements.slice(0, 3).map((a) => (
-            <div key={a.id} className="p-4 bg-white rounded-2xl shadow-sm border border-slate-200">
-              <h3 className="font-bold text-slate-800">{a.title}</h3>
-              <p className="text-sm text-slate-500 mt-1">{a.message}</p>
+            <div key={a.id} className="p-6 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all">
+              {a.image_url && (
+                <img 
+                  src={`http://localhost:5000${a.image_url}`} 
+                  alt={a.title} 
+                  className="w-full h-32 object-cover rounded-xl mb-4 bg-slate-100" 
+                />
+              )}
+              <h3 className="font-black text-slate-800 mb-1">{a.title}</h3>
+              <p className="text-sm text-slate-500 line-clamp-2">{a.message}</p>
             </div>
           ))}
         </div>
@@ -88,12 +96,13 @@ export default function DashboardHome({ userId }: DashboardProps) {
 
       {/* Top Products Section */}
       <section className="mb-8">
-        <h2 className="text-lg font-bold mb-4 text-slate-700 uppercase tracking-wider">Top Selling Products</h2>
+        <h2 className="text-sm font-black mb-4 text-slate-400 uppercase tracking-widest font-mono">Top Performing Inventory</h2>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {topProducts.map((p) => (
-            <div key={p.id} className="min-w-[160px] p-4 bg-blue-900 text-white rounded-2xl shadow-md">
-              <p className="font-bold">{p.name}</p>
-              <p className="text-xs text-blue-200 mt-1">Sold: {p.total_sold}</p>
+            <div key={p.id} className="min-w-[180px] p-6 bg-[#003d3d] text-white rounded-3xl shadow-lg">
+              <Package className="mb-3 text-emerald-400" size={24} />
+              <p className="font-black text-lg">{p.name}</p>
+              <p className="text-xs text-emerald-100/70 mt-1 uppercase font-mono font-bold">Sold: {p.total_sold}</p>
             </div>
           ))}
         </div>
@@ -101,27 +110,28 @@ export default function DashboardHome({ userId }: DashboardProps) {
 
       {/* Order History Section */}
       <section>
-        <h2 className="text-lg font-bold mb-4 text-slate-700 uppercase tracking-wider">Recent Order History</h2>
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <h2 className="text-sm font-black mb-4 text-slate-400 uppercase tracking-widest font-mono">Transaction History</h2>
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b">
+            <thead className="bg-slate-50">
               <tr>
-                <th className="p-4 text-xs font-bold text-slate-500">PRODUCT</th>
-                <th className="p-4 text-xs font-bold text-slate-500">TOTAL</th>
+                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Product</th>
+                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total Price</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-50">
               {history.length > 0 ? (
                 history.map((order) => (
-                  <tr key={order.id}>
-                    <td className="p-4 text-sm font-medium">{order.product_name}</td>
-                    <td className="p-4 text-sm font-bold">₱{Number(order.total_price).toLocaleString()}</td>
+                  <tr key={order.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="p-6 font-bold text-slate-800 text-sm">{order.product_name}</td>
+                    <td className="p-6 text-sm font-mono font-black text-right">₱{Number(order.total_price).toLocaleString()}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={2} className="p-4 text-sm text-center text-slate-400">
-                    No recent orders found.
+                  <td colSpan={2} className="p-12 text-center text-slate-400 font-mono text-xs">
+                    <AlertCircle className="mx-auto mb-2 opacity-50" />
+                    No orders processed yet.
                   </td>
                 </tr>
               )}
