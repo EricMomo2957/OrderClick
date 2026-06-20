@@ -427,6 +427,7 @@ export const getTopSellingProducts = async (req, res) => {
             SELECT p.id, p.name, p.price, COUNT(r.product_id) as total_sold
             FROM products p
             JOIN receipts r ON p.id = r.product_id
+            WHERE r.status = 'verified'  // This ensures only confirmed sales are counted
             GROUP BY p.id
             ORDER BY total_sold DESC
             LIMIT 5
