@@ -436,3 +436,13 @@ export const getTopSellingProducts = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+// Add this to your orderController.js
+export const getOrdersByUser = async (req, res) => {
+    try {
+        // You can just call your existing getUserOrders logic here
+        return await getUserOrders(req, res);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

@@ -4,7 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import { verifyToken, isAdmin } from '../middleware/authMiddleware.js';
 import * as announcementController from '../controllers/announcementController.js'; 
-
+import { getAllAnnouncements } from '../controllers/announcementController.js';
 const router = express.Router();
 
 // --- 1. DEFINE MULTER STORAGE CONFIGURATION ---
@@ -23,7 +23,7 @@ const upload = multer({ storage });
 // --- 2. PUBLIC CONSUMER DASHBOARD STREAM ENDPOINTS ---
 router.get('/latest', announcementController.getLatest);
 router.get('/', announcementController.getAllAnnouncements); 
-
+router.get('/all', getAllAnnouncements);
 // --- 3. PROTECTED ADMINISTRATIVE PIPELINE ROUTING CRITERIA ---
 // Authentication & multi-part storage interception occur before database mutations/audit entries execute
 router.post(
