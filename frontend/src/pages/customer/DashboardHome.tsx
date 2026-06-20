@@ -32,18 +32,31 @@ export default function DashboardHome({ userId }: DashboardProps) {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      // Ensure the ID is present and converted to a number
+      const numericUserId = Number(userId);
+      if (!numericUserId) {
+        console.warn("DashboardHome: userId is missing or invalid", userId);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        // Fetching data from your controllers
+        const token = localStorage.getItem('token');
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+
+        // Fetch all data in parallel
         const [annRes, topRes, histRes] = await Promise.all([
           axios.get('http://localhost:5000/api/announcements/all'),
-          axios.get('http://localhost:5000/api/orders/products/top-selling'),
-          axios.get(`http://localhost:5000/api/orders/user/${userId}`)
+          axios.get('http://localhost:5000/api/orders/products/top-selling', config),
+          axios.get(`http://localhost:5000/api/orders/user/${numericUserId}`, config)
         ]);
 
-        setAnnouncements(annRes.data);
-        setTopProducts(topRes.data);
-        setHistory(histRes.data);
+        console.log("History data received:", histRes.data);
+        
+        setAnnouncements(annRes.data || []);
+        setTopProducts(topRes.data || []);
+        setHistory(histRes.data || []);
       } catch (error) {
         console.error("Error loading dashboard data:", error);
       } finally {
@@ -51,9 +64,7 @@ export default function DashboardHome({ userId }: DashboardProps) {
       }
     };
 
-    if (userId) {
-      fetchDashboardData();
-    }
+    fetchDashboardData();
   }, [userId]);
 
   if (loading) return <div className="p-10 text-center text-slate-500">Loading your portal...</div>;
@@ -100,12 +111,20 @@ export default function DashboardHome({ userId }: DashboardProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {history.map((order) => (
-                <tr key={order.id}>
-                  <td className="p-4 text-sm font-medium">{order.product_name}</td>
-                  <td className="p-4 text-sm font-bold">₱{Number(order.total_price).toLocaleString()}</td>
+              {history.length > 0 ? (
+                history.map((order) => (
+                  <tr key={order.id}>
+                    <td className="p-4 text-sm font-medium">{order.product_name}</td>
+                    <td className="p-4 text-sm font-bold">₱{Number(order.total_price).toLocaleString()}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={2} className="p-4 text-sm text-center text-slate-400">
+                    No recent orders found.
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
