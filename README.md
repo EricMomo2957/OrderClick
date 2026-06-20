@@ -43,7 +43,7 @@ CORS - Security configuration
    
 2. Install Dependencies
 
-  # Install frontend dependencies
+# Install frontend dependencies
     npm install
 
 # Install backend dependencies
