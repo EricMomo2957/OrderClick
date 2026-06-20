@@ -419,3 +419,20 @@ export const deleteReceipt = async (req, res) => {
         return res.status(500).json({ error: err.message });
     }
 };
+
+// Add these to your backend controller
+export const getTopSellingProducts = async (req, res) => {
+    try {
+        const [rows] = await db.execute(`
+            SELECT p.id, p.name, p.price, COUNT(r.product_id) as total_sold
+            FROM products p
+            JOIN receipts r ON p.id = r.product_id
+            GROUP BY p.id
+            ORDER BY total_sold DESC
+            LIMIT 5
+        `);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

@@ -6,7 +6,8 @@ import {
     getAllReceipts, 
     updateReceiptStatus, 
     deleteReceipt,
-    placeCheckoutOrder 
+    placeCheckoutOrder,
+    getTopSellingProducts
 } from '../controllers/orderController.js';
 
 // Import authorization middleware
@@ -42,5 +43,8 @@ router.put('/status/:id', verifyToken, isAdmin, updateReceiptStatus);
 
 // Delete a receipt transaction log record
 router.delete('/:id', verifyToken, isAdmin, deleteReceipt);
+
+// Fetch top selling products
+router.get('/top-selling', verifyToken, isAdmin, getTopSellingProducts);
 
 export default router;
