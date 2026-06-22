@@ -421,6 +421,10 @@ export const deleteReceipt = async (req, res) => {
 };
 
 // Add these to your backend controller
+/**
+ * GET TOP SELLING PRODUCTS
+ * Fetches products with the highest sales volume (verified orders only).
+ */
 export const getTopSellingProducts = async (req, res) => {
     try {
         const query = `
@@ -434,9 +438,12 @@ export const getTopSellingProducts = async (req, res) => {
         `;
         
         const [rows] = await db.execute(query);
+        
+        // Debugging: Log the output to your server terminal to verify the data
+        console.log("Top Products Raw Data:", JSON.stringify(rows, null, 2));
+        
         res.json(rows);
     } catch (err) {
-        // This log will print the REAL error message to your server terminal
         console.error("CRITICAL ERROR in getTopSellingProducts:", err);
         res.status(500).json({ 
             message: "Failed to fetch top selling products", 
