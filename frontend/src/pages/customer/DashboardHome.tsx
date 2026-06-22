@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Clock, Package, AlertCircle } from 'lucide-react';
+import { Clock, Package, AlertCircle, Medal } from 'lucide-react';
 
 // Data Structures
 interface Announcement {
@@ -52,7 +52,11 @@ export default function DashboardHome({ userId }: DashboardProps) {
         ]);
 
         setAnnouncements(annRes.data || []);
-        setTopProducts(topRes.data || []);
+        
+        // Sort locally to guarantee top order regardless of API return order
+        const sortedProducts = (topRes.data || []).sort((a: Product, b: Product) => b.total_sold - a.total_sold);
+        setTopProducts(sortedProducts);
+        
         setHistory(histRes.data || []);
       } catch (error) {
         console.error("Error loading dashboard data:", error);
@@ -74,9 +78,7 @@ export default function DashboardHome({ userId }: DashboardProps) {
     <div className="p-6 bg-slate-50 min-h-screen w-full">
       <h1 className="text-2xl font-black mb-6 text-slate-800 uppercase tracking-tight">Your Dashboard</h1>
       
-      {/* Main Grid Layout: 12 Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
         {/* LEFT COLUMN: Main Content (Broadcasts & History) */}
         <div className="lg:col-span-9 space-y-8">
           
@@ -129,15 +131,19 @@ export default function DashboardHome({ userId }: DashboardProps) {
         {/* RIGHT SIDEBAR: Top Performing Inventory */}
         <aside className="lg:col-span-3 space-y-4">
           <h2 className="text-sm font-black mb-4 text-slate-400 uppercase tracking-widest font-mono">Top Performing Inventory</h2>
-          {topProducts.slice(0, 6).map((p) => (
-            <div key={p.id} className="p-6 bg-[#003d3d] text-white rounded-3xl shadow-lg">
-              <Package className="mb-3 text-emerald-400" size={24} />
-              <p className="font-black text-lg">{p.name}</p>
-              <p className="text-xs text-emerald-100/70 mt-1 uppercase font-mono font-bold">Sold: {p.total_sold}</p>
+          {topProducts.slice(0, 6).map((p, index) => (
+            <div key={p.id} className={`p-6 rounded-3xl shadow-lg ${index === 0 ? 'bg-[#003d3d]' : 'bg-white border border-slate-200'}`}>
+              <div className="flex justify-between items-start">
+                <Package className={index === 0 ? "text-emerald-400" : "text-slate-300"} size={24} />
+                {index < 3 && <Medal className={index === 0 ? "text-yellow-400" : "text-slate-300"} size={16} />}
+              </div>
+              <p className={`font-black text-lg mt-2 ${index === 0 ? 'text-white' : 'text-slate-800'}`}>{p.name}</p>
+              <p className={`text-xs mt-1 uppercase font-mono font-bold ${index === 0 ? 'text-emerald-100/70' : 'text-slate-400'}`}>
+                Sold: {p.total_sold}
+              </p>
             </div>
           ))}
         </aside>
-
       </div>
     </div>
   );
