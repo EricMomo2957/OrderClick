@@ -125,66 +125,45 @@ const Landing = ({ setView }: LandingProps) => {
     <p className="text-slate-400">Explore our most requested categories this week.</p>
   </div>
 
-  {/* UPDATED: Changed from grid to flex-col for vertical stacking */}
-  <div className="max-w-md mx-auto px-8 flex flex-col gap-10 items-center">
+  {/* UPDATED: Removed max-w-md and items-center to allow full vertical stack */}
+  <div className="max-w-3xl mx-auto px-8 flex flex-col gap-8">
     {[
-      { 
-        name: 'Fragrance', 
-        desc: 'Signature scents for every occasion.', 
-        step: '01',
-        img: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800' 
-      },
-      { 
-        name: 'Makeup', 
-        desc: 'Professional tools for your best look.', 
-        step: '02',
-        img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800' 
-      },
-      { 
-        name: 'Face Care', 
-        desc: 'Advanced skincare for glowing results.', 
-        step: '03',
-        img: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800' 
-      },
-      { 
-        name: 'Home Nutrition', 
-        desc: 'Fuel your body with premium supplements.', 
-        step: '04',
-        img: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800' 
-      },
-      { 
-        name: 'Men\'s Store', 
-        desc: 'Grooming essentials built for men.', 
-        step: '05', // Fixed sequence from 06 to 05
-        img: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800' 
-      }
+      { name: 'Fragrance', desc: 'Signature scents for every occasion.', step: '01', img: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800' },
+      { name: 'Makeup', desc: 'Professional tools for your best look.', step: '02', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800' },
+      { name: 'Face Care', desc: 'Advanced skincare for glowing results.', step: '03', img: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800' },
+      { name: 'Home Nutrition', desc: 'Fuel your body with premium supplements.', step: '04', img: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800' },
+      { name: 'Men\'s Store', desc: 'Grooming essentials built for men.', step: '05', img: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800' }
     ].map((category, i) => (
       <div 
         key={i} 
         onClick={() => setView('orderNow')}
-        className="relative group w-full max-w-[380px] aspect-[4/5] rounded-[2.5rem] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:-translate-y-2"
+        className="relative group w-full aspect-[21/9] sm:aspect-[4/1] md:aspect-[5/1] rounded-[2rem] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-white/10"
       >
         <img 
           src={category.img} 
           alt={category.name} 
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1c] via-[#0a0f1c]/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
-        <span className="absolute top-8 right-10 text-6xl font-black text-white/10 z-20">
+        {/* Adjusted gradient for horizontal reading in vertical list */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0f1c] via-[#0a0f1c]/80 to-transparent opacity-90"></div>
+        
+        <span className="absolute top-6 right-8 text-5xl font-black text-white/10 z-20">
           {category.step}
         </span>
-        <div className="absolute bottom-0 left-0 right-0 p-10 z-30">
-          <h3 className="text-3xl font-black text-teal-400 mb-2">
+        
+        <div className="absolute inset-0 p-8 z-30 flex flex-col justify-center">
+          <h3 className="text-3xl font-black text-teal-400 mb-1">
             {category.name}
           </h3>
-          <p className="text-slate-200 text-sm mb-8 leading-relaxed opacity-90">
+          <p className="text-slate-200 text-sm mb-4 max-w-sm">
             {category.desc}
           </p>
-          <button className="w-full py-4 bg-[#0f966c] text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-[#0d8560] transition-colors shadow-lg shadow-[#0f966c]/20">
-            Explore Collection
-          </button>
+          <div className="w-fit">
+            <button className="px-8 py-3 bg-[#0f966c] text-white rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-[#0d8560] transition-colors shadow-lg shadow-[#0f966c]/20">
+              Explore
+            </button>
+          </div>
         </div>
-        <div className="absolute inset-4 border border-white/10 rounded-[2rem] pointer-events-none group-hover:border-teal-500/30 transition-colors"></div>
       </div>
     ))}
   </div>
@@ -219,7 +198,7 @@ const Landing = ({ setView }: LandingProps) => {
           <h2 className="text-4xl font-black mb-4">Simple as <span className="text-[#21c08b]">1-2-3</span></h2>
           <p className="text-slate-400">Our seamless process designed for speed.</p>
         </div>
-        <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="max-w-7xl mx-auto px-8 grid grid-cols-3 md:grid-cols-5 gap-12">
           {[
             { step: '01', title: 'Pick Items', desc: 'Browse our marketplace and add items to your cart.' },
             { step: '02', title: 'One-Click Pay', desc: 'Secure checkout with your preferred payment method.' },
@@ -325,7 +304,7 @@ const Landing = ({ setView }: LandingProps) => {
 
       {/* 8. Footer Section with Modal Button Triggers */}
       <footer className="bg-slate-900 py-16 text-slate-400">
-        <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-4 gap-12 border-b border-white/5 pb-16">
+        <div className="max-w-7xl mx-auto px-8 grid grid-cols-4 md:grid-cols-10 gap-12 border-b border-white/5 pb-16">
           <div className="space-y-6">
             <div className="flex items-center gap-2 text-white">
               <div className="h-8 w-8 rounded-lg bg-[#0f966c] flex items-center justify-center">
