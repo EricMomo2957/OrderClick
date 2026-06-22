@@ -423,18 +423,25 @@ export const deleteReceipt = async (req, res) => {
 // Add these to your backend controller
 export const getTopSellingProducts = async (req, res) => {
     try {
-        const [rows] = await db.execute(`
-            SELECT p.id, p.name, p.price, COUNT(r.product_id) as total_sold
+        const query = `
+            SELECT p.id, p.name, SUM(r.quantity) as total_sold
             FROM products p
             JOIN receipts r ON p.id = r.product_id
-            WHERE r.status = 'verified'  // This ensures only confirmed sales are counted
-            GROUP BY p.id
+            WHERE r.status = 'verified'
+            GROUP BY p.id, p.name
             ORDER BY total_sold DESC
             LIMIT 5
-        `);
+        `;
+        
+        const [rows] = await db.execute(query);
         res.json(rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        // This log will print the REAL error message to your server terminal
+        console.error("CRITICAL ERROR in getTopSellingProducts:", err);
+        res.status(500).json({ 
+            message: "Failed to fetch top selling products", 
+            error: err.message 
+        });
     }
 };
 
