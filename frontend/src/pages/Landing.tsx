@@ -170,7 +170,7 @@ const Landing = ({ setView }: LandingProps) => {
 </section>
 
       {/* 4. About Section */}
-      <section id="about" ">
+      <section id="about" className="py-24">
         <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row items-center gap-16">
           <div className="md:w-1/2">
             <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=2070" className="rounded-[3rem] shadow-2xl" alt="About Us" />
