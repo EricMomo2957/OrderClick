@@ -18,8 +18,8 @@ import announcementRoutes from './routes/announcementRoutes.js';
 import adminRoutes from './routes/adminRoutes.js'; // Unified Administrative & Audit Tracking Routes
 import documentRoutes from './routes/documentRoutes.js'; // Document Upload & Management Routes (ES Module Import)
 import notificationRoutes from './routes/notificationRoutes.js'; // INTEGRATED ROUTE IMPORT
-import saleRoutes from './routes/salesRoutes.js'; //  Added the 's' to match your directory!
-import salesRoutes from './routes/salesRoutes.js';
+import salesRoutes from './routes/salesRoutes.js'; 
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -106,6 +106,8 @@ io.on('connection', (socket) => {
 
 // --- 5. ROUTES SETUP ---
 app.use('/api/auth', authRoutes); 
+
+// This routes file now contains the safely-positioned /count endpoint!
 app.use('/api/products', productRoutes);
 
 // 🛠️ FALLBACK ROUTE INTERCEPTOR FOR DASHBOARD TOP PRODUCTS
@@ -149,6 +151,6 @@ httpServer.listen(PORT, () => {
   🚀 Server started successfully!
   📡 API Base: http://localhost:${PORT}
   📡 WebSocket Stream Active
-  🛠️  Mode: ${process.env.NODE_ENV || 'development'}
+  🛠️ Mode: ${process.env.NODE_ENV || 'development'}
   `);
 });

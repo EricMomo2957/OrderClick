@@ -31,8 +31,11 @@ const upload = multer({
 // Public route for viewing products (Customers & Admins can access)
 router.get('/', productController.getAllProducts);
 
-// 📊 REAL-TIME METRICS: Publicly accessible endpoint for calculating sales ranks on the dashboard
-// This creates the final endpoint matching: /api/products/top-products
+// 📊 REAL-TIME DASHBOARD METRICS: Get total counts and sales rankings
+// Final endpoint matches: /api/products/count
+router.get('/count', productController.getProductCount);
+
+// Final endpoint matches: /api/products/top-products
 router.get('/top-products', productController.getTopProducts);
 
 // Protected administrative actions for mutating inventory records
@@ -41,6 +44,7 @@ router.post('/add', verifyToken, isAdmin, upload.single('image'), productControl
 // 🔥 CRITICAL SYNC: Ensure this endpoint path matches your frontend request (e.g., /api/products/update/:id or /api/products/:id)
 router.put('/update/:id', verifyToken, isAdmin, upload.single('image'), productController.updateProduct);
 
+// ⚠️ CRITICAL POSITIONING: This dynamic ID fallback must stay BELOW structural endpoints like /count and /top-products
 router.delete('/:id', verifyToken, isAdmin, productController.deleteProduct);
 
 /**

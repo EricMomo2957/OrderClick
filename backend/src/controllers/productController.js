@@ -14,6 +14,28 @@ const VALID_CATEGORIES = [
 ];
 
 /**
+ * Get total product count metrics for dashboards
+ */
+export const getProductCount = async (req, res) => {
+    try {
+        // Query to get the total number of rows in the products table
+        const [rows] = await db.query('SELECT COUNT(*) AS total FROM products');
+        
+        // Return the count
+        return res.status(200).json({ 
+            success: true, 
+            count: rows[0].total 
+        });
+    } catch (error) {
+        console.error("Error fetching product count:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Server error while fetching product count" 
+        });
+    }
+};
+
+/**
  * Get all products
  */
 export const getAllProducts = async (req, res) => {
@@ -204,9 +226,6 @@ export const deleteProduct = async (req, res) => {
 /**
  * Get all admin receipts
  */
-/**
- * Get all admin receipts
- */
 export const getAllAdminReceipts = async (req, res) => {
     const query = `
         SELECT 
@@ -224,15 +243,12 @@ export const getAllAdminReceipts = async (req, res) => {
         return res.status(500).json({ error: err.message });
     }
 };
-/**
- * Get top 5 selling products based on transaction volume matches
- */
+
 /**
  * Get top 5 selling products based on transaction volume matches
  */
 export const getTopProducts = async (req, res) => {
     try {
-        // ✅ FIXED: Mapping p.id directly to r.product_id based on your phpMyAdmin schema
         const [rows] = await db.query(`
             SELECT 
                 p.id, 
