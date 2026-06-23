@@ -1,4 +1,5 @@
-import { useState } from 'react';
+// landing.tsx
+import { useState, useEffect } from 'react';
 import { ShoppingBag, ShieldCheck, Leaf, Globe, CheckCircle2, Star, Mail, MapPin, Phone, X, HelpCircle, FileText, Shield } from 'lucide-react';
 
 interface LandingProps {
@@ -9,7 +10,10 @@ const Landing = ({ setView }: LandingProps) => {
   // Modal tracking state
   const [modalType, setModalType] = useState<null | 'help' | 'privacy' | 'terms'>(null);
 
-  // 🚀 Added state management for the visitor message submission form
+  // Dynamic state tracking for live product metric counting
+  const [productCount, setProductCount] = useState<number | string>('29');
+
+  // State management for the visitor message submission form
   const [formData, setFormData] = useState({
     fullname: '',
     email: '',
@@ -17,15 +21,40 @@ const Landing = ({ setView }: LandingProps) => {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // Side-effect interface fetching real-time total products from backend express pipeline
+  useEffect(() => {
+    const fetchProductCount = async () => {
+      try {
+        // Pointing to your backend port (5000) matching your message system pipeline
+        const response = await fetch('http://localhost:5000/api/products/count'); 
+        if (!response.ok) throw new Error('Failed to fetch product catalog count');
+        
+        const data = await response.json();
+        
+        // Match the clean structure returned by your controller: { success: true, count: X }
+        if (data && data.success && typeof data.count === 'number') {
+          setProductCount(data.count);
+        } else {
+          setProductCount(0);
+        }
+      } catch (error) {
+        console.error('Error determining product length metrics:', error);
+        setProductCount('29'); // Fallback visual static text matching UI context
+      }
+    };
+
+    fetchProductCount();
+  }, []);
+
   const closeModal = () => setModalType(null);
 
-  // 🚀 Handles form input text changes dynamically
+  // Handles form input text changes dynamically
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // 🚀 Submits contact data directly to the messages database schema pipeline
+  // Submits contact data directly to the messages database schema pipeline
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.fullname || !formData.email || !formData.message) {
@@ -86,7 +115,7 @@ const Landing = ({ setView }: LandingProps) => {
       </nav>
 
       {/* 2. Hero Section */}
-      <header className="max-w-7xl mx-auto px-8 pt-40 pb-20 flex flex-col lg:flex-row items-center gap-12">
+      <header className="max-w-7xl mx-auto px-8 pt-40 pb-16 flex flex-col lg:flex-row items-center gap-12">
         <div className="lg:w-1/2 space-y-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full text-[#0f966c] font-bold text-xs uppercase tracking-widest">
             <Globe size={14} /> Global Digital Solutions
@@ -116,58 +145,85 @@ const Landing = ({ setView }: LandingProps) => {
         </div>
       </header>
 
-      {/* 3. Trending Collections / Categories Section */}
-<section id="products" className="py-24 bg-[#0a0f1c]">
-  <div className="max-w-7xl mx-auto px-8 text-center mb-16">
-    <h2 className="text-4xl font-black text-white mb-4">
-      Trending <span className="text-teal-400">Collections</span>
-    </h2>
-    <p className="text-slate-400">Explore our most requested categories this week.</p>
-  </div>
+      {/* Stats Summary Grid Panel */}
+      <section className="bg-gradient-to-b from-white to-slate-50/50 py-12 border-y border-slate-100">
+        <div className="max-w-7xl mx-auto px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            {/* Stat Card 1 - Updated dynamic backend hooks */}
+            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center transform hover:scale-[1.02] transition-transform duration-300">
+              <h3 className="text-4xl md:text-5xl font-black text-[#2e5688] tracking-tight mb-2">
+                {productCount}{typeof productCount === 'number' ? '+' : ''}
+              </h3>
+              <p className="text-slate-500 font-semibold text-sm md:text-base">Products Available</p>
+            </div>
 
-  {/* UPDATED: Removed max-w-md and items-center to allow full vertical stack */}
-  <div className="max-w-3xl mx-auto px-8 flex flex-col gap-8">
-    {[
-      { name: 'Fragrance', desc: 'Signature scents for every occasion.', step: '01', img: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800' },
-      { name: 'Makeup', desc: 'Professional tools for your best look.', step: '02', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800' },
-      { name: 'Face Care', desc: 'Advanced skincare for glowing results.', step: '03', img: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800' },
-      { name: 'Home Nutrition', desc: 'Fuel your body with premium supplements.', step: '04', img: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800' },
-      { name: 'Men\'s Store', desc: 'Grooming essentials built for men.', step: '05', img: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800' }
-    ].map((category, i) => (
-      <div 
-        key={i} 
-        onClick={() => setView('orderNow')}
-        className="relative group w-full aspect-[21/9] sm:aspect-[4/1] md:aspect-[5/1] rounded-[2rem] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-white/10"
-      >
-        <img 
-          src={category.img} 
-          alt={category.name} 
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-        />
-        {/* Adjusted gradient for horizontal reading in vertical list */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0f1c] via-[#0a0f1c]/80 to-transparent opacity-90"></div>
-        
-        <span className="absolute top-6 right-8 text-5xl font-black text-white/10 z-20">
-          {category.step}
-        </span>
-        
-        <div className="absolute inset-0 p-8 z-30 flex flex-col justify-center">
-          <h3 className="text-3xl font-black text-teal-400 mb-1">
-            {category.name}
-          </h3>
-          <p className="text-slate-200 text-sm mb-4 max-w-sm">
-            {category.desc}
-          </p>
-          <div className="w-fit">
-            <button className="px-8 py-3 bg-[#0f966c] text-white rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-[#0d8560] transition-colors shadow-lg shadow-[#0f966c]/20">
-              Explore
-            </button>
+            {/* Stat Card 2 */}
+            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center transform hover:scale-[1.02] transition-transform duration-300">
+              <h3 className="text-4xl md:text-5xl font-black text-[#2e5688] tracking-tight mb-2">352+</h3>
+              <p className="text-slate-500 font-semibold text-sm md:text-base">Registered Students</p>
+            </div>
+
+            {/* Stat Card 3 */}
+            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center transform hover:scale-[1.02] transition-transform duration-300">
+              <h3 className="text-4xl md:text-5xl font-black text-[#2e5688] tracking-tight mb-2">4+</h3>
+              <p className="text-slate-500 font-semibold text-sm md:text-base">Approved Members</p>
+            </div>
+
           </div>
         </div>
-      </div>
-    ))}
-  </div>
-</section>
+      </section>
+
+      {/* 3. Trending Collections / Categories Section */}
+      <section id="products" className="py-24 bg-[#0a0f1c]">
+        <div className="max-w-7xl mx-auto px-8 text-center mb-16">
+          <h2 className="text-4xl font-black text-white mb-4">
+            Trending <span className="text-teal-400">Collections</span>
+          </h2>
+          <p className="text-slate-400">Explore our most requested categories this week.</p>
+        </div>
+
+        <div className="max-w-3xl mx-auto px-8 flex flex-col gap-8">
+          {[
+            { name: 'Fragrance', desc: 'Signature scents for every occasion.', step: '01', img: 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800' },
+            { name: 'Makeup', desc: 'Professional tools for your best look.', step: '02', img: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800' },
+            { name: 'Face Care', desc: 'Advanced skincare for glowing results.', step: '03', img: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800' },
+            { name: 'Home Nutrition', desc: 'Fuel your body with premium supplements.', step: '04', img: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800' },
+            { name: 'Men\'s Store', desc: 'Grooming essentials built for men.', step: '05', img: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=800' }
+          ].map((category, i) => (
+            <div 
+              key={i} 
+              onClick={() => setView('orderNow')}
+              className="relative group w-full aspect-[21/9] sm:aspect-[4/1] md:aspect-[5/1] rounded-[2rem] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-white/10"
+            >
+              <img 
+                src={category.img} 
+                alt={category.name} 
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0a0f1c] via-[#0a0f1c]/80 to-transparent opacity-90"></div>
+              
+              <span className="absolute top-6 right-8 text-5xl font-black text-white/10 z-20">
+                {category.step}
+              </span>
+              
+              <div className="absolute inset-0 p-8 z-30 flex flex-col justify-center">
+                <h3 className="text-3xl font-black text-teal-400 mb-1">
+                  {category.name}
+                </h3>
+                <p className="text-slate-200 text-sm mb-4 max-w-sm">
+                  {category.desc}
+                </p>
+                <div className="w-fit">
+                  <button className="px-8 py-3 bg-[#0f966c] text-white rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-[#0d8560] transition-colors shadow-lg shadow-[#0f966c]/20">
+                    Explore
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* 4. About Section */}
       <section id="about" className="py-24">
@@ -184,7 +240,7 @@ const Landing = ({ setView }: LandingProps) => {
                 <span className="font-bold text-slate-700">Enterprise Security</span>
               </div>
               <div className="flex gap-3">
-                <Leaf className="text-teal-600 shrink-0" />
+                <ShieldCheck className="text-teal-600 shrink-0" />
                 <span className="font-bold text-slate-700">100% Eco-Friendly</span>
               </div>
             </div>
@@ -198,7 +254,7 @@ const Landing = ({ setView }: LandingProps) => {
           <h2 className="text-4xl font-black mb-4">Simple as <span className="text-[#21c08b]">1-2-3</span></h2>
           <p className="text-slate-400">Our seamless process designed for speed.</p>
         </div>
-        <div className="max-w-7xl mx-auto px-8 grid grid-cols-3 md:grid-cols-5 gap-12">
+        <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-3 gap-12">
           {[
             { step: '01', title: 'Pick Items', desc: 'Browse our marketplace and add items to your cart.' },
             { step: '02', title: 'One-Click Pay', desc: 'Secure checkout with your preferred payment method.' },
@@ -262,7 +318,6 @@ const Landing = ({ setView }: LandingProps) => {
             </div>
           </div>
           
-          {/* 🚀 FORM UPDATED: Tied onSubmit handler and value inputs to backend state hook loops */}
           <form onSubmit={handleFormSubmit} className="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 space-y-4 border border-slate-100">
             <input 
               type="text" 
@@ -304,7 +359,7 @@ const Landing = ({ setView }: LandingProps) => {
 
       {/* 8. Footer Section with Modal Button Triggers */}
       <footer className="bg-slate-900 py-16 text-slate-400">
-        <div className="max-w-7xl mx-auto px-8 grid grid-cols-4 md:grid-cols-10 gap-12 border-b border-white/5 pb-16">
+        <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-4 gap-12 border-b border-white/5 pb-16">
           <div className="space-y-6">
             <div className="flex items-center gap-2 text-white">
               <div className="h-8 w-8 rounded-lg bg-[#0f966c] flex items-center justify-center">
