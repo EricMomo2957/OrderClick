@@ -84,51 +84,53 @@ const Login = ({ setView, setUser }: LoginProps) => {
         </p>
       </div>
 
-      {/* RIGHT SIDE: AUTH FORM ACTION CREDENTIAL PANELS */}
-      <div className="col-span-7 flex items-center justify-center p-6 md:p-12 relative">
+      {/* RIGHT SIDE: AUTH FORM ACTION CREDENTIAL PANELS — Stretches edge-to-edge to fill space */}
+      <div className="col-span-7 bg-white flex flex-col justify-between p-8 md:p-16 relative overflow-y-auto h-screen">
         
         {/* BACK TO LANDING ARROW TRIGGER */}
-        <button 
-          onClick={() => setView('landing')}
-          className="absolute top-8 left-6 md:left-12 flex items-center gap-2 text-slate-400 hover:text-[#003d3d] transition-colors font-bold text-xs uppercase tracking-widest group z-10"
-        >
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            className="h-4 w-4 group-hover:-translate-x-1 transition-transform" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
+        <div className="flex justify-between items-center w-full mb-8">
+          <button 
+            onClick={() => setView('landing')}
+            className="flex items-center gap-2 text-slate-400 hover:text-[#003d3d] transition-colors font-bold text-xs uppercase tracking-widest group z-10"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to home
-        </button>
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-4 w-4 group-hover:-translate-x-1 transition-transform" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to home
+          </button>
+        </div>
 
         {/* Central Authorization Container Layout */}
-        <div className="w-full max-w-[440px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,61,61,0.06)] border border-slate-200/60 p-8 md:p-10">
-          <div className="mb-8">
-            <h1 className="text-3xl font-black tracking-tight text-slate-800 mb-1">
-              Welcome Back
+        <div className="w-full max-w-md mx-auto my-auto">
+          <div className="mb-8 text-center">
+            <h1 className="text-4xl font-black tracking-tight text-slate-800 mb-2">
+              Welcome <span className="text-[#003d3d]">Back</span>
             </h1>
-            <p className="text-slate-400 text-sm font-medium">
-              Please enter your dashboard credentials to sign in.
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
+              Please enter your dashboard credentials
             </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Email Address</label>
               <input 
                 type="email" 
                 placeholder="name@company.com" 
                 value={email}
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex justify-between items-center ml-1">
                 <label className="text-[12px] font-black uppercase tracking-wider text-slate-500">Password</label>
                 <button 
@@ -143,7 +145,7 @@ const Login = ({ setView, setUser }: LoginProps) => {
                 type="password" 
                 placeholder="••••••••" 
                 value={password}
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
@@ -176,6 +178,9 @@ const Login = ({ setView, setUser }: LoginProps) => {
             </p>
           </div>
         </div>
+
+        {/* Dynamic spacer alignment row at bottom */}
+        <div className="w-full h-4"></div>
       </div>
 
     </div>

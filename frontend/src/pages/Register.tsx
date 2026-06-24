@@ -89,31 +89,33 @@ const Register = ({ setView }: RegisterProps) => {
         </p>
       </div>
 
-      {/* RIGHT SIDE: AUTH FORM ACTION CREDENTIAL PANELS */}
-      <div className="col-span-7 flex items-center justify-center p-6 md:p-12 relative overflow-y-auto max-h-screen">
+      {/* RIGHT SIDE: AUTH FORM ACTION CREDENTIAL PANELS — Stretches edge-to-edge to fill space */}
+      <div className="col-span-7 bg-white flex flex-col justify-between p-8 md:p-16 relative overflow-y-auto h-screen">
         
         {/* BACK TO LANDING ARROW TRIGGER */}
-        <button 
-          onClick={() => setView('landing')}
-          className="absolute top-8 left-6 md:left-12 flex items-center gap-2 text-slate-400 hover:text-[#003d3d] transition-colors font-bold text-xs uppercase tracking-widest group z-10"
-        >
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            className="h-4 w-4 group-hover:-translate-x-1 transition-transform" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
+        <div className="flex justify-between items-center w-full mb-8">
+          <button 
+            onClick={() => setView('landing')}
+            className="flex items-center gap-2 text-slate-400 hover:text-[#003d3d] transition-colors font-bold text-xs uppercase tracking-widest group z-10"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to home
-        </button>
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-4 w-4 group-hover:-translate-x-1 transition-transform" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to home
+          </button>
+        </div>
 
-        {/* Central Authorization Container Layout */}
-        <div className="w-full max-w-[520px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,61,61,0.06)] border border-slate-200/60 p-8 md:p-10 my-8">
+        {/* Central Authorization Content Layout Form */}
+        <div className="w-full max-w-3xl mx-auto my-auto">
           
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-black tracking-tight text-slate-800 mb-1">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-black tracking-tight text-slate-800 mb-2">
               Join <span className="text-[#003d3d]">Us</span>
             </h1>
             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
@@ -121,29 +123,30 @@ const Register = ({ setView }: RegisterProps) => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Core Row 1: Full Name */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            
+            {/* Row 1: Full Name */}
             <div className="space-y-1.5">
               <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Full Name</label>
               <input 
                 type="text" 
                 placeholder="John Doe" 
                 value={formData.fullname}
-                className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
                 onChange={(e) => setFormData({...formData, fullname: e.target.value})}
                 required
               />
             </div>
 
-            {/* Core Row 2: Grid Group for Email and Customer ID */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Row 2: Grid Group for Email and Customer ID */}
+            <div className="grid grid-cols-2 gap-5">
               <div className="space-y-1.5">
                 <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Email Address</label>
                 <input 
                   type="email" 
                   placeholder="name@company.com" 
                   value={formData.email}
-                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   required
                 />
@@ -154,43 +157,45 @@ const Register = ({ setView }: RegisterProps) => {
                   type="text" 
                   placeholder="CUST-2026-XXXX" 
                   value={formData.customer_id}
-                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
                   onChange={(e) => setFormData({...formData, customer_id: e.target.value})}
                 />
               </div>
             </div>
 
-            {/* Core Row 3: Password Field */}
-            <div className="space-y-1.5">
-              <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Password</label>
-              <input 
-                type="password" 
-                placeholder="••••••••" 
-                value={formData.password}
-                className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                required
-              />
-            </div>
-
-            {/* Core Row 4: Grid Group for Contact Number and Gender */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Row 3: Grid Group for Password and Contact Number */}
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Password</label>
+                <input 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={formData.password}
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  required
+                />
+              </div>
               <div className="space-y-1.5">
                 <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Contact Number</label>
                 <input 
                   type="text" 
                   placeholder="0917XXXXXXX" 
                   value={formData.contact_number}
-                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
                   onChange={(e) => setFormData({...formData, contact_number: e.target.value})}
                 />
               </div>
+            </div>
+
+            {/* Row 4: Grid Group for Gender and Register As Selection */}
+            <div className="grid grid-cols-2 gap-5">
               <div className="space-y-1.5">
                 <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Gender</label>
                 <div className="relative">
                   <select 
                     value={formData.gender}
-                    className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm appearance-none cursor-pointer"
+                    className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm appearance-none cursor-pointer"
                     onChange={(e) => setFormData({...formData, gender: e.target.value})}
                   >
                     <option value="">Select Gender</option>
@@ -205,47 +210,46 @@ const Register = ({ setView }: RegisterProps) => {
                   </div>
                 </div>
               </div>
+
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center ml-1">
+                  <label className="text-[12px] font-black uppercase tracking-wider text-slate-500">Register As</label>
+                  <button 
+                    type="button" 
+                    onClick={() => setView('forgot-password')}
+                    className="text-[11px] font-bold text-[#003d3d] uppercase tracking-wider hover:underline"
+                  >
+                    Forgot?
+                  </button>
+                </div>
+                <div className="relative">
+                  <select 
+                    value={formData.role}
+                    className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm appearance-none cursor-pointer"
+                    onChange={(e) => setFormData({...formData, role: e.target.value})}
+                  >
+                    <option value="customer">Customer</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Core Row 5: Location Field */}
+            {/* Row 5: Location Field */}
             <div className="space-y-1.5">
               <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Location / Address</label>
               <input 
                 type="text" 
                 placeholder="Cebu City, Philippines" 
                 value={formData.location}
-                className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
                 onChange={(e) => setFormData({...formData, location: e.target.value})}
               />
-            </div>
-
-            {/* Core Row 6: Role Management Selection */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center ml-1">
-                <label className="text-[12px] font-black uppercase tracking-wider text-slate-500">Register As</label>
-                <button 
-                  type="button" 
-                  onClick={() => setView('forgot-password')}
-                  className="text-[11px] font-bold text-[#003d3d] uppercase tracking-wider hover:underline"
-                >
-                  Forgot?
-                </button>
-              </div>
-              <div className="relative">
-                <select 
-                  value={formData.role}
-                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm appearance-none cursor-pointer"
-                  onChange={(e) => setFormData({...formData, role: e.target.value})}
-                >
-                  <option value="customer">Customer</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
             </div>
 
             <button 
@@ -275,6 +279,9 @@ const Register = ({ setView }: RegisterProps) => {
             </p>
           </div>
         </div>
+
+        {/* Dynamic spacer alignment row at bottom */}
+        <div className="w-full h-4"></div>
       </div>
 
     </div>
