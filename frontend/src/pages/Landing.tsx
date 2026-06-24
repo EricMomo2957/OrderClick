@@ -182,7 +182,7 @@ const Landing = ({ setView }: LandingProps) => {
               <h3 className="text-4xl md:text-5xl font-black text-[#2e5688] tracking-tight mb-2">
                 {userMetrics.registeredStudents}+
               </h3>
-              <p className="text-slate-500 font-semibold text-sm md:text-base">Registered Students</p>
+              <p className="text-slate-500 font-semibold text-sm md:text-base">Registered Customer</p>
             </div>
 
             {/* Stat Card 3 - Dynamic Approved Managers/Members Counts */}
