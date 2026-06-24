@@ -14,19 +14,40 @@ import { logAction } from '../utils/logger.js';
  * REGISTER CONTROLLER
  * POST /api/auth/register
  */
+/**
+ * REGISTER CONTROLLER
+ * POST /api/auth/register
+ */
 export const register = async (req, res) => {
-    const { fullname, email, password, role } = req.body; 
+    // Extracted the new fields: location, contact_number, gender, customer_id
+    const { fullname, email, password, role, location, contact_number, gender, customer_id } = req.body; 
     
     try {
+        // Base authentication validations
         if (!fullname || !email || !password) {
             return res.status(400).json({ error: "All fields (Full Name, Email, Password) are required." });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const sql = 'INSERT INTO users (fullname, email, password, role) VALUES (?, ?, ?, ?)';
+        
+        // Expanded SQL statement including the newly engineered columns
+        const sql = `
+            INSERT INTO users (fullname, email, password, role, location, contact_number, gender, customer_id) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `;
         const TargetRole = role || 'customer';
         
-        const [result] = await db.execute(sql, [fullname, email, hashedPassword, TargetRole]);
+        // Safe binding array passing parameters sequentially
+        const [result] = await db.execute(sql, [
+            fullname, 
+            email, 
+            hashedPassword, 
+            TargetRole,
+            location || null,       // Fallback safely to null if empty
+            contact_number || null, // Fallback safely to null if empty
+            gender || null,         // Fallback safely to null if empty
+            customer_id || null     // Fallback safely to null if empty
+        ]);
 
         // ─── 🚀 AUDIT TRACKING TRIGGER: USER REGISTRATION ───────────────────
         try {
@@ -37,7 +58,7 @@ export const register = async (req, res) => {
                 action: 'USER_REGISTERED',
                 resource: 'users',
                 resourceId: result.insertId,
-                details: `New account entity registration established for ${fullname} (${email}) initialized with role: [${TargetRole}].`,
+                details: `New account entity registration established for ${fullname} (${email}) initialized with role: [${TargetRole}]. Customer Profile Metadata bound successfully.`,
                 req: req
             });
         } catch (logErr) {
@@ -48,7 +69,11 @@ export const register = async (req, res) => {
         return res.status(201).json({ message: "User registered successfully!" });
 
     } catch (error) {
+        // Handle unique constraint breaks for both Email and Customer ID fields
         if (error.code === 'ER_DUP_ENTRY') {
+            if (error.sqlMessage && error.sqlMessage.includes('customer_id')) {
+                return res.status(400).json({ error: "Registration failed. Customer ID already exists." });
+            }
             return res.status(400).json({ error: "Registration failed. Email already exists." });
         }
         console.error("Register Error:", error);
