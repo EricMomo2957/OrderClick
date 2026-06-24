@@ -10,8 +10,12 @@ const Landing = ({ setView }: LandingProps) => {
   // Modal tracking state
   const [modalType, setModalType] = useState<null | 'help' | 'privacy' | 'terms'>(null);
 
-  // Dynamic state tracking for live product metric counting
+  // Dynamic state tracking for live metrics counting
   const [productCount, setProductCount] = useState<number | string>('29');
+  const [userMetrics, setUserMetrics] = useState({
+    registeredStudents: '352',
+    approvedMembers: '4'
+  });
 
   // State management for the visitor message submission form
   const [formData, setFormData] = useState({
@@ -21,29 +25,44 @@ const Landing = ({ setView }: LandingProps) => {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  // Side-effect interface fetching real-time total products from backend express pipeline
+  // Side-effect interface fetching real-time totals from backend express pipelines
   useEffect(() => {
-    const fetchProductCount = async () => {
+    const fetchLandingMetrics = async () => {
       try {
-        // Pointing to your backend port (5000) matching your message system pipeline
-        const response = await fetch('http://localhost:5000/api/products/count'); 
-        if (!response.ok) throw new Error('Failed to fetch product catalog count');
-        
-        const data = await response.json();
-        
-        // Match the clean structure returned by your controller: { success: true, count: X }
-        if (data && data.success && typeof data.count === 'number') {
-          setProductCount(data.count);
-        } else {
-          setProductCount(0);
+        // Fetch product totals and user metrics concurrently in parallel paths
+        const [productRes, metricsRes] = await Promise.all([
+          fetch('http://localhost:5000/api/products/count'),
+          fetch('http://localhost:5000/api/auth/metrics')
+        ]);
+
+        // 1. Process Product Count Catalog Data
+        if (productRes.ok) {
+          const productData = await productRes.json();
+          if (productData && productData.success && typeof productData.count === 'number') {
+            setProductCount(productData.count);
+          } else {
+            setProductCount(0);
+          }
         }
+
+        // 2. Process Registered & Approved User Matrix Metrics
+        if (metricsRes.ok) {
+          const metricsData = await metricsRes.json();
+          if (metricsData && typeof metricsData.registeredStudents === 'number') {
+            setUserMetrics({
+              registeredStudents: metricsData.registeredStudents.toString(),
+              approvedMembers: metricsData.approvedMembers.toString()
+            });
+          }
+        }
+
       } catch (error) {
-        console.error('Error determining product length metrics:', error);
-        setProductCount('29'); // Fallback visual static text matching UI context
+        console.error('Error determining dashboard real-time length metrics:', error);
+        // Failures gracefully retain initial visual placeholder fallbacks
       }
     };
 
-    fetchProductCount();
+    fetchLandingMetrics();
   }, []);
 
   const closeModal = () => setModalType(null);
@@ -150,7 +169,7 @@ const Landing = ({ setView }: LandingProps) => {
         <div className="max-w-7xl mx-auto px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
-            {/* Stat Card 1 - Updated dynamic backend hooks */}
+            {/* Stat Card 1 - Dynamic Product Counts */}
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center transform hover:scale-[1.02] transition-transform duration-300">
               <h3 className="text-4xl md:text-5xl font-black text-[#2e5688] tracking-tight mb-2">
                 {productCount}{typeof productCount === 'number' ? '+' : ''}
@@ -158,15 +177,19 @@ const Landing = ({ setView }: LandingProps) => {
               <p className="text-slate-500 font-semibold text-sm md:text-base">Products Available</p>
             </div>
 
-            {/* Stat Card 2 */}
+            {/* Stat Card 2 - Dynamic Registered Students Counts */}
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center transform hover:scale-[1.02] transition-transform duration-300">
-              <h3 className="text-4xl md:text-5xl font-black text-[#2e5688] tracking-tight mb-2">352+</h3>
+              <h3 className="text-4xl md:text-5xl font-black text-[#2e5688] tracking-tight mb-2">
+                {userMetrics.registeredStudents}+
+              </h3>
               <p className="text-slate-500 font-semibold text-sm md:text-base">Registered Students</p>
             </div>
 
-            {/* Stat Card 3 */}
+            {/* Stat Card 3 - Dynamic Approved Managers/Members Counts */}
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center transform hover:scale-[1.02] transition-transform duration-300">
-              <h3 className="text-4xl md:text-5xl font-black text-[#2e5688] tracking-tight mb-2">4+</h3>
+              <h3 className="text-4xl md:text-5xl font-black text-[#2e5688] tracking-tight mb-2">
+                {userMetrics.approvedMembers}+
+              </h3>
               <p className="text-slate-500 font-semibold text-sm md:text-base">Approved Members</p>
             </div>
 
@@ -357,7 +380,7 @@ const Landing = ({ setView }: LandingProps) => {
         </div>
       </section>
 
-      {/* 8. Footer Section with Modal Button Triggers */}
+      {/* 8. Footer Section */}
       <footer className="bg-slate-900 py-16 text-slate-400">
         <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-4 gap-12 border-b border-white/5 pb-16">
           <div className="space-y-6">
@@ -415,6 +438,7 @@ const Landing = ({ setView }: LandingProps) => {
                   {modalType === 'terms' && <FileText size={20} />}
                 </div>
                 <div>
+                  {/* Modal Headings */}
                   <h3 className="text-xl font-black text-slate-800">
                     {modalType === 'help' && 'Help Center & Knowledge Hub'}
                     {modalType === 'privacy' && 'Privacy Statement'}
