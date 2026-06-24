@@ -1,24 +1,28 @@
 import { useState } from 'react';
 
-// 1. Define the props interface for TypeScript
+// Define the props interface for TypeScript
 interface RegisterProps {
   setView: (view: string) => void;
 }
 
 const Register = ({ setView }: RegisterProps) => {
-  // Fixed state to use 'fullname' to match database schema
+  // Added location, contact_number, gender, and customer_id fields to state
   const [formData, setFormData] = useState({
     fullname: '', 
     email: '',
     password: '',
-    role: 'customer' 
+    role: 'customer',
+    location: '',
+    contact_number: '',
+    gender: '',
+    customer_id: ''
   });
 
-  // 2. Type the event as React.FormEvent for safety
+  // Handle standard structural form data submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Using fetch to send data directly to your backend
+      // Using fetch to send data directly to your backend endpoint matrix
       const response = await fetch('http://localhost:5000/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -29,7 +33,6 @@ const Register = ({ setView }: RegisterProps) => {
 
       if (response.ok) {
         alert("Registration successful! Please login.");
-        // Redirect back to login view
         setView('login');
       } else {
         alert(data.error || "Registration failed");
@@ -46,7 +49,6 @@ const Register = ({ setView }: RegisterProps) => {
       
       {/* LEFT SIDE: PHOTO BRANDING AREA PANELS */}
       <div className="col-span-5 bg-[#003d3d] p-12 flex flex-col justify-between relative overflow-hidden shadow-[inset_-10px_0_30px_rgba(0,0,0,0.05)]">
-        {/* Ambient background blur lighting */}
         <div className="absolute top-[-20%] right-[-20%] w-96 h-96 bg-teal-600/20 rounded-full blur-3xl"></div>
         <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 bg-emerald-800/30 rounded-full blur-3xl"></div>
         
@@ -72,7 +74,6 @@ const Register = ({ setView }: RegisterProps) => {
             </p>
           </div>
 
-          {/* Integrated Image Frame pointing to public/images/login-bg.png */}
           <div className="bg-white/5 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl group">
             <img 
               src="/images/login-bg.png" 
@@ -89,7 +90,7 @@ const Register = ({ setView }: RegisterProps) => {
       </div>
 
       {/* RIGHT SIDE: AUTH FORM ACTION CREDENTIAL PANELS */}
-      <div className="col-span-7 flex items-center justify-center p-6 md:p-12 relative">
+      <div className="col-span-7 flex items-center justify-center p-6 md:p-12 relative overflow-y-auto max-h-screen">
         
         {/* BACK TO LANDING ARROW TRIGGER */}
         <button 
@@ -109,7 +110,7 @@ const Register = ({ setView }: RegisterProps) => {
         </button>
 
         {/* Central Authorization Container Layout */}
-        <div className="w-full max-w-[440px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,61,61,0.06)] border border-slate-200/60 p-8 md:p-10">
+        <div className="w-full max-w-[520px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,61,61,0.06)] border border-slate-200/60 p-8 md:p-10 my-8">
           
           <div className="text-center mb-6">
             <h1 className="text-3xl font-black tracking-tight text-slate-800 mb-1">
@@ -121,46 +122,107 @@ const Register = ({ setView }: RegisterProps) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Core Row 1: Full Name */}
             <div className="space-y-1.5">
               <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Full Name</label>
               <input 
                 type="text" 
                 placeholder="John Doe" 
                 value={formData.fullname}
-                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
                 onChange={(e) => setFormData({...formData, fullname: e.target.value})}
                 required
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Email Address</label>
-              <input 
-                type="email" 
-                placeholder="name@company.com" 
-                value={formData.email}
-                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                required
-              />
+            {/* Core Row 2: Grid Group for Email and Customer ID */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Email Address</label>
+                <input 
+                  type="email" 
+                  placeholder="name@company.com" 
+                  value={formData.email}
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Customer ID</label>
+                <input 
+                  type="text" 
+                  placeholder="CUST-2026-XXXX" 
+                  value={formData.customer_id}
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                  onChange={(e) => setFormData({...formData, customer_id: e.target.value})}
+                />
+              </div>
             </div>
 
+            {/* Core Row 3: Password Field */}
             <div className="space-y-1.5">
               <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Password</label>
               <input 
                 type="password" 
                 placeholder="••••••••" 
                 value={formData.password}
-                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 required
               />
             </div>
 
+            {/* Core Row 4: Grid Group for Contact Number and Gender */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Contact Number</label>
+                <input 
+                  type="text" 
+                  placeholder="0917XXXXXXX" 
+                  value={formData.contact_number}
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                  onChange={(e) => setFormData({...formData, contact_number: e.target.value})}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Gender</label>
+                <div className="relative">
+                  <select 
+                    value={formData.gender}
+                    className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm appearance-none cursor-pointer"
+                    onChange={(e) => setFormData({...formData, gender: e.target.value})}
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Core Row 5: Location Field */}
+            <div className="space-y-1.5">
+              <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Location / Address</label>
+              <input 
+                type="text" 
+                placeholder="Cebu City, Philippines" 
+                value={formData.location}
+                className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                onChange={(e) => setFormData({...formData, location: e.target.value})}
+              />
+            </div>
+
+            {/* Core Row 6: Role Management Selection */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center ml-1">
                 <label className="text-[12px] font-black uppercase tracking-wider text-slate-500">Register As</label>
-                {/* Embedded Forgot Password trigger linked directly to the parent setView hook */}
                 <button 
                   type="button" 
                   onClick={() => setView('forgot-password')}
@@ -172,7 +234,7 @@ const Register = ({ setView }: RegisterProps) => {
               <div className="relative">
                 <select 
                   value={formData.role}
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm appearance-none cursor-pointer"
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm appearance-none cursor-pointer"
                   onChange={(e) => setFormData({...formData, role: e.target.value})}
                 >
                   <option value="customer">Customer</option>
