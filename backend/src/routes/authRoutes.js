@@ -5,11 +5,16 @@ import {
   login, 
   requestPasswordReset,
   getPasswordResetRequests,      
-  resolvePasswordResetRequest   
+  resolvePasswordResetRequest,
+  getUserMetrics // Imported from your auth controller
 } from '../controllers/authController.js';
 import authMiddleware from '../middleware/authMiddleware.js'; 
 
 const router = express.Router();
+
+// --- PUBLIC METRICS & ANALYTICS ROUTES ---
+// GOOD ORDER: Static paths must sit above any dynamic /:id routing matrices
+router.get('/metrics', getUserMetrics);
 
 // --- EXISTING AUTHENTICATION & PROFILE ROUTES ---
 router.post('/register', register);

@@ -240,3 +240,34 @@ export const resolvePasswordResetRequest = async (req, res) => {
         return res.status(500).json({ error: "Failed to complete resolution transaction." });
     }
 };
+
+/**
+ * ============================================================================
+ * 3. PUBLIC/METRIC SUMMARY CONTROLLERS
+ * ============================================================================
+ */
+
+/**
+ * GET USER METRICS FOR LANDING PAGE
+ * GET /api/auth/metrics
+ */
+export const getUserMetrics = async (req, res) => {
+    try {
+        // Query 1: Count all registered customers/students
+        const studentSql = "SELECT COUNT(*) AS totalStudents FROM users WHERE role = 'customer'";
+        const [studentResult] = await db.execute(studentSql);
+        
+        // Query 2: Count approved members (adjust the WHERE clause based on your actual column name, e.g., status = 'approved' or role = 'member')
+        const memberSql = "SELECT COUNT(*) AS totalMembers FROM users WHERE role = 'member' OR role = 'admin'"; 
+        const [memberResult] = await db.execute(memberSql);
+
+        return res.status(200).json({
+            registeredStudents: studentResult[0].totalStudents,
+            approvedMembers: memberResult[0].totalMembers
+        });
+
+    } catch (error) {
+        console.error("🔥 Error fetching user metrics:", error);
+        return res.status(500).json({ error: "Failed to fetch user metrics." });
+    }
+};
