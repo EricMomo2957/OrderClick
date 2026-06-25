@@ -6,13 +6,13 @@ import {
     getAllCustomers,
     getRevenueSummary, 
     getRecentOrders,   
-    getTopProducts 
+    getTopProducts,
+    updateCustomer // 👈 IMPORTED: Your customer profile modification controller
 } from '../controllers/ManageCustomerController.js';
 
 import { 
     getGuestOrders, 
     updateGuestOrderStatus,
-    updateCustomerProfile,       // Unified administration import hook
     deleteCustomerProfile,       // Unified administration import hook
     disableCustomerProfile,      // 🛑 IMPORTED: Your new disable controller hook
     resolveForgotPasswordRequest // 🚀 FIXED NAME MATCH: Pointing to your resolution handler
@@ -57,8 +57,10 @@ router.get('/top-products', verifyToken, isAdmin, getTopProducts);
 
 // --- User Directory ---
 router.get('/customers', verifyToken, isAdmin, getAllCustomers);
-// Ensure the parameters are named ":id" exactly to match req.params.id in the adminController
-router.put('/update-customer/:id', verifyToken, isAdmin, updateCustomerProfile);
+
+// 🛠️ FIXED: Updated path to match front-end request URL pattern and linked the correct controller
+router.put('/customers/:id', verifyToken, isAdmin, updateCustomer);
+
 router.delete('/delete-customer/:id', verifyToken, isAdmin, deleteCustomerProfile);
 // 🛑 NEW: PUT request to handle account state blocking cleanly
 router.put('/disable-customer/:id', verifyToken, isAdmin, disableCustomerProfile);

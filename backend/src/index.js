@@ -111,7 +111,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 
 // 🛠️ FALLBACK ROUTE INTERCEPTOR FOR DASHBOARD TOP PRODUCTS
-// Redirects /api/products/admin/top-products directly into the admin router pipeline to resolve the 404 error
 app.use('/api/products/admin', adminRoutes);
 
 app.use('/api/orders', orderRoutes);
@@ -123,6 +122,7 @@ app.use('/api/notifications', notificationRoutes); // MOUNTED NOTIFICATION SYSTE
 app.use('/api/documents', documentRoutes); 
 
 // --- Core Administration Operations Routers ---
+// 🚀 MOUNTED SECURELY: Matches /api/admin/customers/:id for your profile updates!
 app.use('/api/admin', adminRoutes); 
 
 // Separated cleanly to keep directory routes modular

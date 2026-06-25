@@ -123,3 +123,58 @@ export const getRecentOrders = async (req, res) => {
         return res.status(500).json({ message: "Database error" });
     }
 };
+
+// --- 6. FETCH SINGLE CUSTOMER BY ID (FOR INSPECTION) ---
+export const getCustomerById = async (req, res) => {
+    const { id } = req.params;
+    const query = `
+        SELECT id, fullname, email, customer_id, contact_number, gender, location, is_disabled 
+        FROM users 
+        WHERE id = ? AND role = 'customer'
+    `;
+
+    try {
+        const [rows] = await db.execute(query, [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "Customer not found." });
+        }
+        return res.status(200).json(rows[0]);
+    } catch (err) {
+        console.error("Error fetching customer by ID:", err);
+        return res.status(500).json({ message: "Database error" });
+    }
+};
+
+// --- 7. UPDATE CUSTOMER RECORDS ---
+/**
+ * Updates an existing customer profile.
+ * Verifies existence first to catch 404 errors securely and keeps code base in ES Modules.
+ */
+export const updateCustomer = async (req, res) => {
+    const { id } = req.params;
+    const { fullname, email, contact_number, gender, location } = req.body;
+
+    try {
+        // 1. Verify if the user exists first to isolate 404 routing errors cleanly
+        const [userExists] = await db.execute('SELECT * FROM users WHERE id = ? AND role = "customer"', [id]);
+        
+        if (userExists.length === 0) {
+            return res.status(404).json({ message: `Customer with ID ${id} not found.` });
+        }
+
+        // 2. Perform the update matching your exact schema field layouts
+        const query = `
+            UPDATE users 
+            SET fullname = ?, email = ?, contact_number = ?, gender = ?, location = ? 
+            WHERE id = ? AND role = 'customer'
+        `;
+        
+        await db.execute(query, [fullname, email, contact_number, gender, location, id]);
+
+        return res.status(200).json({ success: true, message: "Profile updated successfully!" });
+
+    } catch (error) {
+        console.error("Database Error during update customer update profile mutation operation:", error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+};
