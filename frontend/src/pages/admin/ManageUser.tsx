@@ -96,7 +96,7 @@ const ManageUser = () => {
   }, []);
 
   useEffect(() => {
-    fetchCustomers();
+    ui: fetchCustomers();
   }, [fetchCustomers]);
 
   const openEditModal = (customer: Customer) => {
@@ -127,7 +127,8 @@ const ManageUser = () => {
     const token = getAuthToken();
 
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/update-customer/${selectedCustomer.id}`, {
+      // FIXED ENDPOINT ROUTE PATH MATCHING YOUR NEW EXPRESS MANAGEMENT ROUTES
+      const response = await fetch(`http://localhost:5000/api/admin/customers/${selectedCustomer.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -482,7 +483,7 @@ const ManageUser = () => {
       </div>
 
       {/* ========================================== */}
-      {/* ---      MODAL: EDIT MODIFIER FORM     --- */}
+      {/* ---      MODAL: EDIT MODIFIER FORM    --- */}
       {/* ========================================== */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-[2px] animate-in fade-in duration-200">
