@@ -1,4 +1,3 @@
-// backend/src/controllers/authController.js
 import db from '../config/db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -10,10 +9,6 @@ import { logAction } from '../utils/logger.js';
  * ============================================================================
  */
 
-/**
- * REGISTER CONTROLLER
- * POST /api/auth/register
- */
 /**
  * REGISTER CONTROLLER
  * POST /api/auth/register
@@ -90,13 +85,20 @@ export const login = async (req, res) => {
 
     try {
         // 1. Await the query directly using the native promise client pool
-        const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+        // MODIFIED: Explicitly pulling down the registration metrics context + account status flags
+        const [users] = await db.execute('SELECT *, is_disabled FROM users WHERE email = ?', [email]);
         
         if (users.length === 0) {
             return res.status(404).json({ error: "User not found" });
         }
 
         const user = users[0];
+
+        // ─── 🛑 CHECK: PREVENT DISABLED USERS FROM INTERACTING ────────────────
+        if (user.is_disabled === 1) {
+            return res.status(403).json({ error: "Your account has been disabled. Please contact support." });
+        }
+        // ────────────────────────────────────────────────────────────────────
 
         // 2. Verify password safety hash match
         const isMatch = await bcrypt.compare(password, user.password);
@@ -282,7 +284,7 @@ export const getUserMetrics = async (req, res) => {
         const studentSql = "SELECT COUNT(*) AS totalStudents FROM users WHERE role = 'customer'";
         const [studentResult] = await db.execute(studentSql);
         
-        // Query 2: Count approved members (adjust the WHERE clause based on your actual column name, e.g., status = 'approved' or role = 'member')
+        // Query 2: Count approved members
         const memberSql = "SELECT COUNT(*) AS totalMembers FROM users WHERE role = 'member' OR role = 'admin'"; 
         const [memberResult] = await db.execute(memberSql);
 

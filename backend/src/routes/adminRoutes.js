@@ -1,4 +1,3 @@
-// backend/src/routes/adminRoutes.js
 import express from 'express';
 
 // --- Controller Imports ---
@@ -13,8 +12,9 @@ import {
 import { 
     getGuestOrders, 
     updateGuestOrderStatus,
-    updateCustomerProfile,  // Unified administration import hook
-    deleteCustomerProfile,  // Unified administration import hook
+    updateCustomerProfile,       // Unified administration import hook
+    deleteCustomerProfile,       // Unified administration import hook
+    disableCustomerProfile,      // 🛑 IMPORTED: Your new disable controller hook
     resolveForgotPasswordRequest // 🚀 FIXED NAME MATCH: Pointing to your resolution handler
 } from '../controllers/adminController.js'; 
 
@@ -57,9 +57,11 @@ router.get('/top-products', verifyToken, isAdmin, getTopProducts);
 
 // --- User Directory ---
 router.get('/customers', verifyToken, isAdmin, getAllCustomers);
-// Ensure the parameter is named ":id" exactly to match req.params.id in the adminController
+// Ensure the parameters are named ":id" exactly to match req.params.id in the adminController
 router.put('/update-customer/:id', verifyToken, isAdmin, updateCustomerProfile);
 router.delete('/delete-customer/:id', verifyToken, isAdmin, deleteCustomerProfile);
+// 🛑 NEW: PUT request to handle account state blocking cleanly
+router.put('/disable-customer/:id', verifyToken, isAdmin, disableCustomerProfile);
 
 // --- Guest Order Checkouts ---
 router.get('/guest-orders', verifyToken, isAdmin, getGuestOrders);

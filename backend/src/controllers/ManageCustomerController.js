@@ -3,11 +3,25 @@ import db from '../config/db.js';
 
 // --- 1. FETCH ALL REGISTERED CUSTOMERS ---
 /**
- * Retrieves a list of users with the 'customer' role.
+ * Retrieves a list of users with the 'customer' role along with profile information.
  * Uses native async/await syntax matching promise pool configurations.
  */
 export const getAllCustomers = async (req, res) => {
-    const query = "SELECT id, fullname, email, created_at FROM users WHERE role = 'customer'";
+    // Explicitly grab the newly added profile information columns
+    const query = `
+        SELECT 
+            id, 
+            fullname, 
+            email, 
+            customer_id, 
+            contact_number, 
+            gender, 
+            location, 
+            created_at, 
+            is_disabled 
+        FROM users 
+        WHERE role = 'customer'
+    `;
     
     try {
         const [rows] = await db.execute(query);

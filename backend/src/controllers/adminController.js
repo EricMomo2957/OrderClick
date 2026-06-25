@@ -218,3 +218,61 @@ export const deleteCustomerProfile = async (req, res) => {
         return res.status(500).json({ message: "Failed to purge targeted database entry context." });
     }
 };
+
+/**
+ * 6. Disable a registered customer entry context
+ * Updates the user's status to prevent login.
+ */
+export const disableCustomerProfile = async (req, res) => {
+    const { id } = req.params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+        return res.status(400).json({ message: "Invalid customer ID provided." });
+    }
+
+    try {
+        // 1. Check if the user exists and get their name for logging
+        const [userCheck] = await db.execute("SELECT fullname, email, is_disabled FROM users WHERE id = ?", [numericId]);
+        if (userCheck.length === 0) {
+            return res.status(404).json({ message: "Target customer trace entry not found." });
+        }
+        
+        const user = userCheck[0];
+        const targetedName = user.fullname;
+
+        // Check if already disabled
+        if (user.is_disabled === 1) {
+             return res.status(400).json({ message: "Customer account is already disabled." });
+        }
+
+        // 2. Update the user's status to disabled (1)
+        const query = `UPDATE users SET is_disabled = 1 WHERE id = ?`;
+        const [result] = await db.execute(query, [numericId]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Failed to disable customer. Record footprint absent." });
+        }
+
+        // 3. IMMUTABLE AUDIT TRIGGER: Track the account disable action
+        try {
+            await logAction({
+                userId: req.user?.id || 0,
+                fullname: req.user?.fullname || 'System Admin',
+                role: 'admin',
+                action: 'DISABLE_USER_RECORD',
+                resource: 'users',
+                resourceId: id,
+                details: `Administratively disabled customer account for "${targetedName}" (#USR-${id}). User will no longer be able to log in.`,
+                req: req
+            });
+        } catch (logErr) {
+             console.error("Non-blocking audit logger capture failure on disable user:", logErr);
+        }
+
+        return res.status(200).json({ message: "Customer account disabled successfully." });
+    } catch (error) {
+        console.error("Database error processing account disable:", error);
+        return res.status(500).json({ message: "Internal server error disabling targeted database entry." });
+    }
+};
