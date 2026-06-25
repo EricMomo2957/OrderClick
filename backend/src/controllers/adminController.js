@@ -220,59 +220,90 @@ export const deleteCustomerProfile = async (req, res) => {
 };
 
 /**
- * 6. Disable a registered customer entry context
- * Updates the user's status to prevent login.
+ * 6. Dynamic Customer Status Switch (Disable/Enable Account Toggle)
+ * Handles sequential toggle inputs pointing directly to the disable endpoint.
  */
 export const disableCustomerProfile = async (req, res) => {
     const { id } = req.params;
-    const numericId = parseInt(id, 10);
-
-    if (isNaN(numericId)) {
-        return res.status(400).json({ message: "Invalid customer ID provided." });
-    }
 
     try {
-        // 1. Check if the user exists and get their name for logging
-        const [userCheck] = await db.execute("SELECT fullname, email, is_disabled FROM users WHERE id = ?", [numericId]);
-        if (userCheck.length === 0) {
-            return res.status(404).json({ message: "Target customer trace entry not found." });
-        }
+        // 1. Fetch current account state and name details for high-fidelity auditing
+        const [user] = await db.execute('SELECT fullname, is_disabled FROM users WHERE id = ?', [id]);
         
-        const user = userCheck[0];
-        const targetedName = user.fullname;
-
-        // Check if already disabled
-        if (user.is_disabled === 1) {
-             return res.status(400).json({ message: "Customer account is already disabled." });
+        if (user.length === 0) {
+            return res.status(404).json({ message: "Customer not found." });
         }
 
-        // 2. Update the user's status to disabled (1)
-        const query = `UPDATE users SET is_disabled = 1 WHERE id = ?`;
-        const [result] = await db.execute(query, [numericId]);
+        // 2. Dynamic state switch toggle calculation
+        const currentStatus = user[0].is_disabled;
+        const targetedName = user[0].fullname;
+        const newStatus = currentStatus === 1 ? 0 : 1;
+        const statusMessage = newStatus === 1 ? "suspended" : "activated";
+        const logActionType = newStatus === 1 ? "DISABLE_USER_RECORD" : "ENABLE_USER_RECORD";
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "Failed to disable customer. Record footprint absent." });
-        }
+        const query = `UPDATE users SET is_disabled = ? WHERE id = ?`;
+        await db.execute(query, [newStatus, id]);
 
-        // 3. IMMUTABLE AUDIT TRIGGER: Track the account disable action
+        // 3. IMMUTABLE AUDIT TRIGGER: Track state changes seamlessly inside your panel view
         try {
             await logAction({
                 userId: req.user?.id || 0,
                 fullname: req.user?.fullname || 'System Admin',
                 role: 'admin',
-                action: 'DISABLE_USER_RECORD',
+                action: logActionType,
                 resource: 'users',
                 resourceId: id,
-                details: `Administratively disabled customer account for "${targetedName}" (#USR-${id}). User will no longer be able to log in.`,
+                details: `Administratively mutated customer state to ${statusMessage.toUpperCase()} for "${targetedName}" (#USR-${id}).`,
                 req: req
             });
         } catch (logErr) {
-             console.error("Non-blocking audit logger capture failure on disable user:", logErr);
+            console.error("Non-blocking audit logger capture failure on status switch toggle:", logErr);
         }
 
-        return res.status(200).json({ message: "Customer account disabled successfully." });
+        return res.status(200).json({ 
+            success: true, 
+            message: `Customer account successfully ${statusMessage}!`,
+            is_disabled: newStatus
+        });
+
     } catch (error) {
-        console.error("Database error processing account disable:", error);
-        return res.status(500).json({ message: "Internal server error disabling targeted database entry." });
+        console.error("Status toggle error:", error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+/**
+ * 7. Explicit Profile Restoration Hook
+ * Backing route logic to handle setups where individual explicit routing lines are preferred.
+ */
+export const enableCustomerProfile = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [user] = await db.execute('SELECT fullname FROM users WHERE id = ?', [id]);
+        if (user.length === 0) {
+            return res.status(404).json({ message: "Customer not found." });
+        }
+
+        await db.execute('UPDATE users SET is_disabled = 0 WHERE id = ?', [id]);
+
+        try {
+            await logAction({
+                userId: req.user?.id || 0,
+                fullname: req.user?.fullname || 'System Admin',
+                role: 'admin',
+                action: 'ENABLE_USER_RECORD',
+                resource: 'users',
+                resourceId: id,
+                details: `Administratively restored account access permissions manually for "${user[0].fullname}" (#USR-${id}).`,
+                req: req
+            });
+        } catch (logErr) {
+            console.error("Non-blocking audit logging fail:", logErr);
+        }
+
+        return res.status(200).json({ success: true, message: "Customer account restored successfully!" });
+    } catch (error) {
+        console.error("Explicit enable profile operation failure:", error);
+        return res.status(500).json({ error: "Internal Server Error" });
     }
 };

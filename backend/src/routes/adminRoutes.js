@@ -14,7 +14,8 @@ import {
     getGuestOrders, 
     updateGuestOrderStatus,
     deleteCustomerProfile,       // Unified administration import hook
-    disableCustomerProfile,      // 🛑 IMPORTED: Your new disable controller hook
+    disableCustomerProfile,      // 🛑 IMPORTED: Your dynamic toggle/disable controller hook
+    enableCustomerProfile,       // 🚀 IMPORTED: Explicit recovery activation hook
     resolveForgotPasswordRequest // 🚀 FIXED NAME MATCH: Pointing to your resolution handler
 } from '../controllers/adminController.js'; 
 
@@ -62,8 +63,11 @@ router.get('/customers', verifyToken, isAdmin, getAllCustomers);
 router.put('/customers/:id', verifyToken, isAdmin, updateCustomer);
 
 router.delete('/delete-customer/:id', verifyToken, isAdmin, deleteCustomerProfile);
+
 // 🛑 NEW: PUT request to handle account state blocking cleanly
 router.put('/disable-customer/:id', verifyToken, isAdmin, disableCustomerProfile);
+// 🟢 NEW: Explicit operational path endpoint mapping to restore customer entry context
+router.put('/enable-customer/:id', verifyToken, isAdmin, enableCustomerProfile); 
 
 // --- Guest Order Checkouts ---
 router.get('/guest-orders', verifyToken, isAdmin, getGuestOrders);
