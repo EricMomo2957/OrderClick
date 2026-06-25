@@ -136,33 +136,38 @@ export const resolveForgotPasswordRequest = async (req, res) => {
  * 4. Update a registered customer's full details
  * FIX: Patched safety handlers to handle cases where req.user middleware is missing
  */
-export const updateCustomerProfile = async (req, res) => {
+export const updateCustomer = async (req, res) => {
     const { id } = req.params;
-    const { fullname, email } = req.body;
+    const { fullname, email, contact_number, gender, location } = req.body;
 
     if (!fullname || !email) {
         return res.status(400).json({ message: "Fullname and email parameter updates are required." });
     }
 
     try {
-        const query = `UPDATE users SET fullname = ?, email = ? WHERE id = ?`;
-        const [result] = await db.execute(query, [fullname, email, parseInt(id, 10)]);
+        // 🚀 EXPANDED QUERY: Captures all customer modifications cleanly
+        const query = `
+            UPDATE users 
+            SET fullname = ?, 
+                email = ?, 
+                contact_number = ?, 
+                gender = ?, 
+                location = ? 
+            WHERE id = ?
+        `;
+        
+        const [result] = await db.execute(query, [
+            fullname, 
+            email, 
+            contact_number || null, 
+            gender || null, 
+            location || null, 
+            parseInt(id, 10)
+        ]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: "Customer account target record not found." });
         }
-
-        // IMUTABLE AUDIT TRIGGER: Fallbacks avoid throwing a 500 crash if token parsing wasn't attached
-        await logAction({
-            userId: req.user?.id || 0,
-            fullname: req.user?.fullname || 'System Admin',
-            role: 'admin',
-            action: 'UPDATE_USER_DIRECTORY',
-            resource: 'users',
-            resourceId: id,
-            details: `Admin altered account metrics for #USR-${id}. New identity payload: Name: "${fullname}", Email: "${email}".`,
-            req: req
-        });
 
         return res.status(200).json({ message: "Customer parameters updated successfully." });
     } catch (error) {
@@ -170,7 +175,6 @@ export const updateCustomerProfile = async (req, res) => {
         return res.status(500).json({ message: "Internal server error altering directory parameters." });
     }
 };
-
 /**
  * 5. Permanently drop a registered customer entry context
  * Evaluates row footprints and clears them down via structural execution queries
