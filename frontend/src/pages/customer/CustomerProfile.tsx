@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Mail, Shield, Calendar } from 'lucide-react';
+import { User, Mail, Shield, Calendar, Phone, MapPin, Smile, Fingerprint } from 'lucide-react';
 
 interface CustomerProfileProps {
   user: any;
@@ -37,35 +37,53 @@ const CustomerProfile = ({ user }: CustomerProfileProps) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Info Sidebar */}
-        <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm h-fit">
-          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Security & Status</h4>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 p-4 rounded-3xl bg-green-50 border border-green-100 text-green-700">
-              <Shield size={20} />
-              <div>
-                <p className="text-xs font-black">Verified Account</p>
-                <p className="text-[10px] opacity-70">Your data is encrypted</p>
+        <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm h-fit space-y-6">
+          <div>
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Security & Status</h4>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 p-4 rounded-3xl bg-green-50 border border-green-100 text-green-700">
+                <Shield size={20} />
+                <div>
+                  <p className="text-xs font-black">Verified Account</p>
+                  <p className="text-[10px] opacity-70">Your data is encrypted</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-4 p-4 rounded-3xl bg-slate-50 border border-slate-100 text-slate-600">
-              <Calendar size={20} />
-              <div>
-                <p className="text-xs font-black">Member Since</p>
-                <p className="text-[10px] opacity-70">2026</p>
+              <div className="flex items-center gap-4 p-4 rounded-3xl bg-slate-50 border border-slate-100 text-slate-600">
+                <Calendar size={20} />
+                <div>
+                  <p className="text-xs font-black">Member Since</p>
+                  <p className="text-[10px] opacity-70">2026</p>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Customer Meta Section inside Sidebar */}
+          {user.customer_id && (
+            <div>
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">System Identifier</h4>
+              <div className="flex items-center gap-3 p-4 rounded-3xl bg-slate-50 border border-transparent text-slate-700">
+                <Fingerprint size={18} className="text-[#003d3d]" />
+                <div>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Customer ID</p>
+                  <p className="text-xs font-bold font-mono tracking-tight">{user.customer_id}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Account Details View */}
         <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 md:p-10 border border-slate-100 shadow-sm">
           <div className="mb-10">
             <h4 className="text-xl font-black text-slate-800">General Settings</h4>
-            <p className="text-xs text-slate-400 font-bold">Your public identity and account email</p>
+            <p className="text-xs text-slate-400 font-bold">Your public identity and structural profile fields</p>
           </div>
 
-          <div className="space-y-6">
-            <div className="group">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Full Name */}
+            <div className="group md:col-span-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">Full Name</label>
               <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-slate-50 border border-transparent transition-all">
                 <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
@@ -75,7 +93,8 @@ const CustomerProfile = ({ user }: CustomerProfileProps) => {
               </div>
             </div>
 
-            <div className="group">
+            {/* Email Address */}
+            <div className="group md:col-span-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">Email Address</label>
               <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-slate-50 border border-transparent transition-all">
                 <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
@@ -84,6 +103,40 @@ const CustomerProfile = ({ user }: CustomerProfileProps) => {
                 <p className="text-sm font-bold text-slate-700">{user.email}</p>
               </div>
             </div>
+
+            {/* Contact Number */}
+            <div className="group">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">Contact Number</label>
+              <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-slate-50 border border-transparent transition-all">
+                <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                  <Phone size={18} className="text-teal-600" />
+                </div>
+                <p className="text-sm font-bold text-slate-700">{user.contact_number || 'Not Provided'}</p>
+              </div>
+            </div>
+
+            {/* Gender */}
+            <div className="group">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">Gender Identification</label>
+              <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-slate-50 border border-transparent transition-all">
+                <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                  <Smile size={18} className="text-teal-600" />
+                </div>
+                <p className="text-sm font-bold text-slate-700">{user.gender || 'Not Specified'}</p>
+              </div>
+            </div>
+
+            {/* Location / Address */}
+            <div className="group md:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">Location / Physical Address</label>
+              <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-slate-50 border border-transparent transition-all">
+                <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                  <MapPin size={18} className="text-teal-600" />
+                </div>
+                <p className="text-sm font-bold text-slate-700">{user.location || 'No Location Set'}</p>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

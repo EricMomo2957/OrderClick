@@ -382,7 +382,7 @@ const Landing = ({ setView }: LandingProps) => {
 
       {/* 8. Footer Section */}
       <footer className="bg-slate-900 py-16 text-slate-400">
-        <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-4 gap-12 border-b border-white/5 pb-16">
+        <div className="max-w-7xl mx-auto px-8 grid grid-cols-4 md:grid-cols-10 gap-12 border-b border-white/5 pb-16">
           <div className="space-y-6">
             <div className="flex items-center gap-2 text-white">
               <div className="h-8 w-8 rounded-lg bg-[#0f966c] flex items-center justify-center">
