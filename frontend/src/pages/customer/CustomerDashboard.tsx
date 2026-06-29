@@ -6,9 +6,13 @@ import { CUSTOMER_MENU } from './constants';
 
 const socket = io('http://localhost:5000');
 
-const CustomerDashboard = ({ onLogout }: { onLogout: () => void }) => {
-  const [activeTab, setActiveTab] = useState('dashboard'); // Updated default to 'dashboard'
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+interface CustomerDashboardProps {
+  user: any; // Receives live, synced user object from App.tsx
+  onLogout: () => void;
+}
+
+const CustomerDashboard = ({ user, onLogout }: CustomerDashboardProps) => {
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
     interface AnnouncementData {
@@ -76,19 +80,18 @@ const CustomerDashboard = ({ onLogout }: { onLogout: () => void }) => {
 
           <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3">
              <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-[#003d3d] font-bold text-xs">
-               {currentUser?.fullname?.charAt(0) || 'U'}
+               {user?.fullname?.charAt(0) || 'U'}
              </div>
              <span className="text-sm font-bold text-slate-600">
-               Welcome, {currentUser?.fullname || 'User'}! 👋
+               Welcome, {user?.fullname || 'User'}! 👋
              </span>
           </div>
         </header>
         
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Pass userId explicitly to satisfy DashboardHome requirements */}
             <ActiveComponent 
-              userId={currentUser?.id} 
-              user={currentUser} 
+              userId={user?.id} 
+              user={user} 
               onLogout={onLogout} 
             />
         </div>
