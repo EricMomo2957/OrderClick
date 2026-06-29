@@ -22,7 +22,7 @@ const CustomerProfile = ({ user }: CustomerProfileProps) => {
           <div className="text-center md:text-left space-y-2">
             <div className="flex flex-col md:flex-row items-center gap-3">
               <h2 className="text-4xl font-black text-white tracking-tight capitalize">
-                {user.name || user.fullname}
+                {user.fullname || user.name || 'No Name Set'}
               </h2>
               <span className="px-3 py-1 bg-teal-400/20 text-teal-300 border border-teal-400/30 rounded-lg text-[10px] font-black uppercase tracking-widest">
                 {user.role || 'Customer'}
@@ -59,25 +59,23 @@ const CustomerProfile = ({ user }: CustomerProfileProps) => {
           </div>
 
           {/* Customer Meta Section inside Sidebar */}
-          {user.customer_id && (
-            <div>
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">System Identifier</h4>
-              <div className="flex items-center gap-3 p-4 rounded-3xl bg-slate-50 border border-transparent text-slate-700">
-                <Fingerprint size={18} className="text-[#003d3d]" />
-                <div>
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Customer ID</p>
-                  <p className="text-xs font-bold font-mono tracking-tight">{user.customer_id}</p>
-                </div>
+          <div>
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">System Identifier</h4>
+            <div className="flex items-center gap-3 p-4 rounded-3xl bg-slate-50 border border-transparent text-slate-700">
+              <Fingerprint size={18} className="text-[#003d3d]" />
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Customer ID</p>
+                <p className="text-xs font-bold font-mono tracking-tight">{user.customer_id || 'Not Specified'}</p>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Account Details View */}
         <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 md:p-10 border border-slate-100 shadow-sm">
           <div className="mb-10">
             <h4 className="text-xl font-black text-slate-800">General Settings</h4>
-            <p className="text-xs text-slate-400 font-bold">Your public identity and structural profile fields</p>
+            <p className="text-xs text-slate-400 font-bold">Your public identity and structural profile parameters</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -89,7 +87,7 @@ const CustomerProfile = ({ user }: CustomerProfileProps) => {
                 <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
                   <User size={18} className="text-teal-600" />
                 </div>
-                <p className="text-sm font-bold text-slate-700">{user.name || user.fullname}</p>
+                <p className="text-sm font-bold text-slate-700">{user.fullname || user.name || 'Not Set'}</p>
               </div>
             </div>
 
@@ -101,6 +99,39 @@ const CustomerProfile = ({ user }: CustomerProfileProps) => {
                   <Mail size={18} className="text-teal-600" />
                 </div>
                 <p className="text-sm font-bold text-slate-700">{user.email}</p>
+              </div>
+            </div>
+
+            {/* Contact Number */}
+            <div className="group">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">Contact Number</label>
+              <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-slate-50 border border-transparent transition-all">
+                <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                  <Phone size={18} className="text-teal-600" />
+                </div>
+                <p className="text-sm font-bold text-slate-700">{user.contact_number || 'Not Provided'}</p>
+              </div>
+            </div>
+
+            {/* Gender Identification */}
+            <div className="group">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">Gender Identification</label>
+              <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-slate-50 border border-transparent transition-all">
+                <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                  <Smile size={18} className="text-teal-600" />
+                </div>
+                <p className="text-sm font-bold text-slate-700 capitalize">{user.gender || 'Not Specified'}</p>
+              </div>
+            </div>
+
+            {/* Location / Physical Address */}
+            <div className="group md:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">Location / Physical Address</label>
+              <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-slate-50 border border-transparent transition-all">
+                <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                  <MapPin size={18} className="text-teal-600" />
+                </div>
+                <p className="text-sm font-bold text-slate-700 capitalize">{user.location || 'No Location Set'}</p>
               </div>
             </div>
             
