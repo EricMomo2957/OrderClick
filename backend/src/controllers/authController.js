@@ -135,14 +135,20 @@ export const login = async (req, res) => {
         }
         // ────────────────────────────────────────────────────────────────────
 
+        // ... top of login controller remains unchanged ...
+
         return res.json({ 
             message: "Login successful",
             token, 
             user: { 
                 id: user.id,
-                name: user.fullname, 
+                fullname: user.fullname, 
                 email: user.email,
-                role: user.role 
+                role: user.role,
+                contact_number: user.contact_number,
+                gender: user.gender,
+                location: user.location,
+                customer_id: user.customer_id
             } 
         });
 
@@ -296,5 +302,35 @@ export const getUserMetrics = async (req, res) => {
     } catch (error) {
         console.error("🔥 Error fetching user metrics:", error);
         return res.status(500).json({ error: "Failed to fetch user metrics." });
+    }
+};
+
+/**
+ * GET CURRENT LOGGED IN USER PROFILE
+ * GET /api/auth/profile
+ * Requires authMiddleware / verifyToken on the route
+ */
+export const getProfile = async (req, res) => {
+    try {
+        // req.user.id is injected here by your verification middleware token decode step
+        const [users] = await db.execute(
+            'SELECT id, fullname, email, role, location, contact_number, gender, customer_id, is_disabled FROM users WHERE id = ?', 
+            [req.user.id]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ error: "User profile entity not found." });
+        }
+
+        const user = users[0];
+
+        if (user.is_disabled === 1) {
+            return res.status(403).json({ error: "Account has been disabled." });
+        }
+
+        return res.status(200).json({ user });
+    } catch (error) {
+        console.error("🔥 Profile Fetch Exception:", error);
+        return res.status(500).json({ error: "Internal server error fetching customer context." });
     }
 };
