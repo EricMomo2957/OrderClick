@@ -103,40 +103,7 @@ const CustomerProfile = ({ user }: CustomerProfileProps) => {
                 <p className="text-sm font-bold text-slate-700">{user.email}</p>
               </div>
             </div>
-
-            {/* Contact Number */}
-            <div className="group">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">Contact Number</label>
-              <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-slate-50 border border-transparent transition-all">
-                <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
-                  <Phone size={18} className="text-teal-600" />
-                </div>
-                <p className="text-sm font-bold text-slate-700">{user.contact_number || 'Not Provided'}</p>
-              </div>
-            </div>
-
-            {/* Gender */}
-            <div className="group">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">Gender Identification</label>
-              <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-slate-50 border border-transparent transition-all">
-                <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
-                  <Smile size={18} className="text-teal-600" />
-                </div>
-                <p className="text-sm font-bold text-slate-700">{user.gender || 'Not Specified'}</p>
-              </div>
-            </div>
-
-            {/* Location / Address */}
-            <div className="group md:col-span-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">Location / Physical Address</label>
-              <div className="flex items-center gap-4 p-4 rounded-[1.8rem] bg-slate-50 border border-transparent transition-all">
-                <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm">
-                  <MapPin size={18} className="text-teal-600" />
-                </div>
-                <p className="text-sm font-bold text-slate-700">{user.location || 'No Location Set'}</p>
-              </div>
-            </div>
-
+            
           </div>
         </div>
       </div>
