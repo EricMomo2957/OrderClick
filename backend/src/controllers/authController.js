@@ -310,27 +310,47 @@ export const getUserMetrics = async (req, res) => {
  * GET /api/auth/profile
  * Requires authMiddleware / verifyToken on the route
  */
+// controllers/authController.js
+
+// ... existing register / login logic ...
+
 export const getProfile = async (req, res) => {
-    try {
-        // req.user.id is injected here by your verification middleware token decode step
-        const [users] = await db.execute(
-            'SELECT id, fullname, email, role, location, contact_number, gender, customer_id, is_disabled FROM users WHERE id = ?', 
-            [req.user.id]
-        );
+  try {
+    // 1. req.user.id comes directly from your decoded authMiddleware token payload
+    const userId = req.user.id; 
 
-        if (users.length === 0) {
-            return res.status(404).json({ error: "User profile entity not found." });
-        }
+    // 2. Query your database ensuring all extended metadata columns are selected
+    // (Adjust the SQL query string below if your table names differ)
+    const [rows] = await db.execute(
+      `SELECT id, fullname, email, role, contact_number, gender, location, customer_id 
+       FROM users 
+       WHERE id = ?`, 
+      [userId]
+    );
 
-        const user = users[0];
-
-        if (user.is_disabled === 1) {
-            return res.status(403).json({ error: "Account has been disabled." });
-        }
-
-        return res.status(200).json({ user });
-    } catch (error) {
-        console.error("🔥 Profile Fetch Exception:", error);
-        return res.status(500).json({ error: "Internal server error fetching customer context." });
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "User matrix configuration identity not found." });
     }
+
+    const userProfile = rows[0];
+
+    // 3. Send back the complete dataset to your frontend
+    return res.status(200).json({
+      message: "Profile metadata synchronized successfully.",
+      user: {
+        id: userProfile.id,
+        fullname: userProfile.fullname,
+        email: userProfile.email,
+        role: userProfile.role,
+        contact_number: userProfile.contact_number, // Fixes "Not Provided"
+        gender: userProfile.gender,                 // Fixes "Not Specified"
+        location: userProfile.location,             // Fixes "No Location Set"
+        customer_id: userProfile.customer_id        // Fixes "Not Specified" ID banner
+      }
+    });
+
+  } catch (error) {
+    console.error("Error inside getProfile controller checkpoint:", error);
+    return res.status(500).json({ message: "Internal server error syncing profile data mapping grid." });
+  }
 };
