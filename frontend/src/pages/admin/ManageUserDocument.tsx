@@ -17,8 +17,8 @@ import {
 interface UserDocument {
   id: number;
   user_id: number;
-  fullname: string; // From joined table query mapping logic
-  email: string;    // From joined table query mapping logic
+  fullname: string; 
+  email: string;    
   document_title: string;
   file_name: string;
   file_path: string;
@@ -33,14 +33,10 @@ const ManageUserDocument = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Interactive global floating notification block
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  
-  // Tracking element state during update status network mutations
   const [processingId, setProcessingId] = useState<number | null>(null);
 
-  const API_BASE = 'http://localhost:5000/api/documents'; // Standard backend routing configuration context
+  const API_BASE = 'http://localhost:5000/api/documents'; 
 
   const getAuthHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -56,7 +52,6 @@ const ManageUserDocument = () => {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       
-      // Target an admin routing endpoint that retrieves all documents with joined user tables
       const res = await axios.get(`${API_BASE}/admin/all`, getAuthHeader());
       setDocuments(Array.isArray(res.data) ? res.data : []);
     } catch (error: any) {
@@ -67,7 +62,7 @@ const ManageUserDocument = () => {
           : "Failed loading user document transmission entries.", 
         "error"
       );
-    } finally {
+    } finally { // <--- Change 'filter' to 'finally' here
       setLoading(false);
       setRefreshing(false);
     }
@@ -77,7 +72,6 @@ const ManageUserDocument = () => {
     fetchAllDocuments(); 
   }, [fetchAllDocuments]);
 
-  // Handle multi-state moderation pipelines (Clear / Reject)
   const handleUpdateStatus = async (id: number, status: 'pending' | 'verified' | 'rejected') => {
     try {
       setProcessingId(id);
@@ -91,7 +85,6 @@ const ManageUserDocument = () => {
     }
   };
 
-  // Filter evaluation matrix
   const filteredDocuments = documents.filter((doc) => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
@@ -113,7 +106,6 @@ const ManageUserDocument = () => {
     );
   });
 
-  // Helper calculation formatting file metric displays
   const formatBytes = (bytes: number, decimals = 2) => {
     if (!bytes) return '0 Bytes';
     const k = 1024;
@@ -126,7 +118,6 @@ const ManageUserDocument = () => {
   return (
     <div className="p-4 relative min-h-screen animate-in fade-in duration-500">
       
-      {/* Floating Operational Notification Status Banner */}
       {alertMessage && (
         <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl transition-all border animate-in slide-in-from-bottom-5 ${
           alertMessage.type === 'success' 
@@ -140,7 +131,6 @@ const ManageUserDocument = () => {
 
       <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-8">
         
-        {/* Header Controller Interaction Module */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-1">
@@ -159,7 +149,6 @@ const ManageUserDocument = () => {
             <p className="text-gray-400 text-sm font-medium">Verify customer credentials, clear identity files, and process incoming data validation uploads.</p>
           </div>
           
-          {/* Dynamic Search Parameter Core */}
           <div className="relative w-full lg:w-96">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
               <Search size={16} />
@@ -182,7 +171,6 @@ const ManageUserDocument = () => {
           </div>
         </div>
         
-        {/* Responsive Content Table Registry Matrix */}
         <div className="overflow-x-auto rounded-3xl border border-slate-50">
           {loading ? (
             <table className="min-w-full">
@@ -230,15 +218,26 @@ const ManageUserDocument = () => {
               </thead>
               <tbody className="text-slate-600 text-xs font-medium divide-y divide-slate-50 bg-white">
                 {filteredDocuments.map((doc) => {
-                  // Normalize windows file paths safely to standard web address urls
-                  const cleanStaticPath = doc.file_path ? doc.file_path.replace(/\\/g, '/') : '';
-                  const targetResourceUrl = `http://localhost:5000/${cleanStaticPath}`;
+                  
+                  // FIX: If the file_path contains a full windows drive system route (e.g. C:/Users/...), 
+                  // extract only the essential relative routing part or fallback cleanly to the file name.
+                  let relativePath = '';
+                  if (doc.file_path) {
+                    const normalized = doc.file_path.replace(/\\/g, '/');
+                    if (normalized.includes('uploads/documents/')) {
+                      relativePath = 'uploads/documents/' + normalized.split('uploads/documents/')[1];
+                    } else {
+                      relativePath = `uploads/documents/${doc.file_name}`;
+                    }
+                  } else {
+                    relativePath = `uploads/documents/${doc.file_name}`;
+                  }
+
+                  const targetResourceUrl = `http://localhost:5000/${relativePath}`;
                   const isOperating = processingId === doc.id;
 
                   return (
                     <tr key={doc.id} className="hover:bg-slate-50/40 transition-colors group">
-                      
-                      {/* User Account Details Context Node */}
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-50 text-[#003d3d]">
@@ -251,7 +250,6 @@ const ManageUserDocument = () => {
                         </div>
                       </td>
 
-                      {/* Document Meta Class Assignment Block */}
                       <td className="py-4 px-6">
                         <div className="flex flex-col">
                           <span className="font-bold text-slate-700">{doc.document_title}</span>
@@ -259,7 +257,6 @@ const ManageUserDocument = () => {
                         </div>
                       </td>
                       
-                      {/* File Attachment Parameters Block */}
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-2 font-mono text-[11px]">
                           <FileText size={14} className="text-slate-400" />
@@ -274,12 +271,10 @@ const ManageUserDocument = () => {
                         </div>
                       </td>
                       
-                      {/* Date Submission Timestamp Column */}
                       <td className="py-4 px-6 text-center text-slate-500 font-semibold text-[11px]">
                         {new Date(doc.created_at).toLocaleDateString()}
                       </td>
 
-                      {/* Moderation Clearance Badge */}
                       <td className="py-4 px-6 text-center">
                         <span className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider border inline-flex items-center gap-1 ${
                           doc.status === 'pending' ? 'bg-orange-50 text-orange-600 border-orange-100' : 
@@ -291,11 +286,8 @@ const ManageUserDocument = () => {
                         </span>
                       </td>
 
-                      {/* Operational Admin Pipeline Options */}
                       <td className="py-4 px-6 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          
-                          {/* Target file inspector anchor */}
                           <a 
                             href={targetResourceUrl} 
                             target="_blank" 
