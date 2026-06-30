@@ -61,7 +61,7 @@ export default function DashboardHome({ userId }: DashboardProps) {
       } catch (error) {
         console.error("Error loading dashboard data:", error);
       } finally {
-        setLoading(false);
+        loading && setLoading(false);
       }
     };
 
@@ -69,56 +69,52 @@ export default function DashboardHome({ userId }: DashboardProps) {
   }, [userId]);
 
   if (loading) return (
-    <div className="flex items-center gap-2 text-slate-400 animate-pulse p-8 font-mono text-xs font-black uppercase tracking-widest justify-center">
+    <div className="flex items-center gap-2 text-slate-400 animate-pulse p-8 font-mono text-xs font-black uppercase tracking-widest justify-center min-h-screen w-full">
         <Clock size={16} className="animate-spin text-[#003d3d]" /> <span>Syncing portal...</span>
     </div>
   );
 
   return (
-    <div className="p-6 bg-slate-50 min-h-screen w-full">
-      <h1 className="text-2xl font-black mb-6 text-slate-800 uppercase tracking-tight">Your Dashboard</h1>
+    <div className="p-6 bg-slate-50 min-h-screen w-full font-['Inter']">
       
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* LEFT COLUMN: Main Content (Broadcasts & History) */}
-        <div className="lg:col-span-9 space-y-8">
-          
-          {/* Announcements */}
-          <section>
-            <h2 className="text-sm font-black mb-4 text-slate-400 uppercase tracking-widest font-mono">Latest Broadcasts</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {announcements.slice(0, 3).map((a) => (
-                <div key={a.id} className="p-6 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all">
-                  <h3 className="font-black text-slate-800 mb-1">{a.title}</h3>
-                  <p className="text-sm text-slate-500 line-clamp-2">{a.message}</p>
-                </div>
-              ))}
-            </div>
-          </section>
+      {/* HEADER SYSTEM TITLE */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Your Dashboard</h1>
+        <p className="text-slate-400 text-xs font-medium">Real-time terminal workspace, identity telemetry, and activity matrix tracking.</p>
+      </div>
 
-          {/* Transaction History */}
+      {/* MASTER RESPONSIVE LAYOUT GRID */}
+      <div className="grid grid-cols-6 xl:grid-cols-10 gap-0 items-start">
+        
+        {/* LEFT COLUMN: Main Transaction History Workspace */}
+        <div className="xl:col-span-8 space-y-8 order-2 xl:order-1">
           <section>
-            <h2 className="text-sm font-black mb-4 text-slate-400 uppercase tracking-widest font-mono">Transaction History</h2>
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Product</th>
-                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total Price</th>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest font-mono">Transaction History</h2>
+              <span className="text-[10px] bg-slate-200/60 text-slate-600 px-2 py-0.5 rounded font-mono font-bold">{history.length} Entries</span>
+            </div>
+
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200/60 overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/70 border-b border-slate-100">
+                    <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Product Description</th>
+                    <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total Net Price</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-100">
                   {history.length > 0 ? (
                     history.map((order) => (
-                      <tr key={order.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="p-6 font-bold text-slate-800 text-sm">{order.product_name}</td>
-                        <td className="p-6 text-sm font-mono font-black text-right">₱{Number(order.total_price).toLocaleString()}</td>
+                      <tr key={order.id} className="hover:bg-slate-50/50 transition-colors group">
+                        <td className="p-5 font-semibold text-slate-700 text-sm group-hover:text-[#003d3d] transition-colors">{order.product_name}</td>
+                        <td className="p-5 text-sm font-mono font-black text-right text-slate-800">₱{Number(order.total_price).toLocaleString()}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={2} className="p-12 text-center text-slate-400 font-mono text-xs">
-                        <AlertCircle className="mx-auto mb-2 opacity-50" />
-                        No orders processed yet.
+                      <td colSpan={2} className="p-16 text-center text-slate-400 font-mono text-xs">
+                        <AlertCircle className="mx-auto mb-2 opacity-40 text-slate-400" size={20} />
+                        No system logs or processed orders found.
                       </td>
                     </tr>
                   )}
@@ -128,22 +124,47 @@ export default function DashboardHome({ userId }: DashboardProps) {
           </section>
         </div>
 
-        {/* RIGHT SIDEBAR: Top Performing Inventory */}
-        <aside className="lg:col-span-3 space-y-4">
-          <h2 className="text-sm font-black mb-4 text-slate-400 uppercase tracking-widest font-mono">Top Performing Inventory</h2>
-          {topProducts.slice(0, 6).map((p, index) => (
-            <div key={p.id} className={`p-6 rounded-3xl shadow-lg ${index === 0 ? 'bg-[#003d3d]' : 'bg-white border border-slate-200'}`}>
-              <div className="flex justify-between items-start">
-                <Package className={index === 0 ? "text-emerald-400" : "text-slate-300"} size={24} />
-                {index < 3 && <Medal className={index === 0 ? "text-yellow-400" : "text-slate-300"} size={16} />}
+        {/* RIGHT SIDEBAR: Restructured Top Performing Inventory Panel */}
+        <aside className="xl:col-span-4 space-y-4 order-1 xl:order-2">
+          <div className="mb-4">
+            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest font-mono">Top Performing Inventory</h2>
+          </div>
+          
+          {/* Internal subgrid prevents the cards from over-stretching horizontally */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4">
+            {topProducts.slice(0, 6).map((p, index) => (
+              <div 
+                key={p.id} 
+                className={`p-4 rounded-2xl transition-all duration-200 hover:translate-y-[-2px] ${
+                  index === 0 
+                    ? 'bg-[#003d3d] shadow-lg shadow-[#003d3d]/10 text-white border border-[#003d3d]' 
+                    : 'bg-white border border-slate-200/80 shadow-sm text-slate-800'
+                }`}
+              >
+                <div className="flex justify-between items-center mb-2">
+                  <div className={`p-1.5 rounded-lg ${index === 0 ? 'bg-white/10' : 'bg-slate-100'}`}>
+                    <Package className={index === 0 ? "text-emerald-400" : "text-slate-400"} size={16} />
+                  </div>
+                  {index < 3 && (
+                    <Medal className={index === 0 ? "text-yellow-400" : "text-slate-400/70"} size={14} />
+                  )}
+                </div>
+                
+                <h3 className="font-bold text-sm tracking-tight line-clamp-2 min-h-[40px] flex items-center">
+                  {p.name}
+                </h3>
+                
+                <div className="mt-3 pt-2.5 border-t border-dashed flex justify-between items-center text-[10px] font-mono font-bold uppercase tracking-wider">
+                  <span className={index === 0 ? 'text-teal-200/60' : 'text-slate-400'}>Velocity Metric:</span>
+                  <span className={index === 0 ? 'text-emerald-400' : 'text-[#003d3d]'}>
+                    SOLD: {p.total_sold}
+                  </span>
+                </div>
               </div>
-              <p className={`font-black text-lg mt-2 ${index === 0 ? 'text-white' : 'text-slate-800'}`}>{p.name}</p>
-              <p className={`text-xs mt-1 uppercase font-mono font-bold ${index === 0 ? 'text-emerald-100/70' : 'text-slate-400'}`}>
-                Sold: {p.total_sold}
-              </p>
-            </div>
-          ))}
+            ))}
+          </div>
         </aside>
+
       </div>
     </div>
   );
