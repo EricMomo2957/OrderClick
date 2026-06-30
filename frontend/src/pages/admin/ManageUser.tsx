@@ -395,7 +395,8 @@ const ManageUser = () => {
                           <span className={`font-semibold text-xs tracking-tight capitalize ${user.is_disabled ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
                             {user.fullname}
                           </span>
-                          {user.is_disabled && (
+                          {/* Check explicitly for a truthy value or equal to 1/true */}
+                          {!!user.is_disabled && (
                             <span className="text-[9px] text-rose-500 font-extrabold tracking-wide uppercase">Suspended</span>
                           )}
                         </div>
