@@ -84,7 +84,7 @@ export default function DashboardHome({ userId }: DashboardProps) {
       </div>
 
       {/* MASTER RESPONSIVE LAYOUT GRID */}
-      <div className="grid grid-cols-6 xl:grid-cols-10 gap-0 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         
         {/* LEFT COLUMN: Main Transaction History Workspace */}
         <div className="xl:col-span-8 space-y-8 order-2 xl:order-1">
@@ -156,7 +156,17 @@ export default function DashboardHome({ userId }: DashboardProps) {
                 
                 <div className="mt-3 pt-2.5 border-t border-dashed flex justify-between items-center text-[10px] font-mono font-bold uppercase tracking-wider">
                   <span className={index === 0 ? 'text-teal-200/60' : 'text-slate-400'}>Velocity Metric:</span>
-                  <span className={index === 0 ? 'text-emerald-400' : 'text-[#003d3d]'}>
+                  
+                  {/* NEW DYNAMIC BACKGROUND COLOR BADGES */}
+                  <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black tracking-wide ${
+                    index === 0 
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                      : index === 1
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : index === 2
+                      ? 'bg-slate-100 text-slate-700 border border-slate-200'
+                      : 'bg-slate-50 text-slate-500 border border-slate-100'
+                  }`}>
                     SOLD: {p.total_sold}
                   </span>
                 </div>
