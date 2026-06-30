@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Clock, Package, AlertCircle, Medal } from 'lucide-react';
+import { Clock, Package, AlertCircle, Medal, DollarSign, ArrowUpRight } from 'lucide-react';
 
 // Data Structures
 interface Announcement {
@@ -61,12 +61,17 @@ export default function DashboardHome({ userId }: DashboardProps) {
       } catch (error) {
         console.error("Error loading dashboard data:", error);
       } finally {
-        loading && setLoading(false);
+        setLoading(false);
       }
     };
 
     fetchDashboardData();
   }, [userId]);
+
+  // COMPUTED METRICS: Sum total revenue dynamically from history array safely
+  const totalNetRevenue = history.reduce((sum, order) => {
+    return sum + (Number(order.total_price) || 0);
+  }, 0);
 
   if (loading) return (
     <div className="flex items-center gap-2 text-slate-400 animate-pulse p-8 font-mono text-xs font-black uppercase tracking-widest justify-center min-h-screen w-full">
@@ -81,6 +86,46 @@ export default function DashboardHome({ userId }: DashboardProps) {
       <div className="mb-8">
         <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Your Dashboard</h1>
         <p className="text-slate-400 text-xs font-medium">Real-time terminal workspace, identity telemetry, and activity matrix tracking.</p>
+      </div>
+
+      {/* NEW: TOP SYSTEM KPI METRIC GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        
+        {/* TOTAL REVENUE GRID METRIC */}
+        <div className="bg-[#003d3d] rounded-[2rem] p-6 text-white shadow-lg shadow-[#003d3d]/10 flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute right-[-5%] bottom-[-10%] opacity-10 text-white group-hover:scale-110 transition-transform duration-300">
+            <DollarSign size={140} />
+          </div>
+          <div className="space-y-2 relative z-10">
+            <span className="text-[10px] font-black tracking-widest text-emerald-400 uppercase font-mono bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
+              Financial Metric
+            </span>
+            <h2 className="text-slate-300/80 text-xs font-bold uppercase tracking-wider pt-1">Total Net Price</h2>
+            <p className="text-3xl font-black tracking-tight font-mono text-white">
+              ₱{totalNetRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </div>
+          <div className="h-12 w-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10 self-start shadow-sm">
+            <ArrowUpRight className="text-emerald-400" size={20} />
+          </div>
+        </div>
+
+        {/* LOGGED TRANSACTIONS METRIC */}
+        <div className="bg-white rounded-[2rem] p-6 text-slate-800 shadow-sm border border-slate-200/60 flex items-center justify-between relative overflow-hidden group">
+          <div className="space-y-2">
+            <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase font-mono bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200/40">
+              System Telemetry
+            </span>
+            <h2 className="text-slate-400 text-xs font-bold uppercase tracking-wider pt-1">Processed Transactions</h2>
+            <p className="text-3xl font-black tracking-tight font-mono text-slate-800">
+              {history.length} <span className="text-xs font-bold text-slate-400 font-sans tracking-normal">Receipts Logs</span>
+            </p>
+          </div>
+          <div className="h-12 w-12 rounded-2xl bg-[#003d3d]/5 flex items-center justify-center border border-slate-100 self-start shadow-sm">
+            <Package className="text-[#003d3d]" size={20} />
+          </div>
+        </div>
+
       </div>
 
       {/* MASTER RESPONSIVE LAYOUT GRID */}
@@ -130,7 +175,6 @@ export default function DashboardHome({ userId }: DashboardProps) {
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest font-mono">Top Performing Inventory</h2>
           </div>
           
-          {/* Internal subgrid prevents the cards from over-stretching horizontally */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-4">
             {topProducts.slice(0, 6).map((p, index) => (
               <div 
@@ -157,7 +201,6 @@ export default function DashboardHome({ userId }: DashboardProps) {
                 <div className="mt-3 pt-2.5 border-t border-dashed flex justify-between items-center text-[10px] font-mono font-bold uppercase tracking-wider">
                   <span className={index === 0 ? 'text-teal-200/60' : 'text-slate-400'}>Velocity Metric:</span>
                   
-                  {/* NEW DYNAMIC BACKGROUND COLOR BADGES */}
                   <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black tracking-wide ${
                     index === 0 
                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
