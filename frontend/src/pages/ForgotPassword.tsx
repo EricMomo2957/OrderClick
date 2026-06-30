@@ -11,7 +11,6 @@ const ForgotPassword = ({ setView }: ForgotPasswordProps) => {
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Connects directly to your authentication backend endpoint
       const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,11 +32,11 @@ const ForgotPassword = ({ setView }: ForgotPasswordProps) => {
   };
 
   return (
-    /* Main layout container matching the light neutral blue style */
-    <div className="min-h-screen w-full grid grid-cols-12 bg-[#f0f4f8] font-['Inter']">
+    /* Main layout container split explicitly with pure background separations */
+    <div className="min-h-screen w-full grid grid-cols-12 bg-white font-['Inter']">
       
       {/* LEFT SIDE: PHOTO BRANDING AREA PANELS */}
-      <div className="col-span-5 bg-[#003d3d] p-12 flex flex-col justify-between relative overflow-hidden shadow-[inset_-10px_0_30px_rgba(0,0,0,0.05)]">
+      <div className="col-span-5 bg-[#003d3d] p-12 flex flex-col justify-between relative overflow-hidden">
         {/* Ambient background blur lighting */}
         <div className="absolute top-[-20%] right-[-20%] w-96 h-96 bg-teal-600/20 rounded-full blur-3xl"></div>
         <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 bg-emerald-800/30 rounded-full blur-3xl"></div>
@@ -64,12 +63,12 @@ const ForgotPassword = ({ setView }: ForgotPasswordProps) => {
             </p>
           </div>
 
-          {/* Integrated Image Frame pointing to public/images/login-bg.png */}
-          <div className="bg-white/5 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl group">
+          {/* Integrated Image Frame */}
+          <div className="overflow-hidden rounded-[2rem]">
             <img 
               src="/images/login-bg.png" 
               alt="OrderClick Portal Illustration" 
-              className="w-full h-auto min-h-[240px] object-cover opacity-95 group-hover:opacity-100 transition-opacity duration-300 block"
+              className="w-full h-auto min-h-[240px] object-cover block"
             />
           </div>
         </div>
@@ -81,49 +80,48 @@ const ForgotPassword = ({ setView }: ForgotPasswordProps) => {
       </div>
 
       {/* RIGHT SIDE: AUTH FORM ACTION PANELS */}
-      <div className="col-span-7 flex items-center justify-center p-6 md:p-12 relative">
+      <div className="col-span-7 flex flex-col justify-center p-6 md:p-12 relative bg-white">
         
-        {/* BACK TO LOGIN ARROW TRIGGER */}
+        {/* BACK TO HOME LINK */}
         <button 
           onClick={() => setView('login')}
-          className="absolute top-8 left-6 md:left-12 flex items-center gap-2 text-slate-400 hover:text-[#003d3d] transition-colors font-bold text-xs uppercase tracking-widest group z-10"
+          className="absolute top-12 left-6 md:left-24 flex items-center gap-2 text-slate-400 hover:text-[#003d3d] transition-colors font-bold text-[11px] uppercase tracking-wider group z-10"
         >
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
-            className="h-4 w-4 group-hover:-translate-x-1 transition-transform" 
+            className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" 
             fill="none" 
             viewBox="0 0 24 24" 
             stroke="currentColor"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Back to login
+          Back to home
         </button>
 
-        {/* Central Card Container Layout */}
-        <div className="w-full max-w-[440px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,61,61,0.06)] border border-slate-200/60 p-8 md:p-10">
+        {/* Form Content Wrapper */}
+        <div className="w-full max-w-[380px] mx-auto text-center">
           
           <div className="mb-8">
-            <h1 className="text-3xl font-black tracking-tight text-slate-800 mb-1">
-              Reset Password
+            <h1 className="text-4xl font-black tracking-tight text-slate-800 mb-2">
+              Welcome <span className="text-[#003d3d]">Back</span>
             </h1>
-            <p className="text-slate-400 text-sm font-medium">
-              {!isSubmitted 
-                ? "Enter your email address and we'll send you instructions to reset your password."
-                : "Check your email inbox for a link to change your security credentials."
-              }
+            <p className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+              Please enter your security reset credentials
             </p>
           </div>
 
           {!isSubmitted ? (
-            <form onSubmit={handleResetSubmit} className="space-y-5">
+            <form onSubmit={handleResetSubmit} className="space-y-5 text-left">
               <div className="space-y-2">
-                <label className="text-[12px] font-black uppercase tracking-wider text-slate-500 ml-1">Email Address</label>
+                <label className="text-[11px] font-black uppercase tracking-wider text-slate-500 ml-1">
+                  Email Address
+                </label>
                 <input 
                   type="email" 
                   placeholder="name@company.com" 
                   value={email}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200/70 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white focus:ring-4 focus:ring-[#003d3d]/5 transition-all text-slate-700 font-medium text-sm"
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200/60 rounded-2xl outline-none focus:border-[#003d3d] focus:bg-white transition-all text-slate-700 font-medium text-sm shadow-sm"
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
@@ -131,44 +129,50 @@ const ForgotPassword = ({ setView }: ForgotPasswordProps) => {
 
               <button 
                 type="submit"
-                className="w-full bg-[#003d3d] text-white font-black py-4 rounded-2xl shadow-lg shadow-[#003d3d]/20 hover:bg-[#002d2d] active:scale-[0.99] transition-all mt-4 text-sm tracking-wide"
+                className="w-full bg-[#003d3d] text-white font-black py-4 rounded-2xl shadow-sm hover:bg-[#002d2d] transition-all mt-2 text-sm tracking-wide"
               >
-                Send Reset Link
+                Continue to Dashboard
               </button>
             </form>
           ) : (
-            /* Success confirmation panel view variant */
             <div className="space-y-6 text-center py-4">
-              <div className="h-16 w-16 mx-auto rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500">
+              <div className="h-16 w-16 mx-auto rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 mb-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
+              <p className="text-slate-500 text-sm font-medium">
+                Check your email inbox for a link to change your security credentials.
+              </p>
               <button 
                 type="button"
                 onClick={() => setView('login')}
-                className="w-full bg-[#003d3d] text-white font-black py-4 rounded-2xl shadow-lg hover:bg-[#002d2d] transition-all text-sm tracking-wide"
+                className="w-full bg-[#003d3d] text-white font-black py-4 rounded-2xl shadow-sm hover:bg-[#002d2d] transition-all text-sm tracking-wide"
               >
                 Return to Sign In
               </button>
             </div>
           )}
 
-          {/* Separation Line Break */}
+          {/* Bottom Separation Divider line matches design parameters */}
           <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
-            <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400"><span className="bg-white px-4">OR</span></div>
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-100"></div>
+            </div>
+            <div className="relative flex justify-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+              <span className="bg-white px-4">or</span>
+            </div>
           </div>
 
-          <div className="text-center">
-            <p className="text-slate-400 text-sm font-medium">
-              Don't have an account?{' '}
+          <div className="text-center text-xs">
+            <p className="text-slate-400 font-medium">
+              New to our network?{' '}
               <button 
                 type="button"
                 onClick={() => setView('register')} 
-                className="text-[#003d3d] font-black border-b-2 border-[#003d3d]/10 hover:border-[#003d3d] transition-all"
+                className="text-[#003d3d] font-black hover:underline transition-all"
               >
-                Create account
+                Create new account
               </button>
             </p>
           </div>
