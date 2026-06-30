@@ -129,7 +129,7 @@ export default function DashboardHome({ userId }: DashboardProps) {
       </div>
 
       {/* MASTER RESPONSIVE LAYOUT GRID */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-0 items-start">
         
         {/* LEFT COLUMN: Main Transaction History Workspace */}
         <div className="xl:col-span-8 space-y-8 order-2 xl:order-1">
