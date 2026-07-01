@@ -277,7 +277,7 @@ const Landing = ({ setView }: LandingProps) => {
           <h2 className="text-4xl font-black mb-4">Simple as <span className="text-[#21c08b]">1-2-3</span></h2>
           <p className="text-slate-400">Our seamless process designed for speed.</p>
         </div>
-        <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="max-w-7xl mx-auto px-8 grid grid-cols-3 md:grid-cols-7 gap-12">
           {[
             { step: '01', title: 'Pick Items', desc: 'Browse our marketplace and add items to your cart.' },
             { step: '02', title: 'One-Click Pay', desc: 'Secure checkout with your preferred payment method.' },
