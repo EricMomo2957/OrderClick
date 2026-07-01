@@ -132,39 +132,46 @@ export default function DashboardHome({ userId }: DashboardProps) {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-0 items-start">
         
         {/* LEFT COLUMN: Main Transaction History Workspace WITH STAGGERED ENTRANCE */}
-        <div className="xl:col-span-8 space-y-8 order-2 xl:order-1 transition-all duration-700 delay-100 ease-out animate-in fade-in slide-in-from-bottom-6">
+        <div className="xl:col-span-8 space-y-8 order-2 xl:order-1 transition-all duration-700 delay-100 ease-out animate-in fade-in slide-in-from-bottom-6 pr-0 xl:pr-6">
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest font-mono">Transaction History</h2>
               <span className="text-[10px] bg-slate-200/60 text-slate-600 px-2 py-0.5 rounded font-mono font-bold">{history.length} Entries</span>
             </div>
 
-            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200/60 overflow-hidden">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/70 border-b border-slate-100">
-                    <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Product Description</th>
-                    <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total Net Price</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {history.length > 0 ? (
-                    history.map((order) => (
-                      <tr key={order.id} className="hover:bg-slate-50/50 transition-colors group">
-                        <td className="p-5 font-semibold text-slate-700 text-sm group-hover:text-[#003d3d] transition-colors">{order.product_name}</td>
-                        <td className="p-5 text-sm font-mono font-black text-right text-slate-800">₱{Number(order.total_price).toLocaleString()}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={2} className="p-16 text-center text-slate-400 font-mono text-xs">
-                        <AlertCircle className="mx-auto mb-2 opacity-40 text-slate-400" size={20} />
-                        No system logs or processed orders found.
-                      </td>
+            {/* MODIFIED: Added custom dark background wrapper panel system */}
+            <div className="bg-[#002b2b] p-4 rounded-[2.5rem] border border-[#003d3d]/30 shadow-xl shadow-slate-900/10">
+              <div className="bg-[#003434] rounded-[2rem] shadow-inner border border-white/5 overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[#002626] border-b border-white/5">
+                      <th className="p-5 text-[10px] font-black text-teal-400/80 uppercase tracking-widest font-mono">Product Description</th>
+                      <th className="p-5 text-[10px] font-black text-teal-400/80 uppercase tracking-widest font-mono text-right">Total Net Price</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {history.length > 0 ? (
+                      history.map((order) => (
+                        <tr key={order.id} className="hover:bg-white/[0.03] transition-colors group">
+                          <td className="p-5 font-semibold text-slate-100 text-sm group-hover:text-emerald-400 transition-colors">
+                            {order.product_name}
+                          </td>
+                          <td className="p-5 text-sm font-mono font-black text-right text-emerald-400">
+                            ₱{Number(order.total_price).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={2} className="p-16 text-center text-teal-600 font-mono text-xs bg-[#003434]">
+                          <AlertCircle className="mx-auto mb-2 opacity-40 text-teal-500" size={20} />
+                          No system logs or processed orders found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
         </div>
