@@ -88,8 +88,8 @@ export default function DashboardHome({ userId }: DashboardProps) {
         <p className="text-slate-400 text-xs font-medium">Real-time terminal workspace, identity telemetry, and activity matrix tracking.</p>
       </div>
 
-      {/* NEW: TOP SYSTEM KPI METRIC GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      {/* NEW: TOP SYSTEM KPI METRIC GRID WITH ENTRANCE ANIMATION */}
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-6 mb-8 transition-all duration-500 ease-out animate-in fade-in slide-in-from-bottom-4">
         
         {/* TOTAL REVENUE GRID METRIC */}
         <div className="bg-[#003d3d] rounded-[2rem] p-6 text-white shadow-lg shadow-[#003d3d]/10 flex items-center justify-between relative overflow-hidden group">
@@ -131,8 +131,8 @@ export default function DashboardHome({ userId }: DashboardProps) {
       {/* MASTER RESPONSIVE LAYOUT GRID */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-0 items-start">
         
-        {/* LEFT COLUMN: Main Transaction History Workspace */}
-        <div className="xl:col-span-8 space-y-8 order-2 xl:order-1">
+        {/* LEFT COLUMN: Main Transaction History Workspace WITH STAGGERED ENTRANCE */}
+        <div className="xl:col-span-8 space-y-8 order-2 xl:order-1 transition-all duration-700 delay-100 ease-out animate-in fade-in slide-in-from-bottom-6">
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest font-mono">Transaction History</h2>
@@ -169,8 +169,8 @@ export default function DashboardHome({ userId }: DashboardProps) {
           </section>
         </div>
 
-        {/* RIGHT SIDEBAR: Restructured Top Performing Inventory Panel */}
-        <aside className="xl:col-span-4 space-y-4 order-1 xl:order-2">
+        {/* RIGHT SIDEBAR: Restructured Top Performing Inventory Panel WITH STAGGERED ENTRANCE */}
+        <aside className="xl:col-span-4 space-y-4 order-1 xl:order-2 transition-all duration-700 delay-200 ease-out animate-in fade-in slide-in-from-bottom-8">
           <div className="mb-4">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest font-mono">Top Performing Inventory</h2>
           </div>
@@ -182,15 +182,47 @@ export default function DashboardHome({ userId }: DashboardProps) {
                 className={`p-4 rounded-2xl transition-all duration-200 hover:translate-y-[-2px] ${
                   index === 0 
                     ? 'bg-[#003d3d] shadow-lg shadow-[#003d3d]/10 text-white border border-[#003d3d]' 
+                    : index === 1
+                    ? 'bg-amber-50/60 border border-amber-200/80 shadow-sm text-amber-900'
+                    : index === 2
+                    ? 'bg-indigo-50/60 border border-indigo-200/80 shadow-sm text-indigo-900'
+                    : index === 3
+                    ? 'bg-sky-50/60 border border-sky-200/80 shadow-sm text-sky-900'
                     : 'bg-white border border-slate-200/80 shadow-sm text-slate-800'
                 }`}
               >
                 <div className="flex justify-between items-center mb-2">
-                  <div className={`p-1.5 rounded-lg ${index === 0 ? 'bg-white/10' : 'bg-slate-100'}`}>
-                    <Package className={index === 0 ? "text-emerald-400" : "text-slate-400"} size={16} />
+                  <div className={`p-1.5 rounded-lg ${
+                    index === 0 
+                      ? 'bg-white/10' 
+                      : index === 1
+                      ? 'bg-amber-100'
+                      : index === 2
+                      ? 'bg-indigo-100'
+                      : index === 3
+                      ? 'bg-sky-100'
+                      : 'bg-slate-100'
+                  }`}>
+                    <Package className={
+                      index === 0 
+                        ? "text-emerald-400" 
+                        : index === 1
+                        ? "text-amber-600"
+                        : index === 2
+                        ? "text-indigo-600"
+                        : index === 3
+                        ? "text-sky-600"
+                        : "text-slate-400"
+                    } size={16} />
                   </div>
                   {index < 3 && (
-                    <Medal className={index === 0 ? "text-yellow-400" : "text-slate-400/70"} size={14} />
+                    <Medal className={
+                      index === 0 
+                        ? "text-yellow-400" 
+                        : index === 1
+                        ? "text-amber-500"
+                        : "text-indigo-400"
+                    } size={14} />
                   )}
                 </div>
                 
@@ -198,16 +230,28 @@ export default function DashboardHome({ userId }: DashboardProps) {
                   {p.name}
                 </h3>
                 
-                <div className="mt-3 pt-2.5 border-t border-dashed flex justify-between items-center text-[10px] font-mono font-bold uppercase tracking-wider">
-                  <span className={index === 0 ? 'text-teal-200/60' : 'text-slate-400'}>Velocity Metric:</span>
+                <div className="mt-3 pt-2.5 border-t border-dashed flex justify-between items-center text-[10px] font-mono font-bold uppercase tracking-wider raw-border">
+                  <span className={
+                    index === 0 
+                      ? 'text-teal-200/60' 
+                      : index === 1
+                      ? 'text-amber-700/70'
+                      : index === 2
+                      ? 'text-indigo-700/70'
+                      : index === 3
+                      ? 'text-sky-700/70'
+                      : 'text-slate-400'
+                  }>Velocity Metric:</span>
                   
                   <span className={`px-2.5 py-1 rounded-xl text-[11px] font-black tracking-wide ${
                     index === 0 
                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
                       : index === 1
-                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      ? 'bg-amber-500/20 text-amber-700 border border-amber-500/30'
                       : index === 2
-                      ? 'bg-slate-100 text-slate-700 border border-slate-200'
+                      ? 'bg-indigo-500/20 text-indigo-700 border border-indigo-500/30'
+                      : index === 3
+                      ? 'bg-sky-500/20 text-sky-700 border border-sky-500/30'
                       : 'bg-slate-50 text-slate-500 border border-slate-100'
                   }`}>
                     SOLD: {p.total_sold}
